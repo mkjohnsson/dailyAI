@@ -2,7 +2,7 @@ name: Daily surprise app
 
 on:
   schedule:
-    - cron: "0 06 * * *"  # 06:00 UTC ~ 08:00 Stockholm
+    - cron: "0 06 * * *"
   workflow_dispatch:
 
 permissions:
@@ -26,16 +26,14 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y jq
 
-      - name: Create generator script
+      - name: Generate today's app (index.html)
         shell: bash
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
-          set -euo pipefail
-          cat > generate.sh <<'SCRIPT'
-          #!/usr/bin/env bash
           set -euo pipefail
           mkdir -p dist
 
-          # Prompts (as files)
           cat > sys.txt <<'EOF'
           You will output a single self-contained HTML file that runs in a browser with inline CSS and JS. No build tools and no servers.
           Requirements:
@@ -56,37 +54,24 @@ jobs:
           Create a unique, browser-executable program now. Include the "Why this is new today" section and then a single complete HTML file.
           EOF
 
-          # Build JSON payload with jq
           jq -n --rawfile sys sys.txt --rawfile usr user.txt \
             '{model:"gpt-4o-mini", input:[{role:"system",content:$sys},{role:"user",content:$usr}]}' > body.json
 
-          # Call OpenAI Responses API
           curl -s https://api.openai.com/v1/responses \
             -H "Authorization: Bearer $OPENAI_API_KEY" \
             -H "Content-Type: application/json" \
             -d @body.json \
             | jq -r '.output_text' > dist/generated.txt || true
 
-          # Extract HTML block; fallback to full text
           awk 'BEGIN{code=0} /```html/ {code=1; next} /```/ && code==1 {code=0; next} {if(code) print}' dist/generated.txt > dist/index.html || true
           if [ ! -s dist/index.html ]; then cp dist/generated.txt dist/index.html; fi
 
-          # Minimal sanity check
           if ! grep -qi "<html" dist/index.html; then
             printf '%s\n' '<!doctype html><meta charset="utf-8"><title>Error</title><pre>Model did not return HTML.</pre>' > dist/index.html
           fi
 
-          # Landing page linking to today's app
           cp dist/index.html dist/today.html
           printf '%s\n' '<!doctype html><meta charset="utf-8"><title>dailyAI</title><meta name="viewport" content="width=device-width, initial-scale=1"><body style="font:16px system-ui,sans-serif;display:grid;place-items:center;min-height:100vh"><h1>dailyAI</h1><p><a href="./today.html">Open todays surprise app</a></p>' > dist/index.html
-          SCRIPT
-          chmod +x generate.sh
-
-      - name: Generate today's app
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: ./generate.sh
-        shell: bash
 
       - name: Debug: show first lines
         run: |
