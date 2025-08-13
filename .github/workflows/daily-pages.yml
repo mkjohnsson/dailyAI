@@ -2,7 +2,7 @@ name: Daily surprise app
 
 on:
   schedule:
-    - cron: "0 06 * * *"   # 06:00 UTC ≈ 08:00 Stockholm
+    - cron: "0 06 * * *"  # 06:00 UTC ~ 08:00 Stockholm
   workflow_dispatch:
 
 permissions:
@@ -17,7 +17,6 @@ concurrency:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -31,82 +30,60 @@ jobs:
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
-          set -euo pipefail
+          set -e
           mkdir -p dist
 
-          # ---- Skriv promptarna till filer (säkert för YAML) ----
-          cat > sys.txt << 'EOF'
-You will output a single self-contained HTML file (<!DOCTYPE html>…</html>) that runs directly in a browser with inline CSS and JS (no build tools, no servers).
+          # Write prompts to files (avoids YAML multiline issues)
+          cat > sys.txt <<'EOF'
+You will output a single self-contained HTML file that runs in a browser with inline CSS and JS. No build tools and no servers.
 Requirements:
 - Must be interactive.
-- Rotate category by (new Date().getDay() % 3) => [useful, fun, absurd].
+- Rotate category by (new Date().getDay() % 3) -> [useful, fun, absurd].
 - Use at least one technique not used in the last three programs.
-- Include exactly one random twist: [AI-generated content, 3D graphics, sound/music, live internet data (with graceful CORS/offline fallback), or unusual browser APIs].
-- Before coding, ensure this idea clearly differs from the last 7 conceptual runs (no repeated core mechanics/themes/UI patterns).
+- Include exactly one random twist: AI-generated content, 3D graphics, sound/music, live internet data (with fallback), or unusual browser APIs.
+- Ensure the idea clearly differs from the last 7 conceptual runs (no repeated core mechanics or themes).
 Output:
-1) A short markdown list titled "Why this is new today" with 3–5 bullets.
-2) Then one complete HTML document in a code fence.
-Additional constraints:
-- Single-file; inline assets; support mouse + touch + keyboard.
-- If an API/permission is blocked, feature-detect and provide a non-permission fallback.
-- Keep it lightweight; no external servers required; CDNs allowed.
+1) A markdown list titled "Why this is new today" with 3-5 bullets.
+2) One complete HTML document in a code fence.
+Constraints:
+- Single-file; inline assets; support mouse, touch, keyboard.
+- If a permission or API is blocked, feature-detect and provide a fallback.
 EOF
 
-          cat > user.txt << 'EOF'
-Create a unique, browser-executable program now. Remember to include the "Why this is new today" section and then a single complete HTML file.
+          cat > user.txt <<'EOF'
+Create a unique, browser-executable program now. Include the "Why this is new today" section and then a single complete HTML file.
 EOF
 
-          # ---- Bygg JSON-payload säkert med jq (läser filerna rått) ----
-          jq -n \
-            --rawfile sys sys.txt \
-            --rawfile usr user.txt \
-            '{ model:"gpt-4o-mini",
-               input: [
-                 {role:"system", content:$sys},
-                 {role:"user",   content:$usr}
-               ] }' > body.json
+          # Build JSON safely with jq
+          jq -n --rawfile sys sys.txt --rawfile usr user.txt \
+            '{model:"gpt-4o-mini", input:[{role:"system",content:$sys},{role:"user",content:$usr}]}' > body.json
 
-          # ---- Anropa OpenAI Responses API ----
+          # Call OpenAI Responses API
           curl -s https://api.openai.com/v1/responses \
             -H "Authorization: Bearer $OPENAI_API_KEY" \
             -H "Content-Type: application/json" \
             -d @body.json \
             | jq -r '.output_text' > dist/generated.txt || true
 
-          # ---- Extrahera HTML-koden ur code fence; fallback till hela svaret ----
-          awk 'BEGIN{code=0} /```html/ {code=1; next} /```/ && code==1 {code=0; next} {if(code) print}' dist/generated.txt > dist/index.html
+          # Extract HTML code block; fallback to full text
+          awk 'BEGIN{code=0} /```html/ {code=1; next} /```/ && code==1 {code=0; next} {if(code) print}' dist/generated.txt > dist/index.html || true
           if [ ! -s dist/index.html ]; then cp dist/generated.txt dist/index.html; fi
 
-          # ---- Minimal sanity check ----
+          # Minimal sanity check
           if ! grep -qi "<html" dist/index.html; then
-            cat > dist/index.html << 'HTML'
-<!doctype html>
-<html lang="en">
-  <meta charset="utf-8">
-  <title>Generation Error</title>
-  <style>body{font:16px system-ui, sans-serif;max-width:60ch;margin:5rem auto;padding:0 1rem}</style>
-  <h1>Model did not return HTML</h1>
-  <p>The generation step did not contain a valid HTML document. Please re-run the workflow.</p>
-</html>
-HTML
+            echo "<!doctype html><title>Error</title><pre>Model did not return HTML.</pre>" > dist/index.html
           fi
 
-          # ---- En enkel startsida som pekar på dagens app ----
+          # Simple landing page that links to today's app
           cp dist/index.html dist/today.html
-          cat > dist/index.html << 'HTML'
-<!doctype html>
-<html lang="en">
-  <meta charset="utf-8">
-  <title>dailyAI — Latest Build</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    body{font:16px system-ui, sans-serif;display:grid;place-items:center;min-height:100vh;background:#f6f7fb;color:#111}
-    a{padding:.8rem 1rem;border:1px solid #ccc;border-radius:10px;text-decoration:none}
-  </style>
-  <h1>dailyAI</h1>
-  <p><a href="./today.html">Open today's surprise app</a></p>
-</html>
-HTML
+          printf '%s\n' '<!doctype html><meta charset="utf-8"><title>dailyAI</title><body style="font:16px system-ui,sans-serif;display:grid;place-items:center;min-height:100vh"><h1>dailyAI</h1><p><a href="./today.html">Open todays surprise app</a></p>' > dist/index.html
+
+      - name: Debug: show first lines of outputs
+        run: |
+          echo "=== generated.txt (head) ==="
+          head -n 40 dist/generated.txt || true
+          echo "=== index.html (head) ==="
+          head -n 40 dist/index.html || true
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
