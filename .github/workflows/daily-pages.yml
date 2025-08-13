@@ -2,7 +2,7 @@ name: Daily surprise app
 
 on:
   schedule:
-    - cron: "0 06 * * *"
+    - cron: "0 06 * * *"  # 06:00 UTC ~ 08:00 Stockholm
   workflow_dispatch:
 
 permissions:
@@ -26,11 +26,12 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y jq
 
-      - name: Generate today's app (index.html)
+      - name: Create generator script
         shell: bash
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
+          set -euo pipefail
+          cat > generate.sh <<'SCRIPT'
+          #!/usr/bin/env bash
           set -euo pipefail
           mkdir -p dist
 
@@ -54,14 +55,9 @@ jobs:
           Create a unique, browser-executable program now. Include the "Why this is new today" section and then a single complete HTML file.
           EOF
 
-          jq -n --rawfile sys sys.txt --rawfile usr user.txt \
-            '{model:"gpt-4o-mini", input:[{role:"system",content:$sys},{role:"user",content:$usr}]}' > body.json
+          jq -n --rawfile sys sys.txt --rawfile usr user.txt             '{model:"gpt-4o-mini", input:[{role:"system",content:$sys},{role:"user",content:$usr}]}' > body.json
 
-          curl -s https://api.openai.com/v1/responses \
-            -H "Authorization: Bearer $OPENAI_API_KEY" \
-            -H "Content-Type: application/json" \
-            -d @body.json \
-            | jq -r '.output_text' > dist/generated.txt || true
+          curl -s https://api.openai.com/v1/responses             -H "Authorization: Bearer $OPENAI_API_KEY"             -H "Content-Type: application/json"             -d @body.json             | jq -r '.output_text' > dist/generated.txt || true
 
           awk 'BEGIN{code=0} /```html/ {code=1; next} /```/ && code==1 {code=0; next} {if(code) print}' dist/generated.txt > dist/index.html || true
           if [ ! -s dist/index.html ]; then cp dist/generated.txt dist/index.html; fi
@@ -72,6 +68,14 @@ jobs:
 
           cp dist/index.html dist/today.html
           printf '%s\n' '<!doctype html><meta charset="utf-8"><title>dailyAI</title><meta name="viewport" content="width=device-width, initial-scale=1"><body style="font:16px system-ui,sans-serif;display:grid;place-items:center;min-height:100vh"><h1>dailyAI</h1><p><a href="./today.html">Open todays surprise app</a></p>' > dist/index.html
+          SCRIPT
+          chmod +x generate.sh
+
+      - name: Generate today's app
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: ./generate.sh
+        shell: bash
 
       - name: Debug: show first lines
         run: |
