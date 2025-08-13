@@ -22,49 +22,62 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Ensure jq is installed
-        run: sudo apt-get update && sudo apt-get install -y jq
+      - name: Install jq
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
 
       - name: Generate today's app (index.html)
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          SYS_PROMPT: |
-            You will output a single self-contained HTML file (<!DOCTYPE html>…</html>) that runs directly in a browser with inline CSS and JS (no build tools, no servers).
-            Requirements:
-            - Must be interactive.
-            - Rotate category by (new Date().getDay() % 3) => [useful, fun, absurd].
-            - Use at least one technique not used in the last three programs.
-            - Include exactly one random twist: [AI-generated content, 3D graphics, sound/music, live internet data (with graceful CORS/offline fallback), or unusual browser APIs].
-            - Before coding, ensure this idea clearly differs from the last 7 conceptual runs (no repeated core mechanics/themes/UI patterns).
-            Output:
-            1) A short markdown list titled "Why this is new today" with 3–5 bullets.
-            2) Then one complete HTML document in a code fence.
-            Additional constraints:
-            - Single-file; inline assets; support mouse + touch + keyboard.
-            - If an API/permission is blocked, feature-detect and provide a non-permission fallback.
-            - Keep it lightweight; no external servers required; CDNs allowed.
-          USER_PROMPT: >
-            Create a unique, browser-executable program now. Remember to include the "Why this is new today" section and then a single complete HTML file.
         run: |
           set -euo pipefail
           mkdir -p dist
 
-          RESPONSE_JSON=$(curl -s https://api.openai.com/v1/responses \
+          # ---- Skriv promptarna till filer (säkert för YAML) ----
+          cat > sys.txt << 'EOF'
+You will output a single self-contained HTML file (<!DOCTYPE html>…</html>) that runs directly in a browser with inline CSS and JS (no build tools, no servers).
+Requirements:
+- Must be interactive.
+- Rotate category by (new Date().getDay() % 3) => [useful, fun, absurd].
+- Use at least one technique not used in the last three programs.
+- Include exactly one random twist: [AI-generated content, 3D graphics, sound/music, live internet data (with graceful CORS/offline fallback), or unusual browser APIs].
+- Before coding, ensure this idea clearly differs from the last 7 conceptual runs (no repeated core mechanics/themes/UI patterns).
+Output:
+1) A short markdown list titled "Why this is new today" with 3–5 bullets.
+2) Then one complete HTML document in a code fence.
+Additional constraints:
+- Single-file; inline assets; support mouse + touch + keyboard.
+- If an API/permission is blocked, feature-detect and provide a non-permission fallback.
+- Keep it lightweight; no external servers required; CDNs allowed.
+EOF
+
+          cat > user.txt << 'EOF'
+Create a unique, browser-executable program now. Remember to include the "Why this is new today" section and then a single complete HTML file.
+EOF
+
+          # ---- Bygg JSON-payload säkert med jq (läser filerna rått) ----
+          jq -n \
+            --rawfile sys sys.txt \
+            --rawfile usr user.txt \
+            '{ model:"gpt-4o-mini",
+               input: [
+                 {role:"system", content:$sys},
+                 {role:"user",   content:$usr}
+               ] }' > body.json
+
+          # ---- Anropa OpenAI Responses API ----
+          curl -s https://api.openai.com/v1/responses \
             -H "Authorization: Bearer $OPENAI_API_KEY" \
             -H "Content-Type: application/json" \
-            -d "$(jq -n --arg sys "$SYS_PROMPT" --arg usr "$USER_PROMPT" '{
-                  model: "gpt-4o-mini",
-                  input: [
-                    { "role": "system", "content": $sys },
-                    { "role": "user",   "content": $usr }
-                  ]
-                }')")
+            -d @body.json \
+            | jq -r '.output_text' > dist/generated.txt || true
 
-          echo "$RESPONSE_JSON" | jq -r '.output_text' > dist/generated.txt || true
-
+          # ---- Extrahera HTML-koden ur code fence; fallback till hela svaret ----
           awk 'BEGIN{code=0} /```html/ {code=1; next} /```/ && code==1 {code=0; next} {if(code) print}' dist/generated.txt > dist/index.html
           if [ ! -s dist/index.html ]; then cp dist/generated.txt dist/index.html; fi
 
+          # ---- Minimal sanity check ----
           if ! grep -qi "<html" dist/index.html; then
             cat > dist/index.html << 'HTML'
 <!doctype html>
@@ -78,6 +91,7 @@ jobs:
 HTML
           fi
 
+          # ---- En enkel startsida som pekar på dagens app ----
           cp dist/index.html dist/today.html
           cat > dist/index.html << 'HTML'
 <!doctype html>
@@ -85,7 +99,10 @@ HTML
   <meta charset="utf-8">
   <title>dailyAI — Latest Build</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>body{font:16px system-ui, sans-serif;display:grid;place-items:center;min-height:100vh;background:#f6f7fb;color:#111} a{padding:.8rem 1rem;border:1px solid #ccc;border-radius:10px;text-decoration:none}</style>
+  <style>
+    body{font:16px system-ui, sans-serif;display:grid;place-items:center;min-height:100vh;background:#f6f7fb;color:#111}
+    a{padding:.8rem 1rem;border:1px solid #ccc;border-radius:10px;text-decoration:none}
+  </style>
   <h1>dailyAI</h1>
   <p><a href="./today.html">Open today's surprise app</a></p>
 </html>
