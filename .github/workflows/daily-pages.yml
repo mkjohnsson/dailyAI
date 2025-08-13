@@ -26,35 +26,37 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y jq
 
-      - name: Generate today's app (index.html)
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      - name: Create generator script
+        shell: bash
         run: |
-          set -e
+          set -euo pipefail
+          cat > generate.sh <<'SCRIPT'
+          #!/usr/bin/env bash
+          set -euo pipefail
           mkdir -p dist
 
-          # Write prompts to files (avoids YAML multiline issues)
+          # Prompts (as files)
           cat > sys.txt <<'EOF'
-You will output a single self-contained HTML file that runs in a browser with inline CSS and JS. No build tools and no servers.
-Requirements:
-- Must be interactive.
-- Rotate category by (new Date().getDay() % 3) -> [useful, fun, absurd].
-- Use at least one technique not used in the last three programs.
-- Include exactly one random twist: AI-generated content, 3D graphics, sound/music, live internet data (with fallback), or unusual browser APIs.
-- Ensure the idea clearly differs from the last 7 conceptual runs (no repeated core mechanics or themes).
-Output:
-1) A markdown list titled "Why this is new today" with 3-5 bullets.
-2) One complete HTML document in a code fence.
-Constraints:
-- Single-file; inline assets; support mouse, touch, keyboard.
-- If a permission or API is blocked, feature-detect and provide a fallback.
-EOF
+          You will output a single self-contained HTML file that runs in a browser with inline CSS and JS. No build tools and no servers.
+          Requirements:
+          - Must be interactive.
+          - Rotate category by (new Date().getDay() % 3) -> [useful, fun, absurd].
+          - Use at least one technique not used in the last three programs.
+          - Include exactly one random twist: AI-generated content, 3D graphics, sound/music, live internet data (with fallback), or unusual browser APIs.
+          - Ensure the idea clearly differs from the last 7 conceptual runs (no repeated core mechanics or themes).
+          Output:
+          1) A markdown list titled "Why this is new today" with 3-5 bullets.
+          2) One complete HTML document in a code fence.
+          Constraints:
+          - Single-file; inline assets; support mouse, touch, keyboard.
+          - If a permission or API is blocked, feature-detect and provide a fallback.
+          EOF
 
           cat > user.txt <<'EOF'
-Create a unique, browser-executable program now. Include the "Why this is new today" section and then a single complete HTML file.
-EOF
+          Create a unique, browser-executable program now. Include the "Why this is new today" section and then a single complete HTML file.
+          EOF
 
-          # Build JSON safely with jq
+          # Build JSON payload with jq
           jq -n --rawfile sys sys.txt --rawfile usr user.txt \
             '{model:"gpt-4o-mini", input:[{role:"system",content:$sys},{role:"user",content:$usr}]}' > body.json
 
@@ -65,20 +67,28 @@ EOF
             -d @body.json \
             | jq -r '.output_text' > dist/generated.txt || true
 
-          # Extract HTML code block; fallback to full text
+          # Extract HTML block; fallback to full text
           awk 'BEGIN{code=0} /```html/ {code=1; next} /```/ && code==1 {code=0; next} {if(code) print}' dist/generated.txt > dist/index.html || true
           if [ ! -s dist/index.html ]; then cp dist/generated.txt dist/index.html; fi
 
           # Minimal sanity check
           if ! grep -qi "<html" dist/index.html; then
-            echo "<!doctype html><title>Error</title><pre>Model did not return HTML.</pre>" > dist/index.html
+            printf '%s\n' '<!doctype html><meta charset="utf-8"><title>Error</title><pre>Model did not return HTML.</pre>' > dist/index.html
           fi
 
-          # Simple landing page that links to today's app
+          # Landing page linking to today's app
           cp dist/index.html dist/today.html
-          printf '%s\n' '<!doctype html><meta charset="utf-8"><title>dailyAI</title><body style="font:16px system-ui,sans-serif;display:grid;place-items:center;min-height:100vh"><h1>dailyAI</h1><p><a href="./today.html">Open todays surprise app</a></p>' > dist/index.html
+          printf '%s\n' '<!doctype html><meta charset="utf-8"><title>dailyAI</title><meta name="viewport" content="width=device-width, initial-scale=1"><body style="font:16px system-ui,sans-serif;display:grid;place-items:center;min-height:100vh"><h1>dailyAI</h1><p><a href="./today.html">Open todays surprise app</a></p>' > dist/index.html
+          SCRIPT
+          chmod +x generate.sh
 
-      - name: Debug: show first lines of outputs
+      - name: Generate today's app
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: ./generate.sh
+        shell: bash
+
+      - name: Debug: show first lines
         run: |
           echo "=== generated.txt (head) ==="
           head -n 40 dist/generated.txt || true
