@@ -112,11 +112,11 @@ IMPORTANT — AVOID THESE OVERUSED TROPES:
 - Space/cosmos themes
 - Generic canvas animations
 
-YOU MUST RESPOND WITH VALID JSON in exactly this format (nothing else):
-{
-  "description": "One sentence about what the app does or feels like",
-  "html": "<!DOCTYPE html>...the full HTML file..."
-}`,
+RESPOND IN EXACTLY THIS FORMAT (no JSON, no code fences):
+DESCRIPTION: One sentence about what the app does or feels like.
+---HTML---
+<!DOCTYPE html>
+...full HTML file...`,
     },
     {
       role: 'user',
@@ -126,10 +126,17 @@ CONCEPT: ${idea.concept}
 CATEGORY: ${todayCategory.label} — ${todayCategory.description}
 NAME: ${idea.name}
 
-Be faithful to the concept. Avoid particle effects, space themes, and generic canvas animations. Respond with JSON.`,
+Be faithful to the concept. Avoid particle effects, space themes, and generic canvas animations.`,
     },
-  ], 8000);
-  return parseJSON(text);
+  ], 16000);
+
+  const descMatch = text.match(/DESCRIPTION:\s*(.+)/);
+  const htmlMatch = text.match(/---HTML---\s*([\s\S]+)/);
+  if (!htmlMatch) throw new Error('No HTML in response');
+  return {
+    description: descMatch?.[1]?.trim() ?? '',
+    html: htmlMatch[1].trim(),
+  };
 }
 
 async function generate() {
