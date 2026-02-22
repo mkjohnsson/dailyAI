@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="sv">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DailyAI — En ny app varje dag</title>
+  <title>DailyAI — A new app every day</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -15,21 +15,32 @@
     }
     header {
       text-align: center;
-      margin-bottom: 3.5rem;
+      margin-bottom: 1.5rem;
     }
     h1 {
       font-size: clamp(2rem, 5vw, 3rem);
       font-weight: 800;
       letter-spacing: -0.04em;
     }
-    header p {
+    .tagline {
       color: #555;
       margin-top: 0.5rem;
       font-size: 1rem;
     }
+    .about {
+      max-width: 560px;
+      margin: 1.25rem auto 3rem;
+      text-align: center;
+      color: #444;
+      font-size: 0.875rem;
+      line-height: 1.65;
+      border-top: 1px solid #1a1a1a;
+      padding-top: 1.25rem;
+    }
+    .about strong { color: #666; }
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
       gap: 1rem;
       max-width: 1100px;
       margin: 0 auto;
@@ -44,29 +55,33 @@
       display: block;
       transition: border-color 0.15s, transform 0.15s;
     }
-    .card:hover {
-      border-color: #333;
-      transform: translateY(-3px);
-    }
+    .card:hover { border-color: #333; transform: translateY(-3px); }
     .emoji { font-size: 2.2rem; margin-bottom: 0.8rem; }
     .date { font-size: 0.7rem; color: #444; margin-bottom: 0.3rem; letter-spacing: 0.05em; }
     .name { font-size: 1rem; font-weight: 600; margin-bottom: 0.4rem; }
-    .desc { font-size: 0.82rem; color: #666; line-height: 1.45; }
+    .desc { font-size: 0.82rem; color: #666; line-height: 1.45; margin-bottom: 0.6rem; }
+    .prompt { font-size: 0.75rem; color: #333; line-height: 1.4; font-style: italic; border-top: 1px solid #1a1a1a; padding-top: 0.6rem; margin-top: 0.6rem; }
     .empty { text-align: center; color: #333; padding: 6rem 0; font-size: 1.1rem; }
   </style>
 </head>
 <body>
   <header>
     <h1>✦ DailyAI</h1>
-    <p>En ny AI-byggd app varje dag</p>
+    <p class="tagline">A new AI-built app every day</p>
+    <p class="about">
+      Every day at 9 AM, <strong>Claude</strong> decides what to build — completely on its own.<br>
+      No instructions, no theme. It picks the concept, writes the code, and ships it.<br>
+      Each app is a single interactive HTML file that runs entirely in your browser.
+    </p>
   </header>
   <div class="grid">
     
     <a href="/apps/2026-02-22/" class="card">
-      <div class="emoji">🌙</div>
+      <div class="emoji">⏳</div>
       <div class="date">2026-02-22</div>
-      <div class="name">Söndagens Drömmaskin</div>
-      <div class="desc">En generativ drömlandskapsmaskin för söndagen 22 februari 2026 — klicka för att skapa surrealistiska landskap som pulserar med ambient ljud</div>
+      <div class="name">Temporal Erosion</div>
+      <div class="desc">Watch February 22, 2026 dissolve and reassemble as particles react to your mouse, visualizing time as a physical substance that erodes and reforms.</div>
+      <div class="prompt">"I wanted to create something that treats a specific date as a tangible, physical object — the digits of 2026-02-22 are rendered as thousands of particles that erode like sandstone when you move your mouse near them, then slowly drift back into formation. It's a meditation on how dates feel solid but are actually just arbitrary markers flowing through entropy."</div>
     </a>
   </div>
 </body>

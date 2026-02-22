@@ -1,8 +1,9 @@
 [
   {
     "date": "2026-02-22",
-    "name": "Söndagens Drömmaskin",
-    "description": "En generativ drömlandskapsmaskin för söndagen 22 februari 2026 — klicka för att skapa surrealistiska landskap som pulserar med ambient ljud",
-    "emoji": "🌙"
+    "name": "Temporal Erosion",
+    "description": "Watch February 22, 2026 dissolve and reassemble as particles react to your mouse, visualizing time as a physical substance that erodes and reforms.",
+    "prompt": "I wanted to create something that treats a specific date as a tangible, physical object — the digits of 2026-02-22 are rendered as thousands of particles that erode like sandstone when you move your mouse near them, then slowly drift back into formation. It's a meditation on how dates feel solid but are actually just arbitrary markers flowing through entropy.",
+    "emoji": "⏳"
   }
 ]
