@@ -6,13 +6,13 @@ const MODEL = 'anthropic/claude-opus-4-6';
 const today = new Date().toISOString().split('T')[0];
 
 const CATEGORIES = [
-  { id: 'game',    label: 'Game',        examples: 'Puzzle, arcade, word game, strategy, physics game, typing game, rhythm game' },
-  { id: 'utility', label: 'Useful tool', examples: 'Calculator, converter, timer, color picker, noise generator, text formatter, decision maker, habit tracker, budget splitter' },
-  { id: 'art',     label: 'Creative/art',examples: 'Generative art, music toy, drawing tool, pattern maker, poem generator, ASCII art, typography experiment' },
-  { id: 'weird',   label: 'Weird/absurd',examples: 'A virtual pet, a useless machine, a fake OS, a surreal experience, something that makes no sense but is fun' },
-  { id: 'data',    label: 'Data/visual', examples: 'Clock, calendar, stats visualizer, chart explorer, timeline, world clock, countdown' },
-  { id: 'sim',     label: 'Simulation',  examples: 'Physics sim, ecosystem, cellular automaton, weather, crowd, traffic, ant colony' },
-  { id: 'social',  label: 'Fun/social',  examples: 'Compliment generator, excuse maker, name combiner, random challenge, icebreaker, quiz' },
+  { id: 'game',    label: 'Game',        description: 'Something you play. Has rules, a goal, and feedback. Can be any genre — the only requirement is that it\'s fun to interact with.' },
+  { id: 'utility', label: 'Useful tool', description: 'Something actually useful in everyday life. Solves a real, specific problem. Should feel like something you\'d want to bookmark.' },
+  { id: 'art',     label: 'Creative/art',description: 'A tool or toy for making something. The user is the artist — the app gives them materials and constraints to play with.' },
+  { id: 'weird',   label: 'Weird/absurd',description: 'Something that makes no logical sense but is weirdly compelling. Embrace the absurd. The weirder the better.' },
+  { id: 'data',    label: 'Data/visual', description: 'Turns information or time into something visual and readable. Should communicate something at a glance.' },
+  { id: 'sim',     label: 'Simulation',  description: 'A system with its own rules that evolves over time. The user observes, nudges, or controls it. Should feel alive.' },
+  { id: 'social',  label: 'Fun/social',  description: 'Something best experienced with another person nearby, or that generates something shareable or personalized.' },
 ];
 
 // Rotate category by day of year for variety
@@ -30,7 +30,7 @@ RULES:
 - Must work immediately in the browser
 
 TODAY'S CATEGORY: ${todayCategory.label}
-Examples of what fits: ${todayCategory.examples}
+What this means: ${todayCategory.description}
 
 IMPORTANT — AVOID THESE OVERUSED TROPES:
 - Particle systems that react to mouse movement
@@ -67,7 +67,7 @@ async function generate() {
       max_tokens: 8000,
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: `Build a creative web app for ${today}. Today's category is: ${todayCategory.label} (${todayCategory.examples}). Be specific and original — avoid particle effects, space themes, and generic canvas animations. Respond with JSON.` },
+        { role: 'user', content: `Build a creative web app for ${today}. Today's category is: ${todayCategory.label}. ${todayCategory.description} Come up with your own original idea — don't default to the obvious. Avoid particle effects, space themes, and generic canvas animations. Respond with JSON.` },
       ],
     }),
   });
