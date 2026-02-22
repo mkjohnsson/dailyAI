@@ -1,8 +1,8 @@
-import Anthropic from '@anthropic-ai/sdk';
 import fs from 'fs';
 import path from 'path';
 
-const client = new Anthropic();
+const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+const MODEL = 'anthropic/claude-opus-4-6';
 const today = new Date().toISOString().split('T')[0];
 
 const SYSTEM_PROMPT = `Du är en kreativ webbutvecklare som bygger små, interaktiva webbappar i en enda HTML-fil.
@@ -31,17 +31,28 @@ DU MÅSTE SVARA MED GILTIG JSON i exakt detta format (inget annat):
 async function generate() {
   console.log(`Generating app for ${today}...`);
 
-  const message = await client.messages.create({
-    model: 'claude-opus-4-6',
-    max_tokens: 8000,
-    system: SYSTEM_PROMPT,
-    messages: [{
-      role: 'user',
-      content: `Bygg en kreativ webbapp för ${today}. Välj helt fritt vad du vill bygga — överraska mig! Tänk på att variera dig: det kan vara ett spel, ett verktyg, en visualisering, en animation, något generativt, något absurt. Svara med JSON.`
-    }],
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) throw new Error('OPENROUTER_API_KEY not set');
+
+  const response = await fetch(API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: MODEL,
+      max_tokens: 8000,
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: `Bygg en kreativ webbapp för ${today}. Välj helt fritt vad du vill bygga — överraska mig! Tänk på att variera dig: det kan vara ett spel, ett verktyg, en visualisering, en animation, något generativt, något absurd. Svara med JSON.` },
+      ],
+    }),
   });
 
-  const text = message.content[0].text;
+  const data = await response.json();
+  const text = data.choices?.[0]?.message?.content;
+  if (!text) throw new Error('No response from API: ' + JSON.stringify(data).slice(0, 200));
 
   // Extract JSON (handle potential markdown code fences)
   let json = text;
