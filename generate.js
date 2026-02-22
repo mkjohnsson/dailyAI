@@ -85,7 +85,7 @@ function generateGallery(manifest) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Johnlund — En ny AI-app varje dag</title>
+  <title>DailyAI — En ny app varje dag</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -139,7 +139,7 @@ function generateGallery(manifest) {
 </head>
 <body>
   <header>
-    <h1>✦ Johnlund</h1>
+    <h1>✦ DailyAI</h1>
     <p>En ny AI-byggd app varje dag</p>
   </header>
   <div class="grid">
