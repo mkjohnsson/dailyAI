@@ -5,6 +5,20 @@ const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const MODEL = 'anthropic/claude-opus-4-6';
 const today = new Date().toISOString().split('T')[0];
 
+const CATEGORIES = [
+  { id: 'game',    label: 'Game',        examples: 'Puzzle, arcade, word game, strategy, physics game, typing game, rhythm game' },
+  { id: 'utility', label: 'Useful tool', examples: 'Calculator, converter, timer, color picker, noise generator, text formatter, decision maker, habit tracker, budget splitter' },
+  { id: 'art',     label: 'Creative/art',examples: 'Generative art, music toy, drawing tool, pattern maker, poem generator, ASCII art, typography experiment' },
+  { id: 'weird',   label: 'Weird/absurd',examples: 'A virtual pet, a useless machine, a fake OS, a surreal experience, something that makes no sense but is fun' },
+  { id: 'data',    label: 'Data/visual', examples: 'Clock, calendar, stats visualizer, chart explorer, timeline, world clock, countdown' },
+  { id: 'sim',     label: 'Simulation',  examples: 'Physics sim, ecosystem, cellular automaton, weather, crowd, traffic, ant colony' },
+  { id: 'social',  label: 'Fun/social',  examples: 'Compliment generator, excuse maker, name combiner, random challenge, icebreaker, quiz' },
+];
+
+// Rotate category by day of year for variety
+const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
+const todayCategory = CATEGORIES[dayOfYear % CATEGORIES.length];
+
 const SYSTEM_PROMPT = `You are a creative web developer who builds small, interactive web apps as a single HTML file.
 
 RULES:
@@ -15,10 +29,17 @@ RULES:
 - Max ~500 lines of code
 - Must work immediately in the browser
 
-YOU CAN BE:
-- Weird, experimental, absurd, surrealistic
-- A game, a tool, a visualization, an animation, a generator, a piece of art
-- Using unusual browser APIs (Web Audio, Canvas, WebGL, Gamepad, etc.)
+TODAY'S CATEGORY: ${todayCategory.label}
+Examples of what fits: ${todayCategory.examples}
+
+IMPORTANT — AVOID THESE OVERUSED TROPES:
+- Particle systems that react to mouse movement
+- Psychedelic/trippy visuals with floating orbs or nebulas
+- "Meditative" or "zen" experiences
+- Space/cosmos themes
+- Generic canvas animations
+
+BUILD SOMETHING THAT FITS TODAY'S CATEGORY. Be specific and original within it.
 
 YOU MUST RESPOND WITH VALID JSON in exactly this format (nothing else):
 {
@@ -46,7 +67,7 @@ async function generate() {
       max_tokens: 8000,
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: `Build a creative web app for ${today}. You decide entirely what to build — surprise me! Vary your choice: it could be a game, a tool, a visualization, an animation, something generative, something absurd. Respond with JSON.` },
+        { role: 'user', content: `Build a creative web app for ${today}. Today's category is: ${todayCategory.label} (${todayCategory.examples}). Be specific and original — avoid particle effects, space themes, and generic canvas animations. Respond with JSON.` },
       ],
     }),
   });
@@ -73,7 +94,7 @@ async function generate() {
     manifest = JSON.parse(fs.readFileSync('apps.json', 'utf8'));
   }
   manifest = manifest.filter(a => a.date !== today);
-  manifest.unshift({ date: today, name: app.name, description: app.description, prompt: app.prompt, emoji: app.emoji });
+  manifest.unshift({ date: today, name: app.name, description: app.description, prompt: app.prompt, emoji: app.emoji, category: todayCategory.label });
   fs.writeFileSync('apps.json', JSON.stringify(manifest, null, 2));
 
   // Regenerate gallery
@@ -87,7 +108,10 @@ function generateGallery(manifest) {
   const cards = manifest.map(app => `
     <a href="/apps/${app.date}/" class="card">
       <div class="emoji">${app.emoji}</div>
-      <div class="date">${app.date}</div>
+      <div class="card-top">
+        <div class="date">${app.date}</div>
+        ${app.category ? `<div class="category">${app.category}</div>` : ''}
+      </div>
       <div class="name">${app.name}</div>
       <div class="desc">${app.description}</div>
       ${app.prompt ? `<div class="prompt">"${app.prompt}"</div>` : ''}
@@ -152,7 +176,9 @@ function generateGallery(manifest) {
     }
     .card:hover { border-color: #333; transform: translateY(-3px); }
     .emoji { font-size: 2.2rem; margin-bottom: 0.8rem; }
-    .date { font-size: 0.7rem; color: #444; margin-bottom: 0.3rem; letter-spacing: 0.05em; }
+    .card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem; }
+    .date { font-size: 0.7rem; color: #444; letter-spacing: 0.05em; }
+    .category { font-size: 0.65rem; color: #333; background: #1a1a1a; padding: 0.15rem 0.5rem; border-radius: 999px; }
     .name { font-size: 1rem; font-weight: 600; margin-bottom: 0.4rem; }
     .desc { font-size: 0.82rem; color: #666; line-height: 1.45; margin-bottom: 0.6rem; }
     .prompt { font-size: 0.75rem; color: #333; line-height: 1.4; font-style: italic; border-top: 1px solid #1a1a1a; padding-top: 0.6rem; margin-top: 0.6rem; }
