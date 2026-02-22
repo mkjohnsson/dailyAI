@@ -13,9 +13,45 @@
       min-height: 100vh;
       padding: 3rem 1.5rem;
     }
-    header { text-align: center; margin-bottom: 3.5rem; }
-    h1 { font-size: clamp(2rem, 5vw, 3rem); font-weight: 800; letter-spacing: -0.04em; }
-    header p { color: #555; margin-top: 0.5rem; }
+    header {
+      text-align: center;
+      margin-bottom: 3.5rem;
+    }
+    h1 {
+      font-size: clamp(2rem, 5vw, 3rem);
+      font-weight: 800;
+      letter-spacing: -0.04em;
+    }
+    header p {
+      color: #555;
+      margin-top: 0.5rem;
+      font-size: 1rem;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 1rem;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .card {
+      background: #111;
+      border: 1px solid #1e1e1e;
+      border-radius: 14px;
+      padding: 1.5rem;
+      text-decoration: none;
+      color: inherit;
+      display: block;
+      transition: border-color 0.15s, transform 0.15s;
+    }
+    .card:hover {
+      border-color: #333;
+      transform: translateY(-3px);
+    }
+    .emoji { font-size: 2.2rem; margin-bottom: 0.8rem; }
+    .date { font-size: 0.7rem; color: #444; margin-bottom: 0.3rem; letter-spacing: 0.05em; }
+    .name { font-size: 1rem; font-weight: 600; margin-bottom: 0.4rem; }
+    .desc { font-size: 0.82rem; color: #666; line-height: 1.45; }
     .empty { text-align: center; color: #333; padding: 6rem 0; font-size: 1.1rem; }
   </style>
 </head>
@@ -24,6 +60,14 @@
     <h1>✦ DailyAI</h1>
     <p>En ny AI-byggd app varje dag</p>
   </header>
-  <p class="empty">Inga appar ännu — kom tillbaka imorgon!</p>
+  <div class="grid">
+    
+    <a href="/apps/2026-02-22/" class="card">
+      <div class="emoji">🌀</div>
+      <div class="date">2026-02-22</div>
+      <div class="name">Tidsspiral 2026</div>
+      <div class="desc">En hypnotisk tidsspiral som visar alla dagar från nu till 2026-02-22, där varje dag är en partikel som dansar i en 3D-spiral du kan rotera och interagera med</div>
+    </a>
+  </div>
 </body>
 </html>
