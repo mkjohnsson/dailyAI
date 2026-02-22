@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Foldline</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+  
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #f5f2ee;
+    color: #2a2520;
+    min-height: 100vh;
+  }
+  
+  .app {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px;
+  }
+  
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 32px;
+    border-bottom: 1px solid #d4cfc8;
+    padding-bottom: 16px;
+  }
+  
+  h1 {
+    font-weight: 300;
+    font-size: 28px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: #4a4540;
+  }
+  
+  h1 span { font-weight: 600; color: #2a2520; }
+  
+  .subtitle {
+    font-size: 12px;
+    color: #8a8580;
+    letter-spacing: 1px;
+  }
+  
+  .controls {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+  
+  .btn {
+    padding: 8px 18px;
+    border: 1px solid #c4bfb8;
+    background: white;
+    border-radius: 6px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+    color: #4a4540;
+    transition: all 0.2s;
+  }
+  
+  .btn:hover { background: #2a2520; color: white; border-color: #2a2520; }
+  .btn.active { background: #2a2520; color: white; border-color: #2a2520; }
+  
+  .main-layout {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 32px;
+  }
+  
+  .glyph-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+  }
+  
+  .day-label {
+    font-size: 10px;
+    text-align: center;
+    color: #a09890;
+    padding-bottom: 4px;
+    font-weight: 500;
+    letter-spacing: 1px;
+  }
+  
+  .glyph-cell {
+    aspect-ratio: 1;
+    background: white;
+    border-radius: 8px;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.25s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    overflow: hidden;
+  }
+  
+  .glyph-cell:hover {
+    transform: scale(1.08);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    z-index: 10;
+  }
+  
+  .glyph-cell.selected {
+    outline: 2px solid #2a2520;
+    outline-offset: 2px;
+  }
+  
+  .glyph-cell.empty {
+    background: transparent;
+    box-shadow: none;
+    cursor: default;
+  }
+  
+  .glyph-cell.empty:hover { transform: none; box-shadow: none; }
+  
+  .glyph-cell .date-num {
+    position: absolute;
+    bottom: 3px;
+    right: 5px;
+    font-size: 9px;
+    color: #c0b8b0;
+    font-weight: 500;
+  }
+  
+  .glyph-cell canvas {
+    width: 100%;
+    height: 100%;
+  }
+  
+  .sidebar {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    height: fit-content;
+    position: sticky;
+    top: 24px;
+  }
+  
+  .sidebar h2 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    letter-spacing: 0.5px;
+  }
+  
+  .sidebar .date-display {
+    font-size: 12px;
+    color: #8a8580;
+    margin-bottom: 20px;
+  }
+  
+  .preview-container {
+    width: 100%;
+    aspect-ratio: 1;
+    background: #faf8f5;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .preview-container canvas {
+    width: 100%;
+    height: 100%;
+  }
+  
+  .metric-group {
+    margin-bottom: 16px;
+  }
+  
+  .metric-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+  
+  .metric-label span:first-child {
+    font-size: 12px;
+    font-weight: 500;
+    color: #5a5550;
+  }
+  
+  .metric-label .value {
+    font-size: 11px;
+    color: #a09890;
+    font-weight: 400;
+  }
+  
+  .metric-descriptions {
+    font-size: 10px;
+    color: #b0a8a0;
+    display: flex;
+    justify-content: space-between;
+    margin-top: 2px;
+  }
+  
+  input[type="range"] {
+    width: 100%;
+    -webkit-appearance: none;
+    height: 4px;
+    border-radius: 2px;
+    background: #e8e4e0;
+    outline: none;
+  }
+  
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #2a2520;
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  }
+  
+  .action-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 20px;
+  }
+  
+  .action-row .btn { flex: 1; text-align: center; }
+  
+  .legend {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid #eae6e2;
+  }
+  
+  .legend h3 {
+    font-size: 11px;
+    font-weight: 600;
+    color: #8a8580;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+    font-size: 11px;
+    color: #6a6560;
+  }
+  
+  .legend-swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+  }
+  
+  .month-nav {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  
+  .month-nav .btn { padding: 6px 12px; }
+  
+  .month-title {
+    font-size: 14px;
+    font-weight: 500;
+    min-width: 140px;
+    text-align: center;
+  }
+  
+  .week-row-label {
+    font-size: 9px;
+    color: #b0a8a0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  @media (max-width: 800px) {
+    .main-layout { grid-template-columns: 1fr; }
+    .glyph-grid { gap: 4px; }
+    .sidebar { position: static; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div>
+      <h1>Fold<span>line</span></h1>
+      <div class="subtitle">Your life, folded into pattern</div>
+    </div>
+    <div class="controls">
+      <div class="month-nav">
+        <button class="btn" id="prevMonth">◂</button>
+        <div class="month-title" id="monthTitle"></div>
+        <button class="btn" id="nextMonth">▸</button>
+      </div>
+      <button class="btn" id="randomFill">Seed Month</button>
+    </div>
+  </header>
+  
+  <div class="main-layout">
+    <div>
+      <div class="glyph-grid" id="glyphGrid"></div>
+    </div>
+    
+    <div class="sidebar">
+      <h2 id="sidebarTitle">Select a Day</h2>
+      <div class="date-display" id="sidebarDate">Click any cell to edit</div>
+      
+      <div class="preview-container">
+        <canvas id="previewCanvas" width="280" height="280"></canvas>
+      </div>
+      
+      <div class="metric-group">
+        <div class="metric-label"><span>Sleep</span><span class="value" id="sleepVal">5</span></div>
+        <input type="range" min="0" max="10" value="5" id="sleepSlider">
+        <div class="metric-descriptions"><span>Restless</span><span>Deep rest</span></div>
+      </div>
+      
+      <div class="metric-group">
+        <div class="metric-label"><span>Mood</span><span class="value" id="moodVal">5</span></div>
+        <input type="range" min="0" max="10" value="5" id="moodSlider">
+        <div class="metric-descriptions"><span>Heavy</span><span>Bright</span></div>
+      </div>
+      
+      <div class="metric-group">
+        <div class="metric-label"><span>Movement</span><span class="value" id="movementVal">5</span></div>
+        <input type="range" min="0" max="10" value="5" id="movementSlider">
+        <div class="metric-descriptions"><span>Still</span><span>Active</span></div>
+      </div>
+      
+      <div class="metric-group">
+        <div class="metric-label"><span>Focus</span><span class="value" id="focusVal">5</span></div>
+        <input type="range" min="0" max="10" value="5" id="focusSlider">
+        <div class="metric-descriptions"><span>Scattered</span><span>Locked in</span></div>
+      </div>
+      
+      <div class="metric-group">
+        <div class="metric-label"><span>Social</span><span class="value" id="socialVal">5</span></div>
+        <input type="range" min="0" max="10" value="5" id="socialSlider">
+        <div class="metric-descriptions"><span>Solitary</span><span>Connected</span></div>
+      </div>
+      
+      <div class="action-row">
+        <button class="btn" id="saveDay">Save Day</button>
+        <button class="btn" id="clearDay">Clear</button>
+      </div>
+      
+      <div class="legend">
+        <h3>Reading Folds</h3>
+        <div class="legend-item"><div class="legend-swatch" style="background:#6b8f71"></div> High overall — blooming, open</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#c4956a"></div> Mixed — angular, asymmetric</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#8b6f6f"></div> Low overall — tight, compressed</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#7a8fa6"></div> Focused — sharp, symmetric</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const METRICS = ['sleep','mood','movement','focus','social'];
+const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+let currentYear = new Date().getFullYear();
+let currentMonth = new Date().getMonth();
+let selectedDate = null;
+let dayData = {};
+
+function dataKey(y, m, d) { return `${y}-${m}-${d}`; }
+
+function loadData() {
+  try {
+    const raw = localStorage.getItem('foldline_data');
+    if (raw) dayData = JSON.parse(raw);
+  } catch(e) {}
+}
+
+function saveData() {
+  localStorage.setItem('foldline_data', JSON.stringify(dayData));
+}
+
+function getDaysInMonth(y, m) { return new Date(y, m+1, 0).getDate(); }
+
+function getFirstDayOfWeek(y, m) {
+  let d = new Date(y, m, 1).getDay();
+  return d === 0 ? 6 : d - 1; // Monday-based
+}
+
+function seededRandom(seed) {
+  let s = seed;
+  return function() {
+    s = (s * 16807 + 0) % 2147483647;
+    return (s - 1) / 2147483646;
+  };
+}
+
+function getGlyphColor(metrics) {
+  const avg = (metrics.sleep + metrics.mood + metrics.movement + metrics.focus + metrics.social) / 5;
+  const focusBias = metrics.focus / 10;
+  const socialBias = metrics.social / 10;
+  
+  let r, g, b;
+  
+  if (avg > 7) {
+    r = 90 + Math.floor(socialBias * 30);
+    g = 130 + Math.floor(avg * 5);
+    b = 95 + Math.floor(focusBias * 30);
+  } else if (avg > 4) {
+    r = 170 + Math.floor((1 - focusBias) * 40);
+    g = 130 + Math.floor(metrics.mood * 4);
+    b = 90 + Math.floor(socialBias * 30);
+  } else {
+    r = 120 + Math.floor(metrics.mood * 4);
+    g = 95 + Math.floor(avg * 5);
+    b = 95 + Math.floor(focusBias * 20);
+  }
+  
+  // Focus-heavy days get blue tint
+  if (metrics.focus > 7 && metrics.social < 4) {
+    r -= 20; g -= 5; b += 40;
+  }
+  
+  return { r: Math.min(255, Math.max(0, r)), g: Math.min(255, Math.max(0, g)), b: Math.min(255, Math.max(0, b)) };
+}
+
+function drawGlyph(canvas, metrics, large = false) {
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width;
+  const h = canvas.height;
+  const cx = w / 2;
+  const cy = h / 2;
+  const scale = large ? 1 : 1;
+  
+  ctx.clearRect(0, 0, w, h);
+  
+  if (!metrics) return;
+  
+  const { sleep, mood, movement, focus, social } = metrics;
+  const avg = (sleep + mood + movement + focus + social) / 5;
+  const color = getGlyphColor(metrics);
+  
+  // Seed from metrics for consistency
+  const seed = sleep * 10000 + mood * 1000 + movement * 100 + focus * 10 + social;
+  const rng = seededRandom(seed + 42);
+  
+  // Parameters derived from metrics
+  const openness = avg / 10; // 0=tight, 1=blooming
+  const symmetry = focus / 10; // higher focus = more symmetric
+  const angularity = (10 - mood) / 10; // low mood = more angular
+  const density = movement / 10; // more movement = more fold lines
+  const warmth = social / 10; // social = warm tones
+  const baseRadius = (w * 0.18 + openness * w * 0.2) * scale;
+  
+  // Number of primary fold layers
+  const layers = 3 + Math.floor(density * 4);
+  // Points per layer (fold vertices)
+  const pointsPerLayer = symmetry > 0.5 ? (Math.floor(symmetry * 4) * 2 + 4) : (3 + Math.floor(rng() * 4));
+  
+  // Draw background tint
+  const bgAlpha = 0.06 + openness * 0.06;
+  ctx.fillStyle = `rgba(${color.r},${color.g},${color.b},${bgAlpha})`;
+  ctx.fillRect(0, 0, w, h);
+  
+  // Generate fold points for each layer
+  const allLayers = [];
+  for (let l = 0; l < layers; l++) {
+    const layerRadius = baseRadius * (0.3 + (l / layers) * 0.7);
+    const layerRotation = (l * Math.PI / layers) + angularity * rng() * 0.5;
+    const nPts = pointsPerLayer + (symmetry < 0.5 ? Math.floor(rng() * 3) : 0);
+    const points = [];
+    
+    for (let i = 0; i < nPts; i++) {
+      let angle = (i / nPts) * Math.PI * 2 + layerRotation;
+      
+      // Asymmetry from low focus
+      if (symmetry < 0.5) {
+        angle += (rng() - 0.5) * (1 - symmetry) * 0.6;
+      }
+      
+      // Radius variation
+      let r = layerRadius;
+      
+      // Angular folds for stressed days
+      if (angularity > 0.5) {
+        r *= 0.6 + 0.4 * Math.abs(Math.cos(angle * (2 + Math.floor(angularity * 3))));
+      }
+      
+      // Blooming for restorative days
+      if (openness > 0.6) {
+        r *= 0.85 + 0.3 * Math.abs(Math.sin(angle * 3 + l));
+      }
+      
+      // Sleep affects smoothness — less sleep = more jagged
+      if (sleep < 4) {
+        r += (rng() - 0.5) * layerRadius * 0.3 * (1 - sleep/10);
+      }
+      
+      points.push({
+        x: cx + Math.cos(angle) * r,
+        y: cy + Math.sin(angle) * r
+      });
+    }
+    allLayers.push(points);
+  }
+  
+  // Draw filled layers (back to front)
+  for (let l = 0; l < allLayers.length; l++) {
+    const pts = allLayers[l];
+    const layerDepth = l / allLayers.length;
+    const alpha = 0.08 + layerDepth * 0.12;
+    
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    
+    for (let i = 1; i <= pts.length; i++) {
+      const curr = pts[i % pts.length];
+      const prev = pts[(i - 1) % pts.length];
+      
+      if (angularity > 0.6) {
+        // Sharp folds — straight lines
+        ctx.lineTo(curr.x, curr.y);
+      } else if (openness > 0.5) {
+        // Smooth curves for blooming
+        const cpx = (prev.x + curr.x) / 2 + (rng() - 0.5) * openness * 8;
+        const cpy = (prev.y + curr.y) / 2 + (rng() - 0.5) * openness * 8;
+        ctx.quadraticCurveTo(cpx, cpy, curr.x, curr.y);
+      } else {
+        ctx.lineTo(curr.x, curr.y);
+      }
+    }
+    
+    ctx.closePath();
+    ctx.fillStyle = `rgba(${color.r},${color.g},${color.b},${alpha})`;
+    ctx.fill();
+  }
+  
+  // Draw fold crease lines
+  const creaseColor = `rgba(${Math.max(0, color.r - 40)},${Math.max(0, color.g - 40)},${Math.max(0, color.b - 40)},`;
+  
+  // Internal fold lines from center to outer points
+  const outerPts = allLayers[allLayers.length - 1];
+  const innerPts = allLayers[0];
+  
+  const numCreases = Math.floor(3 + density * 6);
+  for (let i = 0; i < numCreases; i++) {
+    const outerIdx = Math.floor((i / numCreases) * outerPts.length);
+    const outerPt = outerPts[outerIdx % outerPts.length];
+    
+    // Some creases go to center, some connect layers
+    if (rng() > 0.4) {
+      // Center crease
+      const startX = cx + (rng() - 0.5) * baseRadius * 0.15;
+      const startY = cy + (rng() - 0.5) * baseRadius * 0.15;
+      
+      ctx.beginPath();
+      ctx.moveTo(startX, startY);
+      
+      if (angularity > 0.4) {
+        // Angular fold — sharp midpoint
+        const midX = (startX + outerPt.x) / 2 + (rng() - 0.5) * angularity * baseRadius * 0.4;
+        const midY = (startY + outerPt.y) / 2 + (rng() - 0.5) * angularity * baseRadius * 0.4;
+        ctx.lineTo(midX, midY);
+        ctx.lineTo(outerPt.x, outerPt.y);
+      } else {
+        ctx.lineTo(outerPt.x, outerPt.y);
+      }
+      
+      ctx.strokeStyle = creaseColor + (0.15 + density * 0.15) + ')';
+      ctx.lineWidth = large ? 1.5 : 0.8;
+      ctx.stroke();
+    }
+  }
+  
+  // Cross-layer fold connections
+  for (let l = 0; l < allLayers.length - 1; l++) {
+    const from = allLayers[l];
+    const to = allLayers[l + 1];
+    const nConn = Math.floor(2 + symmetry * 3);
+    
+    for (let c = 0; c < nConn; c++) {
+      const fi = Math.floor(rng() * from.length);
+      const ti = symmetry > 0.5 ? fi % to.length : Math.floor(rng() * to.length);
+      
+      if (ti < to.length && fi < from.length) {
+        ctx.beginPath();
+        ctx.moveTo(from[fi].x, from[fi].y);
+        ctx.lineTo(to[ti].x, to[ti].y);
+        ctx.strokeStyle = creaseColor + '0.1)';
+        ctx.lineWidth = large ? 1 : 0.5;
+        ctx.stroke();
+      }
+    }
+  }
+  
+  // Draw diamond/fold accent in center for high-focus days
+  if (focus > 6) {
+    const accentR = baseRadius * 0.2;
+    const sides = Math.floor(focus / 2) + 2;
+    const accentRot = symmetry * Math.PI / 4;
+    
+    ctx.beginPath();
+    for (let i = 0; i <= sides; i++) {
+      const a = (i / sides) * Math.PI * 2 + accentRot;
+      const px = cx + Math.cos(a) * accentR;
+      const py = cy + Math.sin(a) * accentR;
+      i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.strokeStyle = creaseColor + '0.3)';
+    ctx.lineWidth = large ? 2 : 1;
+    ctx.stroke();
+  }
+  
+  // Social ripples — concentric arcs for high social
+  if (social > 5) {
+    const ripples = Math.floor((social - 5) / 2) + 1;
+    for (let r = 0; r < ripples; r++) {
+      const rr = baseRadius * (1.05 + r * 0.12);
+      const startAngle = rng() * Math.PI * 2;
+      const arcLen = Math.PI * (0.3 + warmth * 0.5);
+      
+      ctx.beginPath();
+      ctx.arc(cx, cy, rr, startAngle, startAngle + arcLen);
+      ctx.strokeStyle = `rgba(${color.r},${color.g},${color.b},${0.12 + warmth * 0.08})`;
+      ctx.lineWidth = large ? 1.5 : 0.7;
+      ctx.stroke();
+    }
+  }
+  
+  // Sleep pattern — small marks around edge for restless nights
+  if (sleep < 4) {
+    const nMarks = Math.floor((4 - sleep) * 3);
+    for (let i = 0; i < nMarks; i++) {
+      const a = rng() * Math.PI * 2;
+      const r = baseRadius * (0.8 + rng() * 0.4);
+      const len = 3 + rng() * 6;
+      const px = cx + Math.cos(a) * r;
+      const py = cy + Math.sin(a) * r;
+      
+      ctx.beginPath();
+      ctx.moveTo(px, py);
+      ctx.lineTo(px + Math.cos(a + 0.8) * len, py + Math.sin(a + 0.8) * len);
+      ctx.strokeStyle = creaseColor + '0.2)';
+      ctx.lineWidth = large ? 1 : 0.5;
+      ctx.stroke();
+    }
+  }
+  
+  // Outer fold boundary
+  if (outerPts.length > 0) {
+    ctx.beginPath();
+    ctx.moveTo(outerPts[0].x, outerPts[0].y);
+    for (let i = 1; i <= outerPts.length; i++) {
+      const pt = outerPts[i % outerPts.length];
+      if (openness > 0.5) {
+        const prev = outerPts[(i-1) % outerPts.length];
+        const cpx = (prev.x + pt.x) / 2;
+        const cpy = (prev.y + pt.y) / 2;
+        ctx.quadraticCurveTo(prev.x + (rng()-0.5)*4, prev.y + (rng()-0.5)*4, pt.x, pt.y);
+      } else {
+        ctx.lineTo(pt.x, pt.y);
+      }
+    }
+    ctx.closePath();
+    ctx.strokeStyle = creaseColor + (0.2 + angularity * 0.15) + ')';
+    ctx.lineWidth = large ? 2 : 1;
+    ctx.stroke();
+  }
+}
+
+function renderGrid() {
+  const grid = document.getElementById('glyphGrid');
+  grid.innerHTML = '';
+  
+  // Day labels
+  DAYS.forEach(d => {
+    const label = document.createElement('div');
+    label.className = 'day-label';
+    label.textContent = d;
+    grid.appendChild(label);
+  });
+  
+  const daysInMonth = getDaysInMonth(currentYear, currentMonth);
+  const firstDay = getFirstDayOfWeek(currentYear, currentMonth);
+  
+  // Empty cells before first day
+  for (let i = 0; i < firstDay; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'glyph-cell empty';
+    grid.appendChild(cell);
+  }
+  
+  // Day cells
+  for (let d = 1; d <= daysInMonth; d++) {
+    const cell = document.createElement('div');
+    cell.className = 'glyph-cell';
+    
+    const key = dataKey(currentYear, currentMonth, d);
+    if (selectedDate === key) cell.classList.add('selected');
+    
+    const canvas = document.createElement('canvas');
+    canvas.width = 100;
+    canvas.height = 100;
+    cell.appendChild(canvas);
+    
+    const dateNum = document.createElement('div');
+    dateNum.className = 'date-num';
+    dateNum.textContent = d;
+    cell.appendChild(dateNum);
+    
+    if (dayData[key]) {
+      drawGlyph(canvas, dayData[key]);
+    }
+    
+    const dayNum = d;
+    cell.addEventListener('click', () => selectDay(dayNum));
+    grid.appendChild(cell);
+  }
+  
+  // Update month title
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('monthTitle').textContent = `${monthNames[currentMonth]} ${currentYear}`;
+}
+
+function selectDay(day) {
+  const key = dataKey(currentYear, currentMonth, day);
+  selectedDate = key;
+  
+  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  document.getElementById('sidebarTitle').textContent = `Day ${day}`;
+  document.getElementById('sidebarDate').textContent = `${monthNames[currentMonth]} ${day}, ${currentYear}`;
+  
+  const data = dayData[key];
+  if (data) {
+    METRICS.forEach(m => {
+      document.getElementById(m + 'Slider').value = data[m];
+      document.getElementById(m + 'Val').textContent = data[m];
+    });
+  } else {
+    METRICS.forEach(m => {
+      document.getElementById(m + 'Slider').value = 5;
+      document.getElementById(m + 'Val').textContent = 5;
+    });
+  }
+  
+  updatePreview();
+  renderGrid();
+}
+
+function getCurrentMetrics() {
+  const m = {};
+  METRICS.forEach(name => {
+    m[name] = parseInt(document.getElementById(name + 'Slider').value);
+  });
+  return m;
+}
+
+function updatePreview() {
+  const canvas = document.getElementById('previewCanvas');
+  const metrics = getCurrentMetrics();
+  drawGlyph(canvas, metrics, true);
+}
+
+// Slider events
+METRICS.forEach(name => {
+  const slider = document.getElementById(name + 'Slider');
+  slider.addEventListener('input', () => {
+    document.getElementById(name + 'Val').textContent = slider.value;
+    updatePreview();
+  });
+});
+
+// Save
+document.getElementById('saveDay').addEventListener('click', () => {
+  if (!selectedDate) return;
+  dayData[selectedDate] = getCurrentMetrics();
+  saveData();
+  renderGrid();
+});
+
+// Clear
+document.getElementById('clearDay').addEventListener('click', () => {
+  if (!selectedDate) return;
+  delete dayData[selectedDate];
+  saveData();
+  METRICS.forEach(m => {
+    document.getElementById(m + 'Slider').value = 5;
+    document.getElementById(m + 'Val').textContent = 5;
+  });
+  updatePreview();
+  renderGrid();
+});
+
+// Month nav
+document.getElementById('prevMonth').addEventListener('click', () => {
+  currentMonth--;
+  if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+  selectedDate = null;
+  renderGrid();
+});
+
+document.getElementById('nextMonth').addEventListener('click', () => {
+  currentMonth++;
+  if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+  selectedDate = null;
+  renderGrid();
+});
+
+// Random fill
+document.getElementById('randomFill').addEventListener('click', () => {
+  const days = getDaysInMonth(currentYear, currentMonth);
+  const baseSeed = currentYear * 100 + currentMonth;
+  const rng = seededRandom(baseSeed);
+  
+  // Create a narrative arc for the month
+  let moodTrend = 5 + (rng() - 0.5) * 4;
+  let sleepTrend = 5 + (rng() - 0.5) * 3;
+  
+  for (let d = 1; d <= days; d++) {
+    const key = dataKey(currentYear, currentMonth, d);
+    
+    // Drift trends
+    moodTrend += (rng() - 0.5) * 1.5;
+    sleepTrend += (rng() - 0.5) * 1.2;
+    moodTrend = Math.max(1, Math.min(10, moodTrend));
+    sleepTrend = Math.max(1, Math.min(10, sleepTrend));
+    
+    // Weekend boost
+    const dow = new Date(currentYear, currentMonth, d).getDay();
+    const isWeekend = dow === 0 || dow === 6;
+    
+    dayData[key] = {
+      sleep: Math.round(Math.max(0, Math.min(10, sleepTrend + (rng() - 0.5) * 3))),
+      mood: Math.round(Math.max(0, Math.min(10, moodTrend + (rng() - 0.5) * 3 + (isWeekend ? 1 : 0)))),
+      movement: Math.round(Math.max(0, Math.min(10, 4 + rng() * 6 + (isWeekend ? 1.5 : 0)))),
+      focus: Math.round(Math.max(0, Math.min(10, 3 + rng() * 7 - (isWeekend ? 2 : 0)))),
+      social: Math.round(Math.max(0, Math.min(10, 3 + rng() * 5 + (isWeekend ? 2.5 : 0))))
+    };
+  }
+  saveData();
+  renderGrid();
+});
+
+// Init
+loadData();
+renderGrid();
+updatePreview();
+</script>
+</body>
+</html>
