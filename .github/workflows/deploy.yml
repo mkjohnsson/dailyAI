@@ -26,4 +26,4 @@ jobs:
           npm install --omit=dev
 
       - name: Restart
-        run: pm2 restart dailyai
+        run: pm2 restart dailyai || PORT=5004 pm2 start $HOME/apps/dailyai/server/index.js --name dailyai
