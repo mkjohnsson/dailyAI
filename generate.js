@@ -16,6 +16,16 @@ const CATEGORIES = [
   { id: 'social',  label: 'Fun/social',  description: 'Something best experienced with another person nearby, or that generates something shareable or personalized.' },
 ];
 
+const CATEGORY_COLORS = {
+  'Game':         '#FF2D78',
+  'Useful tool':  '#00C853',
+  'Creative/art': '#FFD600',
+  'Weird/absurd': '#AA00FF',
+  'Data/visual':  '#0066FF',
+  'Simulation':   '#FF6D00',
+  'Fun/social':   '#F50057',
+};
+
 const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
 const todayCategory = CATEGORIES[dayOfYear % CATEGORIES.length];
 
@@ -174,105 +184,245 @@ async function generate() {
 }
 
 function generateGallery(manifest) {
-  const cards = manifest.map(app => `
-    <a href="/apps/${app.id || app.date}/" class="card">
-      <div class="emoji">${app.emoji}</div>
+  const cards = manifest.map(app => {
+    const catColor = CATEGORY_COLORS[app.category] || '#FF2D78';
+    const inspirationHtml = app.inspiration
+      ? `<div class="inspiration">
+           <span class="insp-fact">↳ ${app.inspiration}</span>
+           <span class="insp-leap">${app.connection}</span>
+         </div>`
+      : app.prompt
+        ? `<div class="inspiration"><span class="insp-leap">${app.prompt}</span></div>`
+        : '';
+    return `
+    <a href="/apps/${app.id || app.date}/" class="card" style="--accent:${catColor}">
+      <span class="card-emoji">${app.emoji}</span>
       <div class="card-top">
-        <div class="date">${app.date}</div>
-        ${app.category ? `<div class="category">${app.category}</div>` : ''}
+        <span class="date">${app.date}</span>
+        ${app.category ? `<span class="category">${app.category}</span>` : ''}
       </div>
       <div class="name">${app.name}</div>
       <div class="desc">${app.description}</div>
-      ${app.inspiration
-        ? `<div class="inspiration"><span class="inspiration-label">↳</span> ${app.inspiration}<br><span class="connection">${app.connection}</span></div>`
-        : app.prompt
-          ? `<div class="inspiration"><span class="connection">${app.prompt}</span></div>`
-          : ''
-      }
-    </a>`).join('');
+      ${inspirationHtml}
+    </a>`;
+  }).join('');
 
   const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DailyAI — A new app every day</title>
+  <title>DAILY AI — A new app every day</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #0a0a0a;
-      color: #fff;
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: #FFFBF0;
+      color: #1A1A1A;
       min-height: 100vh;
-      padding: 3rem 1.5rem;
     }
-    header {
+
+    /* ── HERO ── */
+    .hero {
+      position: relative;
+      overflow: hidden;
       text-align: center;
-      margin-bottom: 1.5rem;
+      padding: 4rem 1.5rem 3.5rem;
+      border-bottom: 4px solid #1A1A1A;
+      background: #FFFBF0;
     }
-    h1 {
-      font-size: clamp(2rem, 5vw, 3rem);
-      font-weight: 800;
-      letter-spacing: -0.04em;
+
+    /* Ray burst background */
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: -50%;
+      background: repeating-conic-gradient(
+        rgba(255, 229, 0, 0.18) 0deg 9deg,
+        transparent 9deg 18deg
+      );
+      animation: slowspin 60s linear infinite;
+      z-index: 0;
     }
-    .tagline {
-      color: #555;
-      margin-top: 0.5rem;
-      font-size: 1rem;
+    @keyframes slowspin { to { transform: rotate(360deg); } }
+
+    .hero > * { position: relative; z-index: 1; }
+
+    /* Logo */
+    .logo-wrap {
+      display: inline-block;
+      margin-bottom: 0.5rem;
     }
+    .logo {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(5rem, 14vw, 10rem);
+      line-height: 0.88;
+      color: #FF2D78;
+      -webkit-text-stroke: 4px #1A1A1A;
+      paint-order: stroke fill;
+      letter-spacing: 0.03em;
+      display: block;
+    }
+    .logo-sub {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(1rem, 3vw, 1.6rem);
+      letter-spacing: 0.25em;
+      color: #1A1A1A;
+      background: #FFE500;
+      display: inline-block;
+      padding: 0.2rem 1rem;
+      border: 3px solid #1A1A1A;
+      margin-top: 0.4rem;
+    }
+
+    /* About box */
     .about {
-      max-width: 560px;
-      margin: 1.25rem auto 3rem;
-      text-align: center;
-      color: #444;
+      display: inline-block;
+      max-width: 540px;
+      width: 100%;
+      margin: 2rem auto 0;
+      background: white;
+      border: 3px solid #1A1A1A;
+      border-radius: 4px;
+      padding: 1.25rem 1.5rem;
+      text-align: left;
       font-size: 0.875rem;
-      line-height: 1.65;
-      border-top: 1px solid #1a1a1a;
-      padding-top: 1.25rem;
+      line-height: 1.7;
+      color: #444;
+      box-shadow: 6px 6px 0 #1A1A1A;
     }
-    .about strong { color: #666; }
+    .about strong { color: #FF2D78; font-weight: 800; }
+
+    /* ── GRID ── */
+    .grid-wrap {
+      max-width: 1200px;
+      margin: 3rem auto;
+      padding: 0 1.5rem;
+    }
+
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-      gap: 1rem;
-      max-width: 1100px;
-      margin: 0 auto;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.25rem;
     }
+
+    /* ── CARDS ── */
     .card {
-      background: #111;
-      border: 1px solid #1e1e1e;
-      border-radius: 14px;
-      padding: 1.5rem;
+      background: white;
+      border: 3px solid #1A1A1A;
+      border-top: 8px solid var(--accent, #FF2D78);
+      border-radius: 4px;
+      padding: 1.4rem;
       text-decoration: none;
       color: inherit;
-      display: block;
-      transition: border-color 0.15s, transform 0.15s;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 5px 5px 0 #1A1A1A;
+      transition: transform 0.1s, box-shadow 0.1s;
     }
-    .card:hover { border-color: #333; transform: translateY(-3px); }
-    .emoji { font-size: 2.2rem; margin-bottom: 0.8rem; }
-    .card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem; }
-    .date { font-size: 0.7rem; color: #444; letter-spacing: 0.05em; }
-    .category { font-size: 0.65rem; color: #333; background: #1a1a1a; padding: 0.15rem 0.5rem; border-radius: 999px; }
-    .name { font-size: 1rem; font-weight: 600; margin-bottom: 0.4rem; }
-    .desc { font-size: 0.82rem; color: #666; line-height: 1.45; margin-bottom: 0.6rem; }
-    .inspiration { font-size: 0.75rem; color: #2a2a2a; line-height: 1.5; border-top: 1px solid #1a1a1a; padding-top: 0.6rem; margin-top: 0.6rem; }
-    .inspiration-label { color: #333; }
-    .connection { font-style: italic; color: #333; }
-    .empty { text-align: center; color: #333; padding: 6rem 0; font-size: 1.1rem; }
+    .card:hover {
+      transform: translate(-3px, -3px);
+      box-shadow: 8px 8px 0 #1A1A1A;
+    }
+
+    .card-emoji {
+      font-size: 2.4rem;
+      display: block;
+      margin-bottom: 0.75rem;
+    }
+
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+      gap: 0.5rem;
+    }
+
+    .date {
+      font-size: 0.68rem;
+      font-weight: 600;
+      color: #999;
+      letter-spacing: 0.06em;
+    }
+
+    .category {
+      font-size: 0.6rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: white;
+      background: var(--accent, #FF2D78);
+      padding: 0.18rem 0.55rem;
+      border-radius: 2px;
+      white-space: nowrap;
+    }
+
+    .name {
+      font-size: 1.05rem;
+      font-weight: 800;
+      margin-bottom: 0.4rem;
+      color: #1A1A1A;
+      line-height: 1.25;
+    }
+
+    .desc {
+      font-size: 0.82rem;
+      color: #555;
+      line-height: 1.55;
+      flex: 1;
+      margin-bottom: 0.75rem;
+    }
+
+    .inspiration {
+      border-top: 2px solid #F0F0F0;
+      padding-top: 0.65rem;
+      margin-top: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+    .insp-fact {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--accent, #FF2D78);
+      line-height: 1.4;
+    }
+    .insp-leap {
+      font-size: 0.7rem;
+      font-style: italic;
+      color: #aaa;
+      line-height: 1.4;
+    }
+
+    .empty {
+      text-align: center;
+      color: #ccc;
+      padding: 6rem 0;
+      font-size: 1.1rem;
+    }
   </style>
 </head>
 <body>
-  <header>
-    <h1>✦ DailyAI</h1>
-    <p class="tagline">A new AI-built app every day</p>
-    <p class="about">
-      Every day at 9 AM, <strong>Claude</strong> searches the web for something interesting happening in the world,<br>
-      uses it as creative inspiration, and builds an interactive app — completely on its own.<br>
+  <div class="hero">
+    <div class="logo-wrap">
+      <span class="logo">DAILY AI</span>
+      <span class="logo-sub">A NEW APP EVERY DAY</span>
+    </div>
+    <div class="about">
+      Every day at 9 AM, <strong>Claude</strong> searches the web for something interesting happening in the world,
+      uses it as creative inspiration, and builds an interactive web app — completely on its own.<br>
       Each app is a single HTML file that runs entirely in your browser.
-    </p>
-  </header>
-  <div class="grid">
-    ${manifest.length > 0 ? cards : '<p class="empty">No apps yet — check back tomorrow!</p>'}
+    </div>
+  </div>
+  <div class="grid-wrap">
+    <div class="grid">
+      ${manifest.length > 0 ? cards : '<p class="empty">No apps yet — check back tomorrow!</p>'}
+    </div>
   </div>
 </body>
 </html>`;
