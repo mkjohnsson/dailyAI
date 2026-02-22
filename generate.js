@@ -31,9 +31,12 @@ const todayCategory = CATEGORIES[dayOfYear % CATEGORIES.length];
 
 function parseJSON(text) {
   if (!text) throw new Error('Empty response');
-  let json = text;
-  const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-  if (fenceMatch) json = fenceMatch[1];
+  let json = text.trim();
+  // Strip only the outermost code fence (the content may itself contain ``` blocks)
+  if (json.startsWith('```')) {
+    json = json.replace(/^```(?:json)?\s*\n?/, '');
+    json = json.replace(/\n?```\s*$/, '');
+  }
   return JSON.parse(json.trim());
 }
 
