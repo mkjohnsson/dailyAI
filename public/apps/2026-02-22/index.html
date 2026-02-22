@@ -3,410 +3,449 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tidsspiral 2026</title>
+<title>Söndagens Drömmaskin — 2026-02-22</title>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    background: #0a0a1a;
-    overflow: hidden;
-    font-family: 'Courier New', monospace;
-    color: #fff;
-    cursor: grab;
-  }
-  body:active { cursor: grabbing; }
-  canvas { display: block; }
-  #info {
-    position: fixed;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    text-align: center;
-    pointer-events: none;
-    z-index: 10;
-  }
-  #info h1 {
-    font-size: 1.4em;
-    letter-spacing: 4px;
-    text-transform: uppercase;
-    background: linear-gradient(90deg, #ff6bff, #6bfff0, #ffeb6b);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    margin-bottom: 6px;
-  }
-  #info p {
-    font-size: 0.85em;
-    opacity: 0.6;
-  }
-  #tooltip {
-    position: fixed;
-    background: rgba(10,10,30,0.9);
-    border: 1px solid rgba(255,255,255,0.2);
-    border-radius: 8px;
-    padding: 10px 16px;
-    pointer-events: none;
-    z-index: 20;
-    display: none;
-    font-size: 0.85em;
-    backdrop-filter: blur(10px);
-  }
-  #tooltip .date { color: #6bfff0; font-weight: bold; font-size: 1.1em; }
-  #tooltip .days { color: #ff6bff; }
-  #countdown {
-    position: fixed;
-    bottom: 30px;
-    left: 50%;
-    transform: translateX(-50%);
-    text-align: center;
-    pointer-events: none;
-    z-index: 10;
-  }
-  #countdown .big {
-    font-size: 3em;
-    font-weight: bold;
-    background: linear-gradient(90deg, #ff6bff, #6bfff0);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-  #countdown .label { opacity: 0.5; font-size: 0.8em; margin-top: 4px; }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  overflow: hidden;
+  background: #0a0a1a;
+  font-family: 'Georgia', serif;
+  cursor: crosshair;
+}
+canvas { display: block; }
+#ui {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  z-index: 10;
+  pointer-events: none;
+}
+#title {
+  font-size: 1.4rem;
+  color: rgba(255,220,255,0.7);
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  text-shadow: 0 0 20px rgba(180,100,255,0.5);
+}
+#date {
+  font-size: 0.85rem;
+  color: rgba(200,180,255,0.4);
+  margin-top: 4px;
+  letter-spacing: 6px;
+}
+#hint {
+  position: fixed;
+  bottom: 25px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgba(200,180,255,0.3);
+  font-size: 0.8rem;
+  letter-spacing: 3px;
+  z-index: 10;
+  pointer-events: none;
+  transition: opacity 2s;
+}
+#dreamcount {
+  position: fixed;
+  top: 20px;
+  right: 25px;
+  color: rgba(200,180,255,0.3);
+  font-size: 0.75rem;
+  letter-spacing: 2px;
+  z-index: 10;
+  pointer-events: none;
+}
 </style>
 </head>
 <body>
-<div id="info">
-  <h1>Tidsspiral → 2026-02-22</h1>
-  <p>Dra för att rotera · Scrolla för att zooma · Hovra över dagar</p>
+<div id="ui">
+  <div id="title">Söndagens Drömmaskin</div>
+  <div id="date">2026 · 02 · 22</div>
 </div>
-<div id="tooltip"></div>
-<div id="countdown">
-  <div class="big" id="countNum"></div>
-  <div class="label">dagar kvar till 2026-02-22</div>
-</div>
+<div id="hint">klicka för att drömma</div>
+<div id="dreamcount">drömmar: 0</div>
 <canvas id="c"></canvas>
 <script>
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
-const tooltip = document.getElementById('tooltip');
-const countNum = document.getElementById('countNum');
-
 let W, H;
+let dreams = 0;
+let layers = [];
+let particles = [];
+let moons = [];
+let time = 0;
+let audioCtx = null;
+let hueBase = Math.random() * 360;
+let targetHue = hueBase;
+let currentPalette = generatePalette(hueBase);
+
 function resize() {
   W = canvas.width = window.innerWidth;
   H = canvas.height = window.innerHeight;
 }
-resize();
 window.addEventListener('resize', resize);
+resize();
 
-const TARGET = new Date('2026-02-22T00:00:00');
-const TODAY = new Date();
-TODAY.setHours(0,0,0,0);
-
-const totalDays = Math.ceil((TARGET - TODAY) / (1000*60*60*24));
-countNum.textContent = totalDays;
-
-// Generate days
-const days = [];
-for (let i = 0; i <= totalDays; i++) {
-  const d = new Date(TODAY);
-  d.setDate(d.getDate() + i);
-  const t = i / totalDays;
-  const angle = t * Math.PI * 12; // 6 full rotations
-  const radius = 50 + t * 250;
-  const y3d = (t - 0.5) * 500;
-  days.push({
-    date: d,
-    index: i,
-    t,
-    angle,
-    radius,
-    x3d: Math.cos(angle) * radius,
-    y3d,
-    z3d: Math.sin(angle) * radius,
-    sx: 0, sy: 0, sz: 0, // screen coords
-    size: 2 + (1 - t) * 3,
-    isWeekend: d.getDay() === 0 || d.getDay() === 6,
-    isTarget: i === totalDays,
-    isToday: i === 0,
-    month: d.getMonth(),
-  });
-}
-
-// Camera
-let rotX = -0.3;
-let rotY = 0;
-let zoom = 1;
-let dragX = 0, dragY = 0;
-let isDragging = false;
-let lastMX = 0, lastMY = 0;
-let autoRotate = true;
-let mouseX = -1000, mouseY = -1000;
-
-canvas.addEventListener('mousedown', (e) => {
-  isDragging = true;
-  autoRotate = false;
-  lastMX = e.clientX;
-  lastMY = e.clientY;
-});
-window.addEventListener('mouseup', () => isDragging = false);
-window.addEventListener('mousemove', (e) => {
-  mouseX = e.clientX;
-  mouseY = e.clientY;
-  if (isDragging) {
-    rotY += (e.clientX - lastMX) * 0.005;
-    rotX += (e.clientY - lastMY) * 0.005;
-    rotX = Math.max(-1.5, Math.min(1.5, rotX));
-    lastMX = e.clientX;
-    lastMY = e.clientY;
-  }
-});
-canvas.addEventListener('wheel', (e) => {
-  e.preventDefault();
-  zoom *= e.deltaY > 0 ? 0.95 : 1.05;
-  zoom = Math.max(0.3, Math.min(3, zoom));
-}, { passive: false });
-
-// Touch support
-canvas.addEventListener('touchstart', (e) => {
-  if (e.touches.length === 1) {
-    isDragging = true;
-    autoRotate = false;
-    lastMX = e.touches[0].clientX;
-    lastMY = e.touches[0].clientY;
-  }
-});
-canvas.addEventListener('touchmove', (e) => {
-  e.preventDefault();
-  if (isDragging && e.touches.length === 1) {
-    rotY += (e.touches[0].clientX - lastMX) * 0.005;
-    rotX += (e.touches[0].clientY - lastMY) * 0.005;
-    rotX = Math.max(-1.5, Math.min(1.5, rotX));
-    lastMX = e.touches[0].clientX;
-    lastMY = e.touches[0].clientY;
-  }
-}, { passive: false });
-canvas.addEventListener('touchend', () => isDragging = false);
-
-const monthColors = [
-  [255,100,150],[255,150,100],[255,220,100],[150,255,100],
-  [100,255,180],[100,230,255],[100,150,255],[150,100,255],
-  [220,100,255],[255,100,220],[255,130,130],[200,200,255]
-];
-
-function project(x, y, z) {
-  // Rotate Y
-  let cx = x * Math.cos(rotY) - z * Math.sin(rotY);
-  let cz = x * Math.sin(rotY) + z * Math.cos(rotY);
-  // Rotate X
-  let cy = y * Math.cos(rotX) - cz * Math.sin(rotX);
-  let cz2 = y * Math.sin(rotX) + cz * Math.cos(rotX);
-  
-  const perspective = 800;
-  const scale = perspective / (perspective + cz2) * zoom;
+function generatePalette(hue) {
   return {
-    x: W/2 + cx * scale,
-    y: H/2 + cy * scale,
-    scale,
-    z: cz2
+    sky1: `hsl(${hue}, 40%, 8%)`,
+    sky2: `hsl(${(hue + 30) % 360}, 50%, 15%)`,
+    sky3: `hsl(${(hue + 60) % 360}, 30%, 5%)`,
+    mountain1: `hsl(${(hue + 180) % 360}, 30%, 12%)`,
+    mountain2: `hsl(${(hue + 200) % 360}, 25%, 8%)`,
+    water: `hsl(${(hue + 120) % 360}, 40%, 10%)`,
+    accent: `hsl(${(hue + 90) % 360}, 60%, 60%)`,
+    moon: `hsl(${(hue + 40) % 360}, 20%, 85%)`,
+    stars: `hsl(${(hue + 10) % 360}, 30%, 80%)`
   };
 }
 
-const monthNames = ['Jan','Feb','Mar','Apr','Maj','Jun','Jul','Aug','Sep','Okt','Nov','Dec'];
-const dayNames = ['Sön','Mån','Tis','Ons','Tor','Fre','Lör'];
-
-function formatDate(d) {
-  return `${dayNames[d.getDay()]} ${d.getDate()} ${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+function initAudio() {
+  if (audioCtx) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 }
 
-// Particles / stars background
-const stars = Array.from({length: 200}, () => ({
-  x: Math.random() * 2 - 1,
-  y: Math.random() * 2 - 1,
-  z: Math.random() * 2 - 1,
-  size: Math.random() * 1.5 + 0.5
-}));
+function playDreamSound(x, y) {
+  if (!audioCtx) return;
+  const now = audioCtx.currentTime;
+  const freq = 80 + (1 - y / H) * 400;
+  const pan = (x / W) * 2 - 1;
+  
+  const osc1 = audioCtx.createOscillator();
+  const osc2 = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  const panner = audioCtx.createStereoPanner();
+  const filter = audioCtx.createBiquadFilter();
+  
+  filter.type = 'lowpass';
+  filter.frequency.setValueAtTime(freq * 3, now);
+  filter.frequency.exponentialRampToValueAtTime(freq * 0.5, now + 3);
+  
+  osc1.type = 'sine';
+  osc1.frequency.setValueAtTime(freq, now);
+  osc1.frequency.exponentialRampToValueAtTime(freq * 0.5, now + 3);
+  
+  osc2.type = 'triangle';
+  osc2.frequency.setValueAtTime(freq * 1.502, now);
+  osc2.frequency.exponentialRampToValueAtTime(freq * 0.75, now + 3);
+  
+  gain.gain.setValueAtTime(0, now);
+  gain.gain.linearRampToValueAtTime(0.08, now + 0.3);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 3.5);
+  
+  panner.pan.setValueAtTime(pan, now);
+  
+  osc1.connect(filter);
+  osc2.connect(filter);
+  filter.connect(gain);
+  gain.connect(panner);
+  panner.connect(audioCtx.destination);
+  
+  osc1.start(now);
+  osc2.start(now);
+  osc1.stop(now + 4);
+  osc2.stop(now + 4);
+}
 
-let time = 0;
-let hoveredDay = null;
+function generateMountainLayer(yBase, roughness, segments, color, speed) {
+  const points = [];
+  const segW = W / segments;
+  let y = yBase;
+  for (let i = 0; i <= segments; i++) {
+    y += (Math.random() - 0.5) * roughness;
+    y = Math.max(yBase - roughness * 3, Math.min(yBase + roughness * 1.5, y));
+    points.push({ x: i * segW, y, origY: y });
+  }
+  return { points, color, speed, yBase };
+}
+
+function generateDreamscape() {
+  layers = [];
+  const mountainCount = 3 + Math.floor(Math.random() * 3);
+  for (let i = 0; i < mountainCount; i++) {
+    const t = i / mountainCount;
+    const yBase = H * 0.35 + t * H * 0.35;
+    const roughness = 15 + (1 - t) * 40;
+    const segments = 30 + Math.floor(Math.random() * 40);
+    const lightness = 5 + t * 10;
+    const hue = (hueBase + 160 + i * 25) % 360;
+    const color = `hsl(${hue}, ${20 + t * 15}%, ${lightness}%)`;
+    const speed = 0.1 + (1 - t) * 0.3;
+    layers.push(generateMountainLayer(yBase, roughness, segments, color, speed));
+  }
+  
+  // Add new moons
+  const moonCount = 1 + Math.floor(Math.random() * 2);
+  for (let i = 0; i < moonCount; i++) {
+    moons.push({
+      x: W * 0.15 + Math.random() * W * 0.7,
+      y: H * 0.08 + Math.random() * H * 0.25,
+      r: 15 + Math.random() * 45,
+      phase: Math.random() * Math.PI * 2,
+      alpha: 0,
+      targetAlpha: 0.4 + Math.random() * 0.5,
+      hueOff: Math.random() * 60
+    });
+  }
+  if (moons.length > 5) moons.splice(0, moons.length - 5);
+}
+
+function spawnParticles(x, y, count) {
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 0.3 + Math.random() * 2;
+    const hue = (hueBase + Math.random() * 120) % 360;
+    particles.push({
+      x, y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed - 0.5,
+      life: 1,
+      decay: 0.003 + Math.random() * 0.008,
+      size: 1 + Math.random() * 3,
+      color: `hsl(${hue}, 60%, 70%)`,
+      hue
+    });
+  }
+}
+
+let stars = [];
+function generateStars() {
+  stars = [];
+  for (let i = 0; i < 200; i++) {
+    stars.push({
+      x: Math.random() * W,
+      y: Math.random() * H * 0.6,
+      size: Math.random() * 2,
+      twinkleSpeed: 0.5 + Math.random() * 3,
+      phase: Math.random() * Math.PI * 2
+    });
+  }
+}
+generateStars();
+generateDreamscape();
+
+canvas.addEventListener('click', (e) => {
+  initAudio();
+  const x = e.clientX;
+  const y = e.clientY;
+  
+  dreams++;
+  document.getElementById('dreamcount').textContent = `drömmar: ${dreams}`;
+  
+  if (dreams === 1) {
+    document.getElementById('hint').style.opacity = '0';
+  }
+  
+  targetHue = (targetHue + 30 + Math.random() * 60) % 360;
+  
+  generateDreamscape();
+  spawnParticles(x, y, 30 + Math.floor(Math.random() * 40));
+  playDreamSound(x, y);
+});
+
+canvas.addEventListener('mousemove', (e) => {
+  if (Math.random() < 0.3) {
+    spawnParticles(e.clientX, e.clientY, 1);
+  }
+});
+
+function drawSky() {
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, currentPalette.sky3);
+  grad.addColorStop(0.3, currentPalette.sky1);
+  grad.addColorStop(0.7, currentPalette.sky2);
+  grad.addColorStop(1, currentPalette.water);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+}
+
+function drawStars() {
+  stars.forEach(s => {
+    const twinkle = 0.3 + 0.7 * Math.abs(Math.sin(time * s.twinkleSpeed + s.phase));
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.size * twinkle, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(220,210,255,${twinkle * 0.6})`;
+    ctx.fill();
+  });
+}
+
+function drawMoons() {
+  moons.forEach(m => {
+    m.alpha += (m.targetAlpha - m.alpha) * 0.02;
+    const glow = ctx.createRadialGradient(m.x, m.y, 0, m.x, m.y, m.r * 3);
+    const h = (hueBase + m.hueOff) % 360;
+    glow.addColorStop(0, `hsla(${h}, 20%, 90%, ${m.alpha * 0.3})`);
+    glow.addColorStop(0.3, `hsla(${h}, 30%, 70%, ${m.alpha * 0.1})`);
+    glow.addColorStop(1, `hsla(${h}, 30%, 50%, 0)`);
+    ctx.fillStyle = glow;
+    ctx.fillRect(m.x - m.r * 3, m.y - m.r * 3, m.r * 6, m.r * 6);
+    
+    ctx.beginPath();
+    ctx.arc(m.x, m.y, m.r, 0, Math.PI * 2);
+    ctx.fillStyle = `hsla(${h}, 15%, 88%, ${m.alpha})`;
+    ctx.fill();
+    
+    // Crater shadows
+    const craterOff = m.r * 0.3;
+    ctx.beginPath();
+    ctx.arc(m.x + craterOff, m.y - craterOff * 0.5, m.r * 0.85, 0, Math.PI * 2);
+    ctx.fillStyle = `hsla(${h}, 20%, 15%, ${m.alpha * 0.2})`;
+    ctx.fill();
+  });
+}
+
+function drawMountains() {
+  layers.forEach((layer, li) => {
+    ctx.beginPath();
+    const pts = layer.points;
+    ctx.moveTo(pts[0].x, pts[0].y + Math.sin(time * layer.speed + pts[0].x * 0.01) * 3);
+    
+    for (let i = 1; i < pts.length; i++) {
+      const wobble = Math.sin(time * layer.speed + pts[i].x * 0.005) * (2 + li);
+      const px = (pts[i - 1].x + pts[i].x) / 2;
+      const py = (pts[i - 1].origY + pts[i].origY) / 2 + wobble;
+      ctx.quadraticCurveTo(pts[i - 1].x, pts[i - 1].origY + wobble, px, py);
+    }
+    
+    ctx.lineTo(W, H);
+    ctx.lineTo(0, H);
+    ctx.closePath();
+    ctx.fillStyle = layer.color;
+    ctx.fill();
+  });
+}
+
+function drawWater() {
+  const waterY = H * 0.75;
+  for (let y = waterY; y < H; y += 2) {
+    const t = (y - waterY) / (H - waterY);
+    const alpha = 0.02 + t * 0.05;
+    const waveOff = Math.sin(time * 0.5 + y * 0.03) * (5 + t * 15);
+    const h = (hueBase + 120) % 360;
+    ctx.fillStyle = `hsla(${h}, 40%, ${15 + t * 5}%, ${alpha})`;
+    ctx.fillRect(0, y, W, 2);
+    
+    // Reflection ripples
+    if (Math.random() < 0.1) {
+      const rx = Math.random() * W;
+      const rw = 20 + Math.random() * 60;
+      ctx.fillStyle = `hsla(${h}, 30%, 60%, ${0.03 * (1 - t)})`;
+      ctx.fillRect(rx + waveOff, y, rw, 1);
+    }
+  }
+}
+
+function drawParticles() {
+  particles.forEach((p, i) => {
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.005;
+    p.vx *= 0.999;
+    p.life -= p.decay;
+    
+    if (p.life <= 0) {
+      particles.splice(i, 1);
+      return;
+    }
+    
+    const alpha = p.life * 0.8;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+    ctx.fillStyle = `hsla(${p.hue}, 60%, 70%, ${alpha})`;
+    ctx.fill();
+    
+    // Glow
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size * p.life * 3, 0, Math.PI * 2);
+    ctx.fillStyle = `hsla(${p.hue}, 60%, 70%, ${alpha * 0.15})`;
+    ctx.fill();
+  });
+}
+
+function drawAurora() {
+  const auroraY = H * 0.1;
+  const auroraH = H * 0.35;
+  ctx.save();
+  ctx.globalCompositeOperation = 'screen';
+  
+  for (let i = 0; i < 3; i++) {
+    ctx.beginPath();
+    ctx.moveTo(0, auroraY + i * 30);
+    
+    for (let x = 0; x <= W; x += 10) {
+      const y = auroraY + i * 30 + 
+        Math.sin(x * 0.003 + time * 0.2 + i) * 40 +
+        Math.sin(x * 0.007 + time * 0.3 + i * 2) * 20;
+      ctx.lineTo(x, y);
+    }
+    
+    ctx.lineTo(W, auroraY + auroraH);
+    ctx.lineTo(0, auroraY + auroraH);
+    ctx.closePath();
+    
+    const h = (hueBase + 90 + i * 40) % 360;
+    const grad = ctx.createLinearGradient(0, auroraY, 0, auroraY + auroraH);
+    grad.addColorStop(0, `hsla(${h}, 60%, 50%, 0)`);
+    grad.addColorStop(0.3, `hsla(${h}, 60%, 50%, ${0.03 + Math.sin(time * 0.5 + i) * 0.015})`);
+    grad.addColorStop(0.7, `hsla(${h}, 60%, 40%, ${0.02 + Math.sin(time * 0.3 + i) * 0.01})`);
+    grad.addColorStop(1, `hsla(${h}, 60%, 40%, 0)`);
+    ctx.fillStyle = grad;
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawFloatingSymbols() {
+  if (dreams < 1) return;
+  const symbols = ['◯', '△', '◇', '☽', '✧', '⊹', '⋆'];
+  ctx.save();
+  ctx.globalAlpha = 0.08;
+  ctx.font = '20px Georgia';
+  ctx.fillStyle = currentPalette.accent;
+  
+  for (let i = 0; i < Math.min(dreams * 2, 15); i++) {
+    const x = (Math.sin(time * 0.1 + i * 1.7) * 0.5 + 0.5) * W;
+    const y = (Math.cos(time * 0.07 + i * 2.3) * 0.5 + 0.5) * H * 0.6;
+    const s = symbols[i % symbols.length];
+    const rot = time * 0.2 + i;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(rot);
+    ctx.globalAlpha = 0.04 + Math.sin(time + i) * 0.03;
+    ctx.fillText(s, 0, 0);
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+function lerp(a, b, t) { return a + (b - a) * t; }
 
 function animate() {
-  requestAnimationFrame(animate);
   time += 0.016;
   
-  if (autoRotate) {
-    rotY += 0.003;
-  }
+  // Smooth hue transition
+  hueBase = lerp(hueBase, targetHue, 0.005);
+  currentPalette = generatePalette(hueBase);
   
-  ctx.fillStyle = 'rgba(10,10,26,0.15)';
+  drawSky();
+  drawStars();
+  drawAurora();
+  drawMoons();
+  drawFloatingSymbols();
+  drawMountains();
+  drawWater();
+  drawParticles();
+  
+  // Vignette
+  const vignette = ctx.createRadialGradient(W/2, H/2, W * 0.2, W/2, H/2, W * 0.8);
+  vignette.addColorStop(0, 'rgba(0,0,0,0)');
+  vignette.addColorStop(1, 'rgba(0,0,0,0.5)');
+  ctx.fillStyle = vignette;
   ctx.fillRect(0, 0, W, H);
   
-  // Stars
-  stars.forEach(s => {
-    const p = project(s.x * 600, s.y * 600, s.z * 600);
-    if (p.scale > 0) {
-      ctx.fillStyle = `rgba(255,255,255,${0.3 * p.scale})`;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, s.size * p.scale * 0.5, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  });
-  
-  // Spiral trail
-  const trailPoints = [];
-  for (let i = 0; i <= 200; i++) {
-    const t = i / 200;
-    const angle = t * Math.PI * 12;
-    const radius = 50 + t * 250;
-    const y3d = (t - 0.5) * 500;
-    const p = project(
-      Math.cos(angle) * radius,
-      y3d,
-      Math.sin(angle) * radius
-    );
-    trailPoints.push(p);
-  }
-  
-  ctx.strokeStyle = 'rgba(107,255,240,0.08)';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  trailPoints.forEach((p, i) => {
-    if (i === 0) ctx.moveTo(p.x, p.y);
-    else ctx.lineTo(p.x, p.y);
-  });
-  ctx.stroke();
-  
-  // Sort days by z for depth
-  const projected = days.map(d => {
-    const wobble = Math.sin(time * 2 + d.index * 0.1) * 5;
-    const p = project(d.x3d, d.y3d + wobble, d.z3d);
-    return { ...d, sx: p.x, sy: p.y, scale: p.scale, depth: p.z };
-  });
-  projected.sort((a, b) => b.depth - a.depth);
-  
-  hoveredDay = null;
-  
-  projected.forEach(d => {
-    if (d.scale <= 0) return;
-    
-    const mc = monthColors[d.month];
-    const alpha = Math.min(1, d.scale * 0.8 + 0.2);
-    let size = d.size * d.scale;
-    
-    // Check hover
-    const dx = mouseX - d.sx;
-    const dy = mouseY - d.sy;
-    const dist = Math.sqrt(dx*dx + dy*dy);
-    const isHovered = dist < Math.max(size * 2, 12);
-    
-    if (isHovered && (!hoveredDay || d.depth < hoveredDay.depth)) {
-      hoveredDay = d;
-    }
-    
-    if (d.isTarget) {
-      // Target date - pulsing golden star
-      const pulse = 1 + Math.sin(time * 4) * 0.4;
-      size = 12 * d.scale * pulse;
-      
-      // Glow
-      const grd = ctx.createRadialGradient(d.sx, d.sy, 0, d.sx, d.sy, size * 3);
-      grd.addColorStop(0, `rgba(255,235,107,${0.5 * alpha})`);
-      grd.addColorStop(1, 'rgba(255,235,107,0)');
-      ctx.fillStyle = grd;
-      ctx.beginPath();
-      ctx.arc(d.sx, d.sy, size * 3, 0, Math.PI * 2);
-      ctx.fill();
-      
-      // Star shape
-      ctx.fillStyle = `rgba(255,235,107,${alpha})`;
-      drawStar(d.sx, d.sy, size, 5);
-      
-      // Label
-      ctx.fillStyle = `rgba(255,235,107,${alpha})`;
-      ctx.font = `${Math.max(10, 14 * d.scale)}px Courier New`;
-      ctx.textAlign = 'center';
-      ctx.fillText('2026-02-22', d.sx, d.sy - size - 8);
-    } else if (d.isToday) {
-      // Today - bright white
-      size = 8 * d.scale;
-      const grd = ctx.createRadialGradient(d.sx, d.sy, 0, d.sx, d.sy, size * 2);
-      grd.addColorStop(0, `rgba(255,255,255,${0.6 * alpha})`);
-      grd.addColorStop(1, 'rgba(255,255,255,0)');
-      ctx.fillStyle = grd;
-      ctx.beginPath();
-      ctx.arc(d.sx, d.sy, size * 2, 0, Math.PI * 2);
-      ctx.fill();
-      
-      ctx.fillStyle = `rgba(255,255,255,${alpha})`;
-      ctx.beginPath();
-      ctx.arc(d.sx, d.sy, size, 0, Math.PI * 2);
-      ctx.fill();
-      
-      ctx.font = `${Math.max(10, 12 * d.scale)}px Courier New`;
-      ctx.textAlign = 'center';
-      ctx.fillText('IDAG', d.sx, d.sy - size - 6);
-    } else {
-      // Normal day
-      if (isHovered && d === hoveredDay) size *= 2.5;
-      
-      ctx.fillStyle = d.isWeekend 
-        ? `rgba(${mc[0]},${mc[1]},${mc[2]},${alpha * 0.9})`
-        : `rgba(${mc[0]},${mc[1]},${mc[2]},${alpha * 0.6})`;
-      ctx.beginPath();
-      ctx.arc(d.sx, d.sy, size, 0, Math.PI * 2);
-      ctx.fill();
-      
-      if (d.isWeekend) {
-        ctx.fillStyle = `rgba(${mc[0]},${mc[1]},${mc[2]},${alpha * 0.15})`;
-        ctx.beginPath();
-        ctx.arc(d.sx, d.sy, size * 2.5, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-  });
-  
-  // Tooltip
-  if (hoveredDay && !hoveredDay.isTarget && !hoveredDay.isToday) {
-    tooltip.style.display = 'block';
-    tooltip.style.left = (mouseX + 15) + 'px';
-    tooltip.style.top = (mouseY - 30) + 'px';
-    const daysFromNow = hoveredDay.index;
-    const daysToTarget = totalDays - hoveredDay.index;
-    tooltip.innerHTML = `<div class="date">${formatDate(hoveredDay.date)}</div>
-      <div class="days">Dag ${daysFromNow} av ${totalDays} · ${daysToTarget} dagar kvar</div>`;
-  } else {
-    tooltip.style.display = 'none';
-  }
-  
-  // Connection lines from today to nearby hovered
-  if (hoveredDay) {
-    const todayP = projected.find(d => d.isToday);
-    if (todayP) {
-      ctx.strokeStyle = 'rgba(255,255,255,0.1)';
-      ctx.lineWidth = 0.5;
-      ctx.setLineDash([4, 4]);
-      ctx.beginPath();
-      ctx.moveTo(todayP.sx, todayP.sy);
-      ctx.lineTo(hoveredDay.sx, hoveredDay.sy);
-      ctx.stroke();
-      ctx.setLineDash([]);
-    }
-  }
-  
-  // Update countdown
-  const now = new Date();
-  const remaining = Math.ceil((TARGET - now) / (1000*60*60*24));
-  countNum.textContent = remaining;
-}
-
-function drawStar(cx, cy, size, points) {
-  ctx.beginPath();
-  for (let i = 0; i < points * 2; i++) {
-    const angle = (i * Math.PI / points) - Math.PI / 2;
-    const r = i % 2 === 0 ? size : size * 0.4;
-    const x = cx + Math.cos(angle) * r;
-    const y = cy + Math.sin(angle) * r;
-    if (i === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
-  }
-  ctx.closePath();
-  ctx.fill();
+  requestAnimationFrame(animate);
 }
 
 animate();
