@@ -57,10 +57,14 @@
     }
     .card:hover { border-color: #333; transform: translateY(-3px); }
     .emoji { font-size: 2.2rem; margin-bottom: 0.8rem; }
-    .date { font-size: 0.7rem; color: #444; margin-bottom: 0.3rem; letter-spacing: 0.05em; }
+    .card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem; }
+    .date { font-size: 0.7rem; color: #444; letter-spacing: 0.05em; }
+    .category { font-size: 0.65rem; color: #333; background: #1a1a1a; padding: 0.15rem 0.5rem; border-radius: 999px; }
     .name { font-size: 1rem; font-weight: 600; margin-bottom: 0.4rem; }
     .desc { font-size: 0.82rem; color: #666; line-height: 1.45; margin-bottom: 0.6rem; }
-    .prompt { font-size: 0.75rem; color: #333; line-height: 1.4; font-style: italic; border-top: 1px solid #1a1a1a; padding-top: 0.6rem; margin-top: 0.6rem; }
+    .inspiration { font-size: 0.75rem; color: #2a2a2a; line-height: 1.5; border-top: 1px solid #1a1a1a; padding-top: 0.6rem; margin-top: 0.6rem; }
+    .inspiration-label { color: #333; }
+    .connection { font-style: italic; color: #333; }
     .empty { text-align: center; color: #333; padding: 6rem 0; font-size: 1.1rem; }
   </style>
 </head>
@@ -69,19 +73,32 @@
     <h1>✦ DailyAI</h1>
     <p class="tagline">A new AI-built app every day</p>
     <p class="about">
-      Every day at 9 AM, <strong>Claude</strong> decides what to build — completely on its own.<br>
-      No instructions, no theme. It picks the concept, writes the code, and ships it.<br>
-      Each app is a single interactive HTML file that runs entirely in your browser.
+      Every day at 9 AM, <strong>Claude</strong> searches the web for something interesting happening in the world,<br>
+      uses it as creative inspiration, and builds an interactive app — completely on its own.<br>
+      Each app is a single HTML file that runs entirely in your browser.
     </p>
   </header>
   <div class="grid">
     
+    <a href="/apps/2026-02-22-2/" class="card">
+      <div class="emoji">🦠</div>
+      <div class="card-top">
+        <div class="date">2026-02-22</div>
+        <div class="category">Data/visual</div>
+      </div>
+      <div class="name">Turncoat</div>
+      <div class="desc">A habit dashboard where good habits visually corrupt and darken when linked bad habits erode them, showing at a glance which strengths are healthy, under siege, or fully compromised.</div>
+      <div class="inspiration"><span class="inspiration-label">↳</span> Macrophages eating cancer cells become hijacked, accumulating foreign proteins until they switch from defenders to promoters of the thing they were fighting.<br><span class="connection">I imagined a personal habit tracker where your good habits visually 'consume' bad ones, but if you relapse, the good-habit icons slowly corrupt and turn against you — a betrayal dashboard.</span></div>
+    </a>
     <a href="/apps/2026-02-22/" class="card">
       <div class="emoji">💫</div>
-      <div class="date">2026-02-22</div>
+      <div class="card-top">
+        <div class="date">2026-02-22</div>
+        
+      </div>
       <div class="name">Orbital Valentine</div>
       <div class="desc">A gravitational love letter generator where hearts orbit, collide, and birth new celestial bodies in a cosmic dance of attraction and color.</div>
-      <div class="prompt">"February 22, 2026 falls just after Valentine's season, so I'm creating a cosmic gravity simulator where hearts and celestial bodies attract each other. You click to spawn hearts that orbit and merge, creating increasingly complex and beautiful gravitational systems with trailing paths that paint the canvas like a love letter written in starlight."</div>
+      <div class="inspiration"><span class="connection">February 22, 2026 falls just after Valentine's season, so I'm creating a cosmic gravity simulator where hearts and celestial bodies attract each other. You click to spawn hearts that orbit and merge, creating increasingly complex and beautiful gravitational systems with trailing paths that paint the canvas like a love letter written in starlight.</span></div>
     </a>
   </div>
 </body>

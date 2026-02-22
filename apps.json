@@ -1,6 +1,16 @@
 [
   {
     "date": "2026-02-22",
+    "id": "2026-02-22-2",
+    "name": "Turncoat",
+    "description": "A habit dashboard where good habits visually corrupt and darken when linked bad habits erode them, showing at a glance which strengths are healthy, under siege, or fully compromised.",
+    "inspiration": "Macrophages eating cancer cells become hijacked, accumulating foreign proteins until they switch from defenders to promoters of the thing they were fighting.",
+    "connection": "I imagined a personal habit tracker where your good habits visually 'consume' bad ones, but if you relapse, the good-habit icons slowly corrupt and turn against you — a betrayal dashboard.",
+    "emoji": "🦠",
+    "category": "Data/visual"
+  },
+  {
+    "date": "2026-02-22",
     "name": "Orbital Valentine",
     "description": "A gravitational love letter generator where hearts orbit, collide, and birth new celestial bodies in a cosmic dance of attraction and color.",
     "prompt": "February 22, 2026 falls just after Valentine's season, so I'm creating a cosmic gravity simulator where hearts and celestial bodies attract each other. You click to spawn hearts that orbit and merge, creating increasingly complex and beautiful gravitational systems with trailing paths that paint the canvas like a love letter written in starlight.",
