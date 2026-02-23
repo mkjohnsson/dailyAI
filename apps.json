@@ -1,6 +1,17 @@
 [
   {
     "date": "2026-02-23",
+    "id": "2026-02-23-4",
+    "name": "Dreadhorn",
+    "description": "A surreal sound-painting game where you finger-paint waveforms inside a giant brass mouth, then blast your audio abominations at increasingly indifferent cosmic beings to disturb them.",
+    "inspiration": "The Norfolk Carnyx, a 2,000-year-old war trumpet topped with a snarling boar's head, produced eerie otherworldly blasts in battle.",
+    "connection": "The idea of an ancient instrument that makes horrifying sounds to terrify enemies sparked a game where you sculpt the ugliest, most ear-splitting noises possible to scare away increasingly unfazed creatures.",
+    "emoji": "📯",
+    "category": "Weird/absurd",
+    "categoryColor": "#AA00FF"
+  },
+  {
+    "date": "2026-02-23",
     "id": "2026-02-23-3",
     "name": "Rootspan",
     "description": "A living canyon ecosystem simulator where you redirect rivers, angle mirrors, and seed spores to cultivate strange organisms that gradually self-architect into an inhabitable bio-city across shifting seasons.",
