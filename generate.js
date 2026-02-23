@@ -29,6 +29,23 @@ const CATEGORY_COLORS = {
 const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
 const todayCategory = CATEGORIES[dayOfYear % CATEGORIES.length];
 
+// Rotate research domain focus daily so we don't always land on trending biology news
+const RESEARCH_DOMAINS = [
+  'mathematics, geometry, logic, or patterns',
+  'history, archaeology, linguistics, or forgotten knowledge',
+  'physics, materials science, or engineering',
+  'ecology, animal behavior, or evolution',
+  'economics, game theory, or human psychology',
+  'astronomy, geology, or earth systems',
+  'music, acoustics, architecture, or design',
+  'chemistry, food science, or everyday phenomena',
+  'sports science, movement, or the physics of play',
+  'cartography, urbanism, or infrastructure',
+  'neuroscience, perception, or cognition — but NOT genetics or cancer',
+  'folklore, mythology, or cultural rituals',
+];
+const todayDomain = RESEARCH_DOMAINS[dayOfYear % RESEARCH_DOMAINS.length];
+
 function parseJSON(text) {
   if (!text) throw new Error('Empty response');
   let json = text.trim();
@@ -56,11 +73,19 @@ async function callAPI(model, messages, maxTokens = 2000) {
   return text;
 }
 
-async function research() {
+async function research(recentInspirations) {
   console.log('Researching...');
+  const avoidBlock = recentInspirations.length > 0
+    ? `\nDO NOT return anything similar to these recent topics (already used):\n${recentInspirations.map(i => `- ${i}`).join('\n')}\n`
+    : '';
   return callAPI(RESEARCH_MODEL, [{
     role: 'user',
-    content: `What are 5 fascinating, surprising, or counterintuitive things from the world this week (around ${today})? Cover different domains — science, nature, culture, mathematics, human behavior, technology. Avoid politics. Focus on things that are visually interesting, conceptually rich, or mechanically inspiring. Be specific and concrete.`,
+    content: `What are 5 fascinating, surprising, or counterintuitive things from the world recently (around ${today})?
+
+TODAY'S FOCUS DOMAIN: ${todayDomain}
+Prioritize findings from this domain. Avoid biology, genetics, medicine, and cancer unless the focus domain explicitly includes them.
+${avoidBlock}
+Focus on things that are visually interesting, conceptually rich, or mechanically inspiring. Avoid politics. Be specific and concrete.`,
   }]);
 }
 
@@ -148,15 +173,18 @@ async function generate() {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) throw new Error('OPENROUTER_API_KEY not set');
 
-  // Stage 1: Research
-  const researchResults = await research();
-
-  // Stage 2: Ideate (pass recent names to avoid repetition)
+  // Load manifest early — needed for recent history in both research and ideate
   let manifest = [];
   if (fs.existsSync('apps.json')) {
     manifest = JSON.parse(fs.readFileSync('apps.json', 'utf8'));
   }
   const recentNames = manifest.slice(0, 7).map(a => a.name);
+  const recentInspirations = manifest.slice(0, 7).map(a => a.inspiration).filter(Boolean);
+
+  // Stage 1: Research (aware of recent topics to avoid repetition)
+  const researchResults = await research(recentInspirations);
+
+  // Stage 2: Ideate (aware of recent app names to avoid repetition)
   const idea = await ideate(researchResults, recentNames);
   console.log(`✦ Idea: ${idea.name} — ${idea.concept}`);
 
