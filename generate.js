@@ -6,30 +6,54 @@ const MODEL = 'anthropic/claude-opus-4-6';
 const RESEARCH_MODEL = 'perplexity/sonar-pro';
 const today = new Date().toISOString().split('T')[0];
 
-const CATEGORIES = [
-  { id: 'game',    label: 'Game',        description: 'Something you play. Has rules, a goal, and feedback. Can be any genre — the only requirement is that it\'s fun to interact with.' },
-  { id: 'utility', label: 'Useful tool', description: 'Something actually useful in everyday life. Solves a real, specific problem. Should feel like something you\'d want to bookmark.' },
-  { id: 'art',     label: 'Creative/art',description: 'A tool or toy for making something. The user is the artist — the app gives them materials and constraints to play with.' },
-  { id: 'weird',   label: 'Weird/absurd',description: 'Something that makes no logical sense but is weirdly compelling. Embrace the absurd. The weirder the better.' },
-  { id: 'data',    label: 'Data/visual', description: 'Turns information or time into something visual and readable. Should communicate something at a glance.' },
-  { id: 'sim',     label: 'Simulation',  description: 'A system with its own rules that evolves over time. The user observes, nudges, or controls it. Should feel alive.' },
-  { id: 'social',  label: 'Fun/social',  description: 'Something best experienced with another person nearby, or that generates something shareable or personalized.' },
+// ── Datum-seedat slumpsystem ───────────────────────────────────────────────
+// Samma datum ger alltid samma app (deterministiskt), men varierar maximalt dag för dag.
+
+function seededRng(seed) {
+  let s = seed >>> 0;
+  return () => {
+    s = Math.imul(s ^ (s >>> 16), 0x45d9f3b);
+    s = Math.imul(s ^ (s >>> 16), 0x45d9f3b);
+    s ^= (s >>> 16);
+    return (s >>> 0) / 0xffffffff;
+  };
+}
+
+const dateSeed = parseInt(today.replace(/-/g, ''), 10);
+const rng = seededRng(dateSeed);
+const pick = arr => arr[Math.floor(rng() * arr.length)];
+
+const APP_TYPES = [
+  { label: 'Game',              color: '#FF2D78', instruction: 'Build a game. It must have clear rules, a win/lose state or score, and satisfying feedback. Any genre works — puzzle, arcade, strategy, word game, reflex. No canvas particle effects.' },
+  { label: 'Useful tool',       color: '#00C853', instruction: 'Build something genuinely useful. It must solve a real, specific everyday problem. Use forms, inputs, and outputs — NOT canvas. Examples: a calculator variant, a converter, a checklist, a text tool, a timer with a purpose, a quick-reference table.' },
+  { label: 'Generator',         color: '#FF9800', instruction: 'Build a generator. Press a button (or interact) and it produces something: a name, a poem, a recipe, a plan, a pattern, a palette, a random scenario. Output should feel surprising and delightful.' },
+  { label: 'Creative tool',     color: '#FFD600', instruction: 'Build a tool for making something. The USER is the artist — the app gives them materials, constraints, and a canvas to play with. Could be drawing, composing, writing, designing.' },
+  { label: 'Weird/absurd',      color: '#AA00FF', instruction: 'Build something that makes no logical sense but is weirdly compelling. Lean into the absurd. It can be a toy, a pseudo-app, a fake interface, a surreal experience. The weirder the better.' },
+  { label: 'Data visualization', color: '#0066FF', instruction: 'Turn data or time into something visual and readable. Use real or procedural data. Should communicate something meaningful at a glance. NOT a canvas animation — use SVG, CSS, or DOM.' },
+  { label: 'Interactive story', color: '#E91E63', instruction: 'Build a short interactive narrative or choice-based experience. Text-driven. The user makes choices that branch the story. Atmospheric and well-written.' },
+  { label: 'Toy',               color: '#00BCD4', instruction: 'Build something with no goal — just satisfying or fun to interact with. Could be a fidget toy, a sound toy, a visual toy, a word toy. Simple but irresistible.' },
+  { label: 'Quiz / trivia',     color: '#8BC34A', instruction: 'Build a quiz or trivia experience on any topic. Questions should be interesting, not generic. Include scoring and feedback.' },
+  { label: 'Simulation',        color: '#FF6D00', instruction: 'Build a system with its own rules that evolves over time. The user observes, nudges, or controls it. Should feel alive. Avoid generic particle effects and Conway\'s Game of Life.' },
+  { label: 'Fun/social',        color: '#F50057', instruction: 'Build something best used with another person, or that generates something shareable or personalized. Could be a party game, a personality test, a collaborative tool, a card generator.' },
 ];
 
-const CATEGORY_COLORS = {
-  'Game':         '#FF2D78',
-  'Useful tool':  '#00C853',
-  'Creative/art': '#FFD600',
-  'Weird/absurd': '#AA00FF',
-  'Data/visual':  '#0066FF',
-  'Simulation':   '#FF6D00',
-  'Fun/social':   '#F50057',
-};
+const INTERFACE_STYLES = [
+  'Clean, minimal UI — white background, clear typography, generous whitespace.',
+  'Terminal / command-line aesthetic — monospace font, dark background, green or amber text.',
+  'Card-based layout — information organized in cards or tiles.',
+  'Single centered interaction — one dominant element, everything else fades away.',
+  'Dashboard — multiple panels showing different aspects at once.',
+  'Newspaper / editorial — strong typography, columns, clear hierarchy.',
+  'Playful and colorful — bold colors, rounded shapes, bouncy interactions.',
+  'Dark and atmospheric — moody, immersive, dramatic.',
+];
 
-const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
-const todayCategory = CATEGORIES[dayOfYear % CATEGORIES.length];
+const SCALES = [
+  'Small and focused — does one thing perfectly. Under 200 lines. No feature creep.',
+  'Medium — a few features that complement each other. Around 300 lines.',
+  'Ambitious — rich and complex, many moving parts, but still coherent. Up to 500 lines.',
+];
 
-// Rotate research domain focus daily so we don't always land on trending biology news
 const RESEARCH_DOMAINS = [
   'mathematics, geometry, logic, or patterns',
   'history, archaeology, linguistics, or forgotten knowledge',
@@ -41,10 +65,22 @@ const RESEARCH_DOMAINS = [
   'chemistry, food science, or everyday phenomena',
   'sports science, movement, or the physics of play',
   'cartography, urbanism, or infrastructure',
-  'neuroscience, perception, or cognition — but NOT genetics or cancer',
+  'neuroscience, perception, or cognition',
   'folklore, mythology, or cultural rituals',
+  'mathematics and number theory',
+  'climate, weather, or natural phenomena',
+  'philosophy, ethics, or decision theory',
 ];
-const todayDomain = RESEARCH_DOMAINS[dayOfYear % RESEARCH_DOMAINS.length];
+
+const todayType      = pick(APP_TYPES);
+const todayInterface = pick(INTERFACE_STYLES);
+const todayScale     = pick(SCALES);
+const todayDomain    = pick(RESEARCH_DOMAINS);
+
+// Keep todayCategory alias for backward compat with gallery color logic
+const todayCategory = { label: todayType.label };
+
+console.log(`Today's profile: ${todayType.label} / ${todayInterface.split('—')[0].trim()} / ${todayScale.split('—')[0].trim()}`);
 
 function parseJSON(text) {
   if (!text) throw new Error('Empty response');
@@ -130,15 +166,15 @@ RULES:
 - No server, no API keys — everything runs in the browser
 - CDN libraries are allowed (Three.js, p5.js, Tone.js, Chart.js, GSAP, etc.)
 - Must be interactive in some way
-- Max ~500 lines of code
 - Must work immediately in the browser
 
-IMPORTANT — AVOID THESE OVERUSED TROPES:
+ALWAYS AVOID:
 - Particle systems that react to mouse movement
 - Psychedelic/trippy visuals with floating orbs or nebulas
 - "Meditative" or "zen" experiences
 - Space/cosmos themes
 - Generic canvas animations
+- Conway's Game of Life or obvious clones
 
 RESPOND IN EXACTLY THIS FORMAT (no JSON, no code fences):
 DESCRIPTION: One sentence about what the app does or feels like.
@@ -151,10 +187,16 @@ DESCRIPTION: One sentence about what the app does or feels like.
       content: `Build this app concept as a single interactive HTML file.
 
 CONCEPT: ${idea.concept}
-CATEGORY: ${todayCategory.label} — ${todayCategory.description}
 NAME: ${idea.name}
 
-Be faithful to the concept. Avoid particle effects, space themes, and generic canvas animations.`,
+TODAY'S APP TYPE: ${todayType.label}
+${todayType.instruction}
+
+VISUAL STYLE: ${todayInterface}
+
+SCALE: ${todayScale}
+
+Be faithful to the concept AND the app type. The type instruction overrides your defaults — if it says "use forms not canvas", use forms. If it says "text-driven", make it text-driven.`,
     },
   ], 16000);
 
@@ -213,7 +255,8 @@ async function generate() {
     inspiration: idea.inspiration,
     connection: idea.connection,
     emoji: idea.emoji,
-    category: todayCategory.label,
+    category: todayType.label,
+    categoryColor: todayType.color,
   });
   fs.writeFileSync('apps.json', JSON.stringify(manifest, null, 2));
 
@@ -227,7 +270,7 @@ async function generate() {
 
 function generateGallery(manifest) {
   const cards = manifest.map(app => {
-    const catColor = CATEGORY_COLORS[app.category] || '#FF2D78';
+    const catColor = app.categoryColor || '#FF2D78';
     const inspirationHtml = app.inspiration
       ? `<div class="inspiration">
            <span class="insp-fact">↳ ${app.inspiration}</span>
