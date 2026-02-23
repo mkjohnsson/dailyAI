@@ -1,6 +1,16 @@
 [
   {
     "date": "2026-02-23",
+    "id": "2026-02-23-2",
+    "name": "Turncoat",
+    "description": "A dark ecosystem simulation where keeper cells patrol and consume anomalies, gradually becoming corrupted and turning against their own kind, forcing you to make tough sacrifices to maintain balance.",
+    "inspiration": "Cancer cells steal proteins from immune macrophages, coating their surface and converting defenders into unwitting allies.",
+    "connection": "The idea of identity corruption spreading through contact — where consuming something dangerous transforms your role — inspired a simulation where helpful agents become compromised through the very act of trying to help.",
+    "emoji": "🦠",
+    "category": "Simulation"
+  },
+  {
+    "date": "2026-02-23",
     "id": "2026-02-23",
     "name": "Impostor Colony",
     "description": "A petri dish teeming with pulsing organisms where you must spot and tag shape-shifting predators that mimic their prey's appearance while exhibiting subtle behavioral tells.",
