@@ -1,5 +1,15 @@
 [
   {
+    "date": "2026-02-23",
+    "id": "2026-02-23",
+    "name": "Impostor Colony",
+    "description": "A petri dish teeming with pulsing organisms where you must spot and tag shape-shifting predators that mimic their prey's appearance while exhibiting subtle behavioral tells.",
+    "inspiration": "Cancer cells steal 'don't eat me' signals from immune cells, disguising threats as allies.",
+    "connection": "What if a living ecosystem had entities that could camouflage themselves by absorbing the visual identity of things they consume, forcing you to watch behavior — not appearance — to find the threat?",
+    "emoji": "🧫",
+    "category": "Simulation"
+  },
+  {
     "date": "2026-02-22",
     "id": "2026-02-22-3",
     "name": "Foldline",

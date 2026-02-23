@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Impostor Colony</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0a0a0f; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: 'Courier New', monospace; color: #b8c4b8; overflow: hidden; }
+#ui { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); display: flex; gap: 20px; font-size: 13px; z-index: 10; background: rgba(10,10,15,0.85); padding: 8px 18px; border-radius: 20px; border: 1px solid #2a3a2a; }
+.stat { display: flex; align-items: center; gap: 5px; }
+.stat-label { color: #6a7a6a; }
+.stat-val { color: #a8e8a8; font-weight: bold; }
+#alert-val { color: #e8a8a8; }
+#gen-val { color: #a8c8e8; }
+#canvas-wrap { position: relative; }
+canvas { border-radius: 50%; cursor: crosshair; }
+#ring { position: absolute; top: -6px; left: -6px; right: -6px; bottom: -6px; border-radius: 50%; border: 2px solid #1a2a1a; pointer-events: none; box-shadow: inset 0 0 40px rgba(100,180,100,0.05), 0 0 30px rgba(0,0,0,0.5); }
+#msg { position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); font-size: 12px; color: #4a6a4a; z-index: 10; text-align: center; min-height: 36px; transition: opacity 0.3s; }
+#start-screen { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(10,10,15,0.95); z-index: 20; }
+#start-screen h1 { font-size: 28px; color: #a8e8a8; margin-bottom: 8px; letter-spacing: 3px; }
+#start-screen p { color: #5a7a5a; font-size: 13px; max-width: 380px; text-align: center; line-height: 1.6; margin-bottom: 20px; }
+#start-btn { background: none; border: 1px solid #3a5a3a; color: #a8e8a8; padding: 10px 30px; font-family: inherit; font-size: 14px; border-radius: 20px; cursor: pointer; transition: all 0.3s; }
+#start-btn:hover { background: #1a2a1a; border-color: #5a8a5a; }
+#game-over { position: absolute; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center; background: rgba(10,10,15,0.92); z-index: 20; }
+#game-over h2 { font-size: 22px; color: #e8a8a8; margin-bottom: 10px; }
+#game-over p { color: #6a7a6a; font-size: 13px; margin-bottom: 15px; }
+#restart-btn { background: none; border: 1px solid #5a3a3a; color: #e8a8a8; padding: 10px 30px; font-family: inherit; font-size: 14px; border-radius: 20px; cursor: pointer; }
+#tag-flash { position: absolute; inset: 0; border-radius: 50%; pointer-events: none; opacity: 0; transition: opacity 0.15s; }
+</style>
+</head>
+<body>
+<div id="ui">
+  <div class="stat"><span class="stat-label">Colony:</span><span class="stat-val" id="colony-val">0</span></div>
+  <div class="stat"><span class="stat-label">Mimics:</span><span class="stat-val" id="alert-val">?</span></div>
+  <div class="stat"><span class="stat-label">Gen:</span><span class="stat-val" id="gen-val">1</span></div>
+  <div class="stat"><span class="stat-label">Score:</span><span class="stat-val" id="score-val">0</span></div>
+  <div class="stat"><span class="stat-label">Misses:</span><span class="stat-val" id="miss-val">0/5</span></div>
+</div>
+<div id="canvas-wrap">
+  <canvas id="dish"></canvas>
+  <div id="ring"></div>
+  <div id="tag-flash"></div>
+</div>
+<div id="msg">Watch closely. Spot the impostors.</div>
+<div id="start-screen">
+  <h1>IMPOSTOR COLONY</h1>
+  <p>A petri dish full of living organisms. But some are <em>mimics</em> — predators that devour organisms and steal their appearance.<br><br>Watch for subtle tells: wrong pulse timing, unnatural drifting toward prey, slight hesitations.<br><br>Tap suspects to tag them. Each generation, mimics get better at hiding.</p>
+  <button id="start-btn">Begin Observation</button>
+</div>
+<div id="game-over">
+  <h2 id="go-title">Colony Collapsed</h2>
+  <p id="go-text"></p>
+  <button id="restart-btn">Try Again</button>
+</div>
+
+<script>
+const canvas = document.getElementById('dish');
+const ctx = canvas.getContext('2d');
+const SIZE = Math.min(window.innerWidth - 40, window.innerHeight - 120, 560);
+canvas.width = SIZE; canvas.height = SIZE;
+const CX = SIZE/2, CY = SIZE/2, CR = SIZE/2 - 4;
+
+let organisms = [], mimics = [], deadAnims = [], tagAnims = [];
+let generation = 1, score = 0, misses = 0, maxMisses = 5;
+let running = false, time = 0;
+let genTimer = 0, genInterval = 22000;
+let msgTimeout;
+
+const SHAPES = ['circle','triangle','diamond','pentagon','star'];
+const PALETTES = [
+  ['#e87070','#e8a870','#e8d870'],
+  ['#70b8e8','#70e8b8','#a870e8'],
+  ['#e870c8','#70e870','#e8e870'],
+  ['#f0a0a0','#a0f0d0','#a0a0f0'],
+];
+
+function rng(a,b){ return a + Math.random()*(b-a); }
+function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+function dist(a,b){ return Math.hypot(a.x-b.x, a.y-b.y); }
+function inDish(x,y,m=0){ return Math.hypot(x-CX,y-CY) < CR-m; }
+
+function randomPos(margin=30){
+  let a = Math.random()*Math.PI*2, r = Math.random()*(CR-margin);
+  return { x: CX+Math.cos(a)*r, y: CY+Math.sin(a)*r };
+}
+
+class Organism {
+  constructor(props={}){
+    let p = randomPos(20);
+    this.x = props.x || p.x;
+    this.y = props.y || p.y;
+    this.shape = props.shape || pick(SHAPES);
+    this.color = props.color || pick(pick(PALETTES));
+    this.size = props.size || rng(6,14);
+    this.pulseRate = props.pulseRate || rng(0.8,2.5);
+    this.pulsePhase = props.pulsePhase || rng(0,Math.PI*2);
+    this.pulseAmp = props.pulseAmp || rng(0.15,0.35);
+    this.driftAngle = rng(0,Math.PI*2);
+    this.driftSpeed = rng(0.15,0.5);
+    this.wobble = rng(0.5,1.5);
+    this.wobblePhase = rng(0,Math.PI*2);
+    this.alive = true;
+    this.tagged = false;
+    this.fadeOut = 1;
+    this.reproTimer = rng(8000,18000);
+  }
+
+  update(dt){
+    if(!this.alive) return;
+    this.driftAngle += Math.sin(time*this.wobble+this.wobblePhase)*0.02;
+    this.x += Math.cos(this.driftAngle)*this.driftSpeed*dt*60;
+    this.y += Math.sin(this.driftAngle)*this.driftSpeed*dt*60;
+    let d = Math.hypot(this.x-CX, this.y-CY);
+    if(d > CR-this.size-5){
+      let a = Math.atan2(this.y-CY, this.x-CX);
+      this.driftAngle = a + Math.PI + rng(-0.5,0.5);
+      this.x = CX+Math.cos(a)*(CR-this.size-8);
+      this.y = CY+Math.sin(a)*(CR-this.size-8);
+    }
+    this.reproTimer -= dt*1000;
+    if(this.reproTimer <= 0 && organisms.length < 60){
+      this.reproTimer = rng(10000,20000);
+      let child = new Organism({
+        x: this.x+rng(-10,10), y: this.y+rng(-10,10),
+        shape: this.shape, color: this.color,
+        size: this.size*rng(0.85,1.15),
+        pulseRate: this.pulseRate*rng(0.9,1.1),
+        pulseAmp: this.pulseAmp
+      });
+      if(inDish(child.x, child.y, 15)) organisms.push(child);
+    }
+  }
+
+  getPulse(){
+    return 1 + Math.sin(time*this.pulseRate*Math.PI*2+this.pulsePhase)*this.pulseAmp;
+  }
+
+  draw(){
+    if(!this.alive) return;
+    let pulse = this.getPulse();
+    let s = this.size * pulse * this.fadeOut;
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    ctx.globalAlpha = 0.15 * this.fadeOut;
+    ctx.fillStyle = this.color;
+    drawShape(ctx, this.shape, 0, 0, s*2);
+    ctx.globalAlpha = 0.85 * this.fadeOut;
+    drawShape(ctx, this.shape, 0, 0, s);
+    ctx.restore();
+  }
+}
+
+class Mimic {
+  constructor(gen){
+    let p = randomPos(20);
+    this.x = p.x; this.y = p.y;
+    this.gen = gen;
+    this.accuracy = Math.min(0.95, 0.5 + gen*0.07);
+    this.disguise = null;
+    this.findDisguise();
+    this.alive = true;
+    this.tagged = false;
+    this.fadeOut = 1;
+    this.huntTimer = rng(3000,7000);
+    this.target = null;
+    this.hunting = false;
+    this.devourCooldown = 0;
+    this.stealTimer = 0;
+    // Tells
+    this.pulseError = (1-this.accuracy)*rng(0.1,0.4);
+    this.driftBias = (1-this.accuracy)*rng(0.3,1.0);
+    this.hesitation = 0;
+    this.driftAngle = rng(0,Math.PI*2);
+    this.wobblePhase = rng(0,Math.PI*2);
+  }
+
+  findDisguise(){
+    if(organisms.length > 0){
+      let o = pick(organisms);
+      this.disguise = {
+        shape: o.shape, color: o.color, size: o.size,
+        pulseRate: o.pulseRate, pulsePhase: o.pulsePhase + this.pulseError,
+        pulseAmp: o.pulseAmp
+      };
+    } else {
+      this.disguise = {
+        shape: pick(SHAPES), color: pick(pick(PALETTES)), size: rng(6,14),
+        pulseRate: rng(0.8,2.5), pulsePhase: rng(0,Math.PI*2), pulseAmp: rng(0.15,0.35)
+      };
+    }
+  }
+
+  update(dt){
+    if(!this.alive) return;
+    this.huntTimer -= dt*1000;
+    this.devourCooldown -= dt*1000;
+
+    if(this.huntTimer <= 0 && !this.hunting){
+      this.hunting = true;
+      this.target = this.findPrey();
+    }
+
+    if(this.hunting && this.target && this.target.alive){
+      let a = Math.atan2(this.target.y - this.y, this.target.x - this.x);
+      let huntSpeed = 0.3 + this.driftBias * 0.8;
+      // Hesitation tell: mimics pause briefly before committing
+      this.hesitation -= dt*1000;
+      if(this.hesitation > 0) huntSpeed *= 0.1;
+
+      this.driftAngle += (a - this.driftAngle) * 0.05 * (1+this.driftBias);
+      this.x += Math.cos(this.driftAngle)*huntSpeed*dt*60;
+      this.y += Math.sin(this.driftAngle)*huntSpeed*dt*60;
+
+      if(dist(this, this.target) < this.disguise.size + 5 && this.devourCooldown <= 0){
+        this.devour(this.target);
+      }
+    } else {
+      // Idle drift — mimics drift slightly more linearly (tell)
+      this.driftAngle += Math.sin(time*0.8+this.wobblePhase)*0.015*(this.accuracy);
+      let sp = rng(0.15,0.4);
+      this.x += Math.cos(this.driftAngle)*sp*dt*60;
+      this.y += Math.sin(this.driftAngle)*sp*dt*60;
+      this.hunting = false;
+      this.huntTimer = rng(2000,5000) * this.accuracy;
+    }
+
+    // Boundary
+    let d = Math.hypot(this.x-CX, this.y-CY);
+    if(d > CR-15){
+      let a2 = Math.atan2(this.y-CY, this.x-CX);
+      this.driftAngle = a2 + Math.PI + rng(-0.5,0.5);
+      this.x = CX+Math.cos(a2)*(CR-18);
+      this.y = CY+Math.sin(a2)*(CR-18);
+    }
+  }
+
+  findPrey(){
+    let nearest = null, nd = Infinity;
+    for(let o of organisms){
+      if(!o.alive) continue;
+      let d2 = dist(this, o);
+      if(d2 < nd){ nd = d2; nearest = o; }
+    }
+    return nearest;
+  }
+
+  devour(o){
+    o.alive = false;
+    deadAnims.push({ x: o.x, y: o.y, size: o.size, color: o.color, t: 0, dur: 0.6 });
+    this.disguise = {
+      shape: o.shape, color: o.color, size: o.size,
+      pulseRate: o.pulseRate,
+      pulsePhase: o.pulsePhase + this.pulseError*(1-this.accuracy*0.5),
+      pulseAmp: o.pulseAmp
+    };
+    this.hunting = false;
+    this.huntTimer = rng(3000,8000);
+    this.devourCooldown = 2000;
+    this.hesitation = rng(300,800)*(1-this.accuracy);
+    organisms = organisms.filter(x => x.alive);
+  }
+
+  getPulse(){
+    let d = this.disguise;
+    return 1 + Math.sin(time*d.pulseRate*Math.PI*2+d.pulsePhase)*d.pulseAmp;
+  }
+
+  draw(){
+    if(!this.alive) return;
+    let d = this.disguise;
+    let pulse = this.getPulse();
+    let s = d.size * pulse * this.fadeOut;
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    ctx.globalAlpha = 0.15 * this.fadeOut;
+    ctx.fillStyle = d.color;
+    drawShape(ctx, d.shape, 0, 0, s*2);
+    ctx.globalAlpha = 0.85 * this.fadeOut;
+    drawShape(ctx, d.shape, 0, 0, s);
+    // Hunting tell: very subtle reddish tinge when approaching prey
+    if(this.hunting && this.target && dist(this,this.target)<80){
+      ctx.globalAlpha = 0.06*(1-this.accuracy+0.2);
+      ctx.fillStyle = '#ff3030';
+      drawShape(ctx, d.shape, 0, 0, s*1.3);
+    }
+    ctx.restore();
+  }
+}
+
+function drawShape(ctx, shape, x, y, r){
+  ctx.beginPath();
+  switch(shape){
+    case 'circle':
+      ctx.arc(x,y,r,0,Math.PI*2); break;
+    case 'triangle':
+      for(let i=0;i<3;i++){ let a=-Math.PI/2+i*Math.PI*2/3; ctx.lineTo(x+Math.cos(a)*r, y+Math.sin(a)*r); }
+      ctx.closePath(); break;
+    case 'diamond':
+      ctx.moveTo(x,y-r); ctx.lineTo(x+r*0.7,y); ctx.lineTo(x,y+r); ctx.lineTo(x-r*0.7,y);
+      ctx.closePath(); break;
+    case 'pentagon':
+      for(let i=0;i<5;i++){ let a=-Math.PI/2+i*Math.PI*2/5; ctx.lineTo(x+Math.cos(a)*r, y+Math.sin(a)*r); }
+      ctx.closePath(); break;
+    case 'star':
+      for(let i=0;i<5;i++){
+        let a1=-Math.PI/2+i*Math.PI*2/5, a2=a1+Math.PI/5;
+        ctx.lineTo(x+Math.cos(a1)*r, y+Math.sin(a1)*r);
+        ctx.lineTo(x+Math.cos(a2)*r*0.45, y+Math.sin(a2)*r*0.45);
+      }
+      ctx.closePath(); break;
+  }
+  ctx.fill();
+}
+
+function showMsg(txt, dur=3000){
+  let el = document.getElementById('msg');
+  el.textContent = txt; el.style.opacity = 1;
+  clearTimeout(msgTimeout);
+  msgTimeout = setTimeout(()=> el.style.opacity=0.4, dur);
+}
+
+function spawnGeneration(){
+  let numMimics = Math.min(1 + Math.floor(generation*0.8), 6);
+  // top up organisms
+  let needed = Math.max(0, 20 + generation*3 - organisms.length);
+  for(let i=0;i<needed && organisms.length<55;i++){
+    organisms.push(new Organism());
+  }
+  for(let i=0;i<numMimics;i++){
+    mimics.push(new Mimic(generation));
+  }
+  showMsg(`Generation ${generation} — ${numMimics} mimic${numMimics>1?'s':''} introduced.`);
+}
+
+function startGame(){
+  organisms = []; mimics = []; deadAnims = []; tagAnims = [];
+  generation = 1; score = 0; misses = 0; time = 0; genTimer = 0;
+  for(let i=0;i<22;i++) organisms.push(new Organism());
+  spawnGeneration();
+  running = true;
+  document.getElementById('start-screen').style.display = 'none';
+  document.getElementById('game-over').style.display = 'none';
+  updateUI();
+}
+
+function endGame(reason){
+  running = false;
+  document.getElementById('go-title').textContent = reason;
+  document.getElementById('go-text').textContent = `Score: ${score} | Survived to generation ${generation}`;
+  document.getElementById('game-over').style.display = 'flex';
+}
+
+function updateUI(){
+  document.getElementById('colony-val').textContent = organisms.length;
+  document.getElementById('alert-val').textContent = mimics.length > 0 ? '?' : '0';
+  document.getElementById('gen-val').textContent = generation;
+  document.getElementById('score-val').textContent = score;
+  document.getElementById('miss-val').textContent = `${misses}/${maxMisses}`;
+}
+
+canvas.addEventListener('click', (e)=>{
+  if(!running) return;
+  let rect = canvas.getBoundingClientRect();
+  let mx = (e.clientX - rect.left)*(SIZE/rect.width);
+  let my = (e.clientY - rect.top)*(SIZE/rect.height);
+
+  // Check mimics first
+  let hit = false;
+  for(let m of mimics){
+    if(!m.alive) continue;
+    if(dist({x:mx,y:my}, m) < m.disguise.size + 8){
+      m.alive = false;
+      score += generation * 10;
+      hit = true;
+      tagAnims.push({ x:m.x, y:m.y, t:0, dur:0.8, success: true, color: '#50ff50' });
+      showMsg(`Mimic eliminated! +${generation*10} points`);
+      break;
+    }
+  }
+  mimics = mimics.filter(m=>m.alive);
+
+  if(!hit){
+    // Check organisms — wrong tag!
+    for(let o of organisms){
+      if(!o.alive) continue;
+      if(dist({x:mx,y:my}, o) < o.size + 8){
+        hit = true;
+        misses++;
+        tagAnims.push({ x:o.x, y:o.y, t:0, dur:0.8, success: false, color: '#ff5050' });
+        showMsg(`Innocent organism tagged! Miss ${misses}/${maxMisses}`);
+        if(misses >= maxMisses){
+          endGame('Too many false accusations!');
+        }
+        break;
+      }
+    }
+  }
+
+  let flash = document.getElementById('tag-flash');
+  flash.style.background = hit ? (misses >= maxMisses ? 'rgba(255,50,50,0.1)' : 'rgba(100,255,100,0.05)') : 'transparent';
+  flash.style.opacity = hit ? 1 : 0;
+  setTimeout(()=> flash.style.opacity=0, 150);
+
+  updateUI();
+});
+
+document.getElementById('start-btn').addEventListener('click', startGame);
+document.getElementById('restart-btn').addEventListener('click', startGame);
+
+let lastTime = performance.now();
+function loop(now){
+  let dt = Math.min((now - lastTime)/1000, 0.05);
+  lastTime = now;
+  requestAnimationFrame(loop);
+
+  if(!running){
+    drawDish();
+    return;
+  }
+
+  time += dt;
+  genTimer += dt*1000;
+
+  if(genTimer >= genInterval){
+    genTimer = 0;
+    if(mimics.length === 0){
+      generation++;
+      spawnGeneration();
+    }
+  }
+
+  // Next gen when all mimics cleared
+  if(mimics.length === 0 && genTimer > 2000){
+    generation++;
+    genTimer = 0;
+    spawnGeneration();
+  }
+
+  for(let o of organisms) o.update(dt);
+  for(let m of mimics) m.update(dt);
+
+  // Check colony health
+  if(organisms.length <= 3 && mimics.length > 0){
+    endGame('Colony consumed by mimics!');
+  }
+
+  updateUI();
+  drawDish();
+}
+
+function drawDish(){
+  ctx.clearRect(0,0,SIZE,SIZE);
+
+  // Petri dish background
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(CX,CY,CR,0,Math.PI*2);
+  ctx.clip();
+
+  // Agar gradient
+  let grd = ctx.createRadialGradient(CX,CY,0,CX,CY,CR);
+  grd.addColorStop(0, '#0f1a12');
+  grd.addColorStop(0.7, '#0c150e');
+  grd.addColorStop(1, '#081008');
+  ctx.fillStyle = grd;
+  ctx.fillRect(0,0,SIZE,SIZE);
+
+  // Subtle grid/texture
+  ctx.globalAlpha = 0.03;
+  ctx.strokeStyle = '#4a8a4a';
+  for(let i=0;i<SIZE;i+=20){
+    ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,SIZE); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0,i); ctx.lineTo(SIZE,i); ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+
+  // Draw organisms
+  for(let o of organisms) o.draw();
+  for(let m of mimics) m.draw();
+
+  // Dead animations
+  for(let d of deadAnims){
+    d.t += 0.016;
+    let p = d.t / d.dur;
+    if(p > 1) continue;
+    ctx.save();
+    ctx.globalAlpha = (1-p)*0.5;
+    ctx.strokeStyle = d.color;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(d.x, d.y, d.size*(1+p*3), 0, Math.PI*2);
+    ctx.stroke();
+    // Inner collapse
+    ctx.globalAlpha = (1-p)*0.3;
+    ctx.fillStyle = d.color;
+    ctx.beginPath();
+    ctx.arc(d.x, d.y, d.size*(1-p), 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  }
+  deadAnims = deadAnims.filter(d => d.t < d.dur);
+
+  // Tag animations
+  for(let t of tagAnims){
+    t.t += 0.016;
+    let p = t.t / t.dur;
+    if(p > 1) continue;
+    ctx.save();
+    ctx.globalAlpha = (1-p)*0.7;
+    ctx.strokeStyle = t.color;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4,4]);
+    ctx.beginPath();
+    ctx.arc(t.x, t.y, 10+p*25, 0, Math.PI*2);
+    ctx.stroke();
+    // Crosshair
+    ctx.setLineDash([]);
+    ctx.globalAlpha = (1-p)*0.5;
+    let cs = 8*(1-p*0.5);
+    ctx.beginPath();
+    ctx.moveTo(t.x-cs,t.y); ctx.lineTo(t.x+cs,t.y);
+    ctx.moveTo(t.x,t.y-cs); ctx.lineTo(t.x,t.y+cs);
+    ctx.stroke();
+    if(t.success){
+      ctx.globalAlpha = (1-p)*0.4;
+      ctx.font = '11px Courier New';
+      ctx.fillStyle = t.color;
+      ctx.fillText('MIMIC', t.x-18, t.y-15-p*15);
+    }
+    ctx.restore();
+  }
+  tagAnims = tagAnims.filter(t => t.t < t.dur);
+
+  ctx.restore();
+
+  // Dish rim highlight
+  ctx.beginPath();
+  ctx.arc(CX,CY,CR,0,Math.PI*2);
+  ctx.strokeStyle = 'rgba(100,180,100,0.15)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Microscope vignette
+  let vig = ctx.createRadialGradient(CX,CY,CR*0.6,CX,CY,CR);
+  vig.addColorStop(0,'transparent');
+  vig.addColorStop(1,'rgba(0,0,0,0.3)');
+  ctx.fillStyle = vig;
+  ctx.beginPath(); ctx.arc(CX,CY,CR,0,Math.PI*2); ctx.fill();
+
+  // Light reflection
+  ctx.save();
+  ctx.globalAlpha = 0.04;
+  ctx.beginPath();
+  ctx.ellipse(CX-CR*0.25, CY-CR*0.3, CR*0.4, CR*0.15, -0.5, 0, Math.PI*2);
+  ctx.fillStyle = '#ffffff';
+  ctx.fill();
+  ctx.restore();
+}
+
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
