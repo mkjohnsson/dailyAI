@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rootspan</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#1a1410; color:#d4c4a0; font-family:'Courier New',monospace; overflow:hidden; user-select:none; }
+canvas { display:block; }
+#ui { position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; }
+#toolbar { position:absolute; bottom:20px; left:50%; transform:translateX(-50%); display:flex; gap:8px; pointer-events:all; }
+.tool-btn { padding:8px 14px; background:rgba(30,25,18,0.85); border:1px solid #5a4a30; color:#d4c4a0; cursor:pointer; font-family:inherit; font-size:12px; border-radius:4px; transition:all 0.2s; }
+.tool-btn:hover { background:#3a3020; border-color:#8a7a50; }
+.tool-btn.active { background:#4a3a20; border-color:#c0a060; color:#f0e0b0; }
+#info-panel { position:absolute; top:15px; left:15px; background:rgba(20,16,10,0.85); border:1px solid #3a3020; padding:12px; border-radius:4px; font-size:11px; line-height:1.6; min-width:180px; }
+#season-display { position:absolute; top:15px; right:15px; background:rgba(20,16,10,0.85); border:1px solid #3a3020; padding:12px; border-radius:4px; font-size:11px; text-align:right; }
+#species-panel { position:absolute; top:100px; right:15px; background:rgba(20,16,10,0.85); border:1px solid #3a3020; padding:10px; border-radius:4px; font-size:10px; max-height:300px; overflow-y:auto; pointer-events:all; }
+.species-row { display:flex; align-items:center; gap:6px; margin:3px 0; }
+.species-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.extinct { opacity:0.3; text-decoration:line-through; }
+#tooltip { position:absolute; background:rgba(15,12,8,0.95); border:1px solid #5a4a30; padding:8px 10px; border-radius:3px; font-size:10px; pointer-events:none; display:none; max-width:200px; }
+</style>
+</head>
+<body>
+<canvas id="canyon"></canvas>
+<div id="ui">
+<div id="info-panel">
+<div><strong>ROOTSPAN</strong></div>
+<div id="cycle-info">Cycle: 0</div>
+<div id="pop-info">Organisms: 0</div>
+<div id="structure-info">Structures: 0</div>
+<div id="biodiversity-info">Biodiversity: 0</div>
+<div id="integrity-info">Integrity: 100%</div>
+</div>
+<div id="season-display">
+<div id="season-name">Early Spring</div>
+<div id="wind-dir">Wind: Calm</div>
+<div id="light-level">Light: ████</div>
+</div>
+<div id="species-panel"><strong>Species Log</strong><div id="species-list"></div></div>
+<div id="toolbar">
+<button class="tool-btn active" data-tool="observe" title="Observe">👁 Observe</button>
+<button class="tool-btn" data-tool="river" title="Redirect water flow">💧 River</button>
+<button class="tool-btn" data-tool="mirror" title="Place light mirror">🪞 Mirror</button>
+<button class="tool-btn" data-tool="spore" title="Seed spores">🌱 Spore</button>
+<button class="tool-btn" data-tool="wind" title="Redirect wind">💨 Wind</button>
+</div>
+<div id="tooltip"></div>
+</div>
+
+<script>
+const canvas = document.getElementById('canyon');
+const ctx = canvas.getContext('2d');
+let W, H;
+function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+resize();
+window.addEventListener('resize', resize);
+
+// Tool state
+let currentTool = 'observe';
+document.querySelectorAll('.tool-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentTool = btn.dataset.tool;
+  });
+});
+
+// World state
+const GRID = 80;
+let cols, rows;
+function initGrid() { cols = Math.ceil(W/GRID); rows = Math.ceil(H/GRID); }
+initGrid();
+
+let cycle = 0;
+let season = 0; // 0-3: spring,summer,autumn,winter
+let seasonProgress = 0;
+const SEASON_LENGTH = 600;
+const seasonNames = ['Spring','Summer','Autumn','Winter'];
+const seasonColors = [
+  {sky:'#4a6040',ground:'#2a2018',wall:'#3a3028'},
+  {sky:'#6a7040',ground:'#302818',wall:'#4a3828'},
+  {sky:'#5a4030',ground:'#281810',wall:'#3a2820'},
+  {sky:'#303848',ground:'#1a1820',wall:'#282830'}
+];
+
+// Canyon terrain - heights for left and right walls
+let canyonLeft = [], canyonRight = [], canyonFloor = [];
+function initCanyon() {
+  canyonLeft = []; canyonRight = []; canyonFloor = [];
+  for(let y=0; y<rows+2; y++){
+    let wl = 0.15 + 0.08*Math.sin(y*0.3) + 0.04*Math.sin(y*0.7+1);
+    let wr = 0.85 - 0.08*Math.sin(y*0.25+2) - 0.04*Math.sin(y*0.6);
+    canyonLeft.push(wl);
+    canyonRight.push(wr);
+    canyonFloor.push(0.7 + 0.05*Math.sin(y*0.4));
+  }
+}
+initCanyon();
+
+// Rivers
+let rivers = [];
+function initRivers(){
+  rivers = [];
+  let rx = 0.5;
+  for(let y=0; y<rows+2; y++){
+    rx += (Math.random()-0.5)*0.03;
+    rx = Math.max(canyonLeft[y]+0.05, Math.min(canyonRight[y]-0.05, rx));
+    rivers.push({x: rx, flow: 0.6+Math.random()*0.4, width: 0.02+Math.random()*0.01});
+  }
+}
+initRivers();
+
+// Mirrors
+let mirrors = [];
+// Wind
+let windAngle = 0; // radians
+let windStrength = 0.3;
+
+// Organisms
+let organisms = [];
+let structures = [];
+let speciesLog = [];
+let nextSpeciesId = 0;
+
+const SPECIES_TYPES = [
+  {name:'Pillar Fern', color:'#4a8040', growRate:0.008, maxSize:60, needsWater:0.4, needsLight:0.5, structural:true, structureType:'tower'},
+  {name:'Root Weaver', color:'#6a5030', growRate:0.005, maxSize:40, needsWater:0.6, needsLight:0.2, structural:true, structureType:'transit'},
+  {name:'Shelf Fungus', color:'#8a6848', growRate:0.012, maxSize:35, needsWater:0.3, needsLight:0.3, structural:true, structureType:'plaza'},
+  {name:'Glow Moss', color:'#60a868', growRate:0.015, maxSize:15, needsWater:0.7, needsLight:0.1, structural:false},
+  {name:'Spiral Vine', color:'#889038', growRate:0.007, maxSize:50, needsWater:0.5, needsLight:0.6, structural:true, structureType:'bridge'},
+  {name:'Bloom Polyp', color:'#b06848', growRate:0.01, maxSize:20, needsWater:0.4, needsLight:0.7, structural:false},
+  {name:'Stone Lichen', color:'#787060', growRate:0.003, maxSize:25, needsWater:0.2, needsLight:0.4, structural:true, structureType:'wall'},
+  {name:'Vein Coral', color:'#a04858', growRate:0.006, maxSize:45, needsWater:0.8, needsLight:0.3, structural:true, structureType:'tower'},
+];
+
+function registerSpecies(typeIdx){
+  let existing = speciesLog.find(s=>s.typeIdx===typeIdx && !s.extinct);
+  if(existing) return existing;
+  let sp = {id:nextSpeciesId++, typeIdx, name:SPECIES_TYPES[typeIdx].name, color:SPECIES_TYPES[typeIdx].color, count:0, extinct:false, appearedCycle:cycle};
+  speciesLog.push(sp);
+  return sp;
+}
+
+function getWater(x, y){
+  let gy = Math.floor(y/H * rows);
+  gy = Math.max(0, Math.min(rows-1, gy));
+  let rx = rivers[gy].x * W;
+  let rw = rivers[gy].width * W * 3;
+  let dist = Math.abs(x - rx);
+  let water = Math.max(0, 1 - dist/(rw*3)) * rivers[gy].flow;
+  // Season mod
+  if(season===1) water *= 0.7;
+  if(season===3) water *= 1.3;
+  return Math.min(1, water);
+}
+
+function getLight(x, y){
+  let base = (season===1)?0.9:(season===3)?0.3:(season===0)?0.7:0.5;
+  // Canyon walls block light
+  let gy = Math.floor(y/H * rows);
+  gy = Math.max(0, Math.min(rows-1, gy));
+  let nx = x/W;
+  let dl = nx - canyonLeft[gy];
+  let dr = canyonRight[gy] - nx;
+  let wallShadow = Math.min(dl, dr) * 5;
+  wallShadow = Math.min(1, Math.max(0, wallShadow));
+  let light = base * wallShadow;
+  // Mirrors boost nearby
+  for(let m of mirrors){
+    let dist = Math.hypot(m.x-x, m.y-y);
+    if(dist < 120){
+      light += 0.4 * (1-dist/120) * Math.max(0, Math.cos(m.angle - Math.atan2(y-m.y, x-m.x)));
+    }
+  }
+  return Math.min(1, Math.max(0, light));
+}
+
+function getWind(x, y){
+  let wx = Math.cos(windAngle) * windStrength;
+  let wy = Math.sin(windAngle) * windStrength;
+  // Season affects
+  if(season===2) { wx*=1.5; wy*=1.5; }
+  return {x:wx, y:wy, strength: windStrength * (season===2?1.5:1)};
+}
+
+function spawnOrganism(x, y, typeIdx){
+  let gy = Math.floor(y/H * rows);
+  gy = Math.max(0, Math.min(rows-1, gy));
+  let nx = x/W;
+  if(nx < canyonLeft[gy]+0.02 || nx > canyonRight[gy]-0.02) return;
+  
+  let sp = registerSpecies(typeIdx);
+  let org = {
+    x, y, typeIdx, size:2, maxSize: SPECIES_TYPES[typeIdx].maxSize * (0.8+Math.random()*0.4),
+    age:0, health:1, growRate: SPECIES_TYPES[typeIdx].growRate,
+    branches:[], structureContrib:0, dead:false,
+    swayPhase: Math.random()*Math.PI*2
+  };
+  // Generate branch pattern
+  let nb = 2 + Math.floor(Math.random()*4);
+  for(let i=0;i<nb;i++){
+    org.branches.push({
+      angle: (i/nb)*Math.PI*2 + (Math.random()-0.5)*0.5,
+      length: 0.3+Math.random()*0.7,
+      curve: (Math.random()-0.5)*0.8,
+      thickness: 0.3+Math.random()*0.5
+    });
+  }
+  organisms.push(org);
+}
+
+// Seed initial organisms
+function seedInitial(){
+  for(let i=0;i<15;i++){
+    let gy = Math.floor(Math.random()*rows);
+    let x = (canyonLeft[gy]+0.05 + Math.random()*(canyonRight[gy]-canyonLeft[gy]-0.1))*W;
+    let y = (gy+Math.random())*GRID;
+    let typeIdx = Math.floor(Math.random()*SPECIES_TYPES.length);
+    spawnOrganism(x, y, typeIdx);
+  }
+}
+seedInitial();
+
+function updateOrganisms(){
+  for(let org of organisms){
+    if(org.dead) continue;
+    org.age++;
+    let water = getWater(org.x, org.y);
+    let light = getLight(org.x, org.y);
+    let wind = getWind(org.x, org.y);
+    let sp = SPECIES_TYPES[org.typeIdx];
+    
+    // Fitness
+    let wFit = 1 - Math.abs(water - sp.needsWater)*2;
+    let lFit = 1 - Math.abs(light - sp.needsLight)*2;
+    let fitness = Math.max(0, (wFit+lFit)/2);
+    
+    // Wind stress on tall organisms
+    let windStress = wind.strength * (org.size/org.maxSize) * 0.3;
+    
+    // Grow
+    if(org.size < org.maxSize && fitness > 0.2){
+      org.size += org.growRate * fitness * GRID * 0.3;
+    }
+    
+    // Health
+    org.health += (fitness - 0.4 - windStress) * 0.005;
+    org.health = Math.max(0, Math.min(1, org.health));
+    
+    // Structure contribution
+    if(sp.structural && org.size > org.maxSize*0.5 && org.health > 0.5){
+      org.structureContrib += 0.002 * fitness;
+      if(org.structureContrib > 1 && !org.madeStructure){
+        org.madeStructure = true;
+        structures.push({
+          x:org.x, y:org.y, type:sp.structureType, size:org.size,
+          integrity:1, orgIdx:organisms.indexOf(org)
+        });
+      }
+    }
+    
+    // Reproduction
+    if(org.age % 300===0 && org.health>0.6 && org.size>org.maxSize*0.4 && Math.random()<0.3){
+      let nx = org.x + (Math.random()-0.5)*80 + wind.x*50;
+      let ny = org.y + (Math.random()-0.5)*80 + wind.y*50;
+      nx = Math.max(50, Math.min(W-50, nx));
+      ny = Math.max(50, Math.min(H-50, ny));
+      if(organisms.length < 200) spawnOrganism(nx, ny, org.typeIdx);
+    }
+    
+    // Death
+    if(org.health <= 0 || (org.age > 3000 && Math.random()<0.002)){
+      org.dead = true;
+    }
+    
+    org.swayPhase += 0.02 + wind.strength*0.05;
+  }
+  
+  organisms = organisms.filter(o => !o.dead || o.madeStructure);
+  
+  // Update structures
+  for(let s of structures){
+    let org = organisms[s.orgIdx];
+    if(!org || org.dead) s.integrity -= 0.001;
+    else s.integrity = Math.min(1, s.integrity + 0.0005);
+    // Nearby organisms support
+    let supporters = organisms.filter(o=>!o.dead && Math.hypot(o.x-s.x,o.y-s.y)<60);
+    s.integrity += supporters.length * 0.0002;
+    s.integrity = Math.min(1, s.integrity);
+  }
+  structures = structures.filter(s=>s.integrity>0);
+  
+  // Species tracking
+  for(let sp of speciesLog){
+    sp.count = organisms.filter(o=>!o.dead && o.typeIdx===sp.typeIdx).length;
+    if(sp.count===0 && !sp.extinct && cycle-sp.appearedCycle>100){
+      sp.extinct = true;
+      sp.extinctCycle = cycle;
+    }
+  }
+  
+  // Spontaneous new species emergence
+  if(cycle % 500===0 && Math.random()<0.4){
+    let typeIdx = Math.floor(Math.random()*SPECIES_TYPES.length);
+    let alive = speciesLog.find(s=>s.typeIdx===typeIdx && !s.extinct);
+    if(!alive){
+      let gy = Math.floor(Math.random()*rows);
+      let x = (canyonLeft[gy]+0.1 + Math.random()*(canyonRight[gy]-canyonLeft[gy]-0.2))*W;
+      let y = (gy+Math.random())*GRID;
+      spawnOrganism(x, y, typeIdx);
+    }
+  }
+}
+
+function updateSeason(){
+  seasonProgress++;
+  if(seasonProgress >= SEASON_LENGTH){
+    seasonProgress = 0;
+    season = (season+1)%4;
+  }
+  // Wind shifts
+  windAngle += (Math.random()-0.5)*0.02;
+  windStrength = 0.2 + 0.3*Math.sin(cycle*0.005) + (season===2?0.3:0);
+}
+
+// Drawing
+function lerpColor(a,b,t){
+  let ah=parseInt(a.slice(1),16), bh=parseInt(b.slice(1),16);
+  let ar=(ah>>16)&0xff, ag=(ah>>8)&0xff, ab=ah&0xff;
+  let br=(bh>>16)&0xff, bg=(bh>>8)&0xff, bb=bh&0xff;
+  let r=Math.round(ar+(br-ar)*t), g=Math.round(ag+(bg-ag)*t), b2=Math.round(ab+(bb-ab)*t);
+  return `rgb(${r},${g},${b2})`;
+}
+
+function drawCanyon(){
+  let sc = seasonColors[season];
+  let snc = seasonColors[(season+1)%4];
+  let t = seasonProgress/SEASON_LENGTH;
+  let sky = lerpColor(sc.sky, snc.sky, t);
+  let ground = lerpColor(sc.ground, snc.ground, t);
+  let wall = lerpColor(sc.wall, snc.wall, t);
+  
+  ctx.fillStyle = sky;
+  ctx.fillRect(0,0,W,H);
+  
+  // Canyon walls
+  ctx.fillStyle = wall;
+  for(let y=0; y<rows+1; y++){
+    let y0 = y*GRID, y1=(y+1)*GRID;
+    // Left wall
+    ctx.beginPath();
+    ctx.moveTo(0,y0); ctx.lineTo(canyonLeft[y]*W,y0);
+    ctx.lineTo(canyonLeft[Math.min(y+1,rows)]*W,y1); ctx.lineTo(0,y1);
+    ctx.fill();
+    // Right wall
+    ctx.beginPath();
+    ctx.moveTo(W,y0); ctx.lineTo(canyonRight[y]*W,y0);
+    ctx.lineTo(canyonRight[Math.min(y+1,rows)]*W,y1); ctx.lineTo(W,y1);
+    ctx.fill();
+  }
+  
+  // Wall texture
+  ctx.globalAlpha = 0.15;
+  for(let i=0;i<60;i++){
+    let lx = Math.random()*W*0.2;
+    let ly = Math.random()*H;
+    ctx.fillStyle = '#000';
+    ctx.fillRect(lx,ly,Math.random()*8+2,Math.random()*3+1);
+    ctx.fillRect(W-lx-10,ly+20,Math.random()*8+2,Math.random()*3+1);
+  }
+  ctx.globalAlpha = 1;
+  
+  // Ground
+  ctx.fillStyle = ground;
+  ctx.fillRect(0, H*0.7, W, H*0.3);
+}
+
+function drawRiver(){
+  ctx.strokeStyle = season===3?'#4a6080':'#3a7090';
+  ctx.lineWidth = 3;
+  ctx.globalAlpha = 0.6;
+  ctx.beginPath();
+  for(let y=0;y<rows+1;y++){
+    let rx = rivers[y].x*W;
+    let ry = y*GRID;
+    if(y===0) ctx.moveTo(rx,ry);
+    else ctx.lineTo(rx,ry);
+  }
+  ctx.stroke();
+  // Water shimmer
+  ctx.globalAlpha = 0.3;
+  ctx.lineWidth = 8;
+  ctx.strokeStyle = season===3?'#5a7898':'#5090b0';
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+  ctx.lineWidth = 1;
+  
+  // Animated ripples
+  for(let y=0;y<rows;y+=2){
+    let rx = rivers[y].x*W;
+    let ry = y*GRID;
+    let rippleX = rx + Math.sin(cycle*0.05+y)*5;
+    ctx.strokeStyle = 'rgba(120,180,220,0.3)';
+    ctx.beginPath();
+    ctx.arc(rippleX, ry+Math.sin(cycle*0.03+y*2)*10, 3+Math.sin(cycle*0.08+y)*2, 0, Math.PI*2);
+    ctx.stroke();
+  }
+}
+
+function drawMirrors(){
+  for(let m of mirrors){
+    ctx.save();
+    ctx.translate(m.x, m.y);
+    ctx.rotate(m.angle);
+    // Mirror body
+    ctx.fillStyle = '#c0b898';
+    ctx.fillRect(-3,-15,6,30);
+    // Light reflection
+    let light = getLight(m.x,m.y);
+    ctx.globalAlpha = light*0.5;
+    ctx.fillStyle = '#ffe880';
+    ctx.beginPath();
+    ctx.moveTo(5,0);
+    ctx.lineTo(60,-20);
+    ctx.lineTo(60,20);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+}
+
+function drawOrganism(org){
+  if(org.dead) return;
+  let sp = SPECIES_TYPES[org.typeIdx];
+  let wind = getWind(org.x, org.y);
+  let sway = Math.sin(org.swayPhase)*wind.strength*8;
+  
+  ctx.save();
+  ctx.translate(org.x, org.y);
+  
+  let sizeRatio = org.size / org.maxSize;
+  let alpha = org.health * 0.8 + 0.2;
+  ctx.globalAlpha = alpha;
+  
+  // Root/base
+  if(sp.structural && sizeRatio > 0.3){
+    ctx.strokeStyle = '#3a2a18';
+    ctx.lineWidth = 2 + sizeRatio*3;
+    for(let i=0;i<3;i++){
+      let a = (i/3)*Math.PI + Math.PI*0.5;
+      ctx.beginPath();
+      ctx.moveTo(0,0);
+      ctx.quadraticCurveTo(
+        Math.cos(a)*org.size*0.3, org.size*0.2,
+        Math.cos(a)*org.size*0.5, org.size*0.35
+      );
+      ctx.stroke();
+    }
+  }
+  
+  // Main body/trunk
+  ctx.fillStyle = sp.color;
+  if(sp.structureType==='tower'){
+    // Vertical trunk
+    ctx.beginPath();
+    let tw = 3+sizeRatio*8;
+    ctx.moveTo(-tw+sway*0.2, 0);
+    ctx.quadraticCurveTo(-tw*0.5+sway*0.5, -org.size*0.5, sway, -org.size);
+    ctx.quadraticCurveTo(tw*0.5+sway*0.5, -org.size*0.5, tw+sway*0.2, 0);
+    ctx.fill();
+    ctx.strokeStyle = lerpColor(sp.color,'#1a1a10',0.3);
+    ctx.lineWidth=1;
+    ctx.stroke();
+  } else if(sp.structureType==='transit'){
+    // Horizontal root network
+    ctx.strokeStyle = sp.color;
+    ctx.lineWidth = 2+sizeRatio*4;
+    for(let b of org.branches){
+      ctx.beginPath();
+      let len = org.size*b.length;
+      ctx.moveTo(0,0);
+      ctx.quadraticCurveTo(
+        Math.cos(b.angle)*len*0.5 + sway, Math.sin(b.angle)*len*0.5 + b.curve*20,
+        Math.cos(b.angle)*len + sway*1.5, Math.sin(b.angle)*len
+      );
+      ctx.stroke();
+    }
+  } else if(sp.structureType==='plaza'){
+    // Shelf fungus - horizontal platforms
+    for(let i=0;i<3;i++){
+      let sy = -org.size*0.3*i;
+      let sw = org.size*(0.5-i*0.1);
+      ctx.fillStyle = lerpColor(sp.color,'#5a4838',i*0.2);
+      ctx.beginPath();
+      ctx.ellipse(sway*(1+i*0.3), sy, sw, sw*0.25, 0, 0, Math.PI*2);
+      ctx.fill();
+      ctx.strokeStyle='rgba(0,0,0,0.2)';ctx.lineWidth=1;ctx.stroke();
+    }
+  } else if(sp.structureType==='bridge'){
+    // Arching vine
+    ctx.strokeStyle = sp.color;
+    ctx.lineWidth = 2+sizeRatio*3;
+    ctx.beginPath();
+    ctx.moveTo(-org.size*0.5+sway,0);
+    ctx.quadraticCurveTo(sway, -org.size*0.6, org.size*0.5+sway, 0);
+    ctx.stroke();
+    // Tendrils
+    for(let i=0;i<5;i++){
+      let tx = -org.size*0.3+i*org.size*0.15+sway;
+      ctx.strokeStyle = lerpColor(sp.color,'#a0b040',0.3);
+      ctx.lineWidth=1;
+      ctx.beginPath();
+      ctx.moveTo(tx, -org.size*0.3);
+      ctx.lineTo(tx+Math.sin(org.swayPhase+i)*5, -org.size*0.1);
+      ctx.stroke();
+    }
+  } else if(sp.structureType==='wall'){
+    // Crusty lichen patch
+    ctx.fillStyle = sp.color;
+    for(let i=0;i<6;i++){
+      let a = (i/6)*Math.PI*2;
+      let r = org.size*0.3*(0.6+Math.sin(a*3+org.age*0.001)*0.4);
+      ctx.beginPath();
+      ctx.arc(Math.cos(a)*r*0.3+sway*0.5, Math.sin(a)*r*0.3, r*0.4, 0, Math.PI*2);
+      ctx.fill();
+    }
+  } else {
+    // Non-structural: small decorative
+    ctx.fillStyle = sp.color;
+    ctx.beginPath();
+    ctx.arc(sway*0.5, 0, org.size*0.4, 0, Math.PI*2);
+    ctx.fill();
+    // Glow
+    if(sp.name==='Glow Moss'){
+      ctx.globalAlpha = 0.2*Math.sin(org.swayPhase)*alpha;
+      ctx.fillStyle = '#80ff90';
+      ctx.beginPath();
+      ctx.arc(sway*0.5,0,org.size*0.6,0,Math.PI*2);
+      ctx.fill();
+    }
+    if(sp.name==='Bloom Polyp' && sizeRatio>0.5){
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = '#e08060';
+      for(let i=0;i<5;i++){
+        let a=(i/5)*Math.PI*2+org.swayPhase*0.3;
+        ctx.beginPath();
+        ctx.arc(Math.cos(a)*org.size*0.25+sway*0.3, Math.sin(a)*org.size*0.25-org.size*0.2, 3, 0, Math.PI*2);
+        ctx.fill();
+      }
+    }
+  }
+  
+  // Branches for all types
+  if(sp.structureType==='tower' && sizeRatio > 0.4){
+    ctx.strokeStyle = lerpColor(sp.color,'#90b850',0.4);
+    ctx.lineWidth = 1+sizeRatio*2;
+    for(let b of org.branches){
+      let by = -org.size * b.length * 0.8;
+      ctx.beginPath();
+      ctx.moveTo(sway*b.length, by);
+      ctx.quadraticCurveTo(
+        Math.cos(b.angle)*org.size*0.3*b.thickness + sway,
+        by + Math.sin(b.angle)*org.size*0.2,
+        Math.cos(b.angle)*org.size*0.4 + sway*1.2,
+        by + Math.sin(b.angle)*org.size*0.3 + b.curve*15
+      );
+      ctx.stroke();
+    }
+  }
+  
+  ctx.restore();
+}
+
+function drawStructures(){
+  for(let s of structures){
+    ctx.globalAlpha = s.integrity * 0.25;
+    let color = '#d4c4a0';
+    let label = '';
+    if(s.type==='tower'){ color='#a09060'; label='⬆'; }
+    else if(s.type==='transit'){ color='#7a6a50'; label='⟷'; }
+    else if(s.type==='plaza'){ color='#8a7a58'; label='◇'; }
+    else if(s.type==='bridge'){ color='#90a050'; label='⌒'; }
+    else if(s.type==='wall'){ color='#686860'; label='▪'; }
+    
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4,4]);
+    ctx.strokeRect(s.x-s.size*0.5, s.y-s.size*0.5, s.size, s.size);
+    ctx.setLineDash([]);
+    
+    ctx.fillStyle = color;
+    ctx.font = '10px monospace';
+    ctx.fillText(s.type, s.x-15, s.y-s.size*0.5-4);
+    ctx.globalAlpha = 1;
+  }
+}
+
+function drawWindIndicator(){
+  let cx = W-80, cy = H-80;
+  ctx.strokeStyle = 'rgba(200,190,160,0.3)';
+  ctx.beginPath();
+  ctx.arc(cx,cy,20,0,Math.PI*2);
+  ctx.stroke();
+  let wx = Math.cos(windAngle)*windStrength*40;
+  let wy = Math.sin(windAngle)*windStrength*40;
+  ctx.strokeStyle = 'rgba(200,190,160,0.6)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(cx,cy);
+  ctx.lineTo(cx+wx,cy+wy);
+  ctx.stroke();
+  ctx.lineWidth=1;
+}
+
+function draw(){
+  drawCanyon();
+  drawRiver();
+  drawStructures();
+  
+  // Sort organisms by y for depth
+  let sorted = [...organisms].filter(o=>!o.dead).sort((a,b)=>a.y-b.y);
+  for(let org of sorted) drawOrganism(org);
+  
+  drawMirrors();
+  drawWindIndicator();
+}
+
+// UI updates
+function updateUI(){
+  document.getElementById('cycle-info').textContent = `Cycle: ${cycle}`;
+  let alive = organisms.filter(o=>!o.dead);
+  document.getElementById('pop-info').textContent = `Organisms: ${alive.length}`;
+  document.getElementById('structure-info').textContent = `Structures: ${structures.length}`;
+  let activeSpecies = speciesLog.filter(s=>!s.extinct).length;
+  document.getElementById('biodiversity-info').textContent = `Biodiversity: ${activeSpecies}`;
+  let avgInt = structures.length ? structures.reduce((a,s)=>a+s.integrity,0)/structures.length : 1;
+  document.getElementById('integrity-info').textContent = `Integrity: ${(avgInt*100).toFixed(0)}%`;
+  
+  document.getElementById('season-name').textContent = seasonNames[season] + ` (${Math.floor(seasonProgress/SEASON_LENGTH*100)}%)`;
+  let dirs = ['E','SE','S','SW','W','NW','N','NE'];
+  let di = Math.round(((windAngle%(Math.PI*2))+Math.PI*2)%(Math.PI*2) / (Math.PI*0.25)) % 8;
+  document.getElementById('wind-dir').textContent = `Wind: ${dirs[di]} ${'▮'.repeat(Math.ceil(windStrength*5))}`;
+  let ll = Math.ceil((season===1?0.9:season===3?0.3:season===0?0.7:0.5)*5);
+  document.getElementById('light-level').textContent = `Light: ${'█'.repeat(ll)}${'░'.repeat(5-ll)}`;
+  
+  let list = document.getElementById('species-list');
+  list.innerHTML = '';
+  for(let sp of speciesLog){
+    let row = document.createElement('div');
+    row.className = 'species-row' + (sp.extinct?' extinct':'');
+    row.innerHTML = `<span class="species-dot" style="background:${sp.color}"></span>${sp.name}: ${sp.count}${sp.extinct?' ✝':''}`;
+    list.appendChild(row);
+  }
+}
+
+// Interaction
+let mouseX=0, mouseY=0, mouseDown=false, dragStart=null;
+canvas.addEventListener('mousemove', e=>{
+  mouseX=e.clientX; mouseY=e.clientY;
+  let tooltip = document.getElementById('tooltip');
+  if(currentTool==='observe'){
+    let nearest = null, nd=Infinity;
+    for(let org of organisms){
+      if(org.dead) continue;
+      let d = Math.hypot(org.x-mouseX, org.y-mouseY);
+      if(d<30 && d<nd){ nd=d; nearest=org; }
+    }
+    if(nearest){
+      let sp = SPECIES_TYPES[nearest.typeIdx];
+      tooltip.style.display='block';
+      tooltip.style.left=(mouseX+15)+'px';
+      tooltip.style.top=(mouseY-10)+'px';
+      tooltip.innerHTML = `<strong>${sp.name}</strong><br>Size: ${nearest.size.toFixed(1)}/${nearest.maxSize.toFixed(0)}<br>Health: ${(nearest.health*100).toFixed(0)}%<br>Water: ${(getWater(nearest.x,nearest.y)*100).toFixed(0)}%<br>Light: ${(getLight(nearest.x,nearest.y)*100).toFixed(0)}%${nearest.madeStructure?'<br>🏛 Structure: '+sp.structureType:''}`;
+    } else {
+      tooltip.style.display='none';
+    }
+  } else {
+    tooltip.style.display='none';
+  }
+});
+
+canvas.addEventListener('mousedown', e=>{
+  mouseDown=true;
+  dragStart={x:e.clientX, y:e.clientY};
+  
+  if(currentTool==='mirror'){
+    mirrors.push({x:e.clientX, y:e.clientY, angle:0});
+  }
+  if(currentTool==='spore'){
+    let typeIdx = Math.floor(Math.random()*SPECIES_TYPES.length);
+    spawnOrganism(e.clientX, e.clientY, typeIdx);
+  }
+});
+
+canvas.addEventListener('mousemove', e=>{
+  if(!mouseDown) return;
+  if(currentTool==='river'){
+    let gy = Math.floor(e.clientY/H*rows);
+    gy = Math.max(0,Math.min(rows-1,gy));
+    rivers[gy].x += (e.clientX/W - rivers[gy].x)*0.1;
+    rivers[gy].x = Math.max(canyonLeft[gy]+0.05, Math.min(canyonRight[gy]-0.05, rivers[gy].x));
+    // Smooth neighbors
+    if(gy>0) rivers[gy-1].x += (rivers[gy].x-rivers[gy-1].x)*0.05;
+    if(gy<rows-1) rivers[gy+1].x += (rivers[gy].x-rivers[gy+1].x)*0.05;
+  }
+  if(currentTool==='mirror' && mirrors.length>0){
+    let m = mirrors[mirrors.length-1];
+    m.angle = Math.atan2(e.clientY-m.y, e.clientX-m.x);
+  }
+  if(currentTool==='wind'){
+    if(dragStart){
+      windAngle = Math.atan2(e.clientY-dragStart.y, e.clientX-dragStart.x);
+      windStrength = Math.min(1, Math.hypot(e.clientX-dragStart.x, e.clientY-dragStart.y)/200);
+    }
+  }
+  if(currentTool==='spore' && Math.random()<0.1){
+    let typeIdx = Math.floor(Math.random()*SPECIES_TYPES.length);
+    spawnOrganism(e.clientX, e.clientY, typeIdx);
+  }
+});
+
+canvas.addEventListener('mouseup', ()=>{ mouseDown=false; dragStart=null; });
+
+// Main loop
+function loop(){
+  cycle++;
+  updateSeason();
+  if(cycle%3===0) updateOrganisms();
+  draw();
+  if(cycle%30===0) updateUI();
+  requestAnimationFrame(loop);
+}
+loop();
+</script>
+</body>
+</html>

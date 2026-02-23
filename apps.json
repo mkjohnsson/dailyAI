@@ -1,6 +1,16 @@
 [
   {
     "date": "2026-02-23",
+    "id": "2026-02-23-3",
+    "name": "Rootspan",
+    "description": "A living canyon ecosystem simulator where you redirect rivers, angle mirrors, and seed spores to cultivate strange organisms that gradually self-architect into an inhabitable bio-city across shifting seasons.",
+    "inspiration": "Firms like Ballistic Architecture Machine flip urban design by making landscape—not buildings—the central icon, treating nature as an evolving idea.",
+    "connection": "What if you simulated an ecosystem that literally builds its own architecture—roots becoming bridges, canopies becoming roofs—and the player's role is to nudge growth rather than construct anything directly?",
+    "emoji": "🌿",
+    "category": "Simulation"
+  },
+  {
+    "date": "2026-02-23",
     "id": "2026-02-23-2",
     "name": "Turncoat",
     "description": "A dark ecosystem simulation where keeper cells patrol and consume anomalies, gradually becoming corrupted and turning against their own kind, forcing you to make tough sacrifices to maintain balance.",
