@@ -64,8 +64,11 @@ async function research() {
   }]);
 }
 
-async function ideate(researchResults) {
+async function ideate(researchResults, recentNames) {
   console.log('Ideating...');
+  const avoidBlock = recentNames.length > 0
+    ? `\nRECENT APP NAMES TO AVOID REPEATING (pick something clearly different in theme and mechanic):\n${recentNames.map(n => `- ${n}`).join('\n')}\n`
+    : '';
   const text = await callAPI(MODEL, [{
     role: 'user',
     content: `REAL-WORLD CONTEXT (from a web search today, ${today}):
@@ -73,7 +76,7 @@ ${researchResults}
 
 TODAY'S CATEGORY: ${todayCategory.label}
 ${todayCategory.description}
-
+${avoidBlock}
 Your task: Pick ONE thing from the context above and use it as creative inspiration — not as the literal subject.
 
 Let it spark a mechanic, a feeling, a visual idea, or a constraint. The connection can be loose or metaphorical — the further the creative leap from the source material, the more interesting the result.
@@ -148,8 +151,13 @@ async function generate() {
   // Stage 1: Research
   const researchResults = await research();
 
-  // Stage 2: Ideate
-  const idea = await ideate(researchResults);
+  // Stage 2: Ideate (pass recent names to avoid repetition)
+  let manifest = [];
+  if (fs.existsSync('apps.json')) {
+    manifest = JSON.parse(fs.readFileSync('apps.json', 'utf8'));
+  }
+  const recentNames = manifest.slice(0, 7).map(a => a.name);
+  const idea = await ideate(researchResults, recentNames);
   console.log(`✦ Idea: ${idea.name} — ${idea.concept}`);
 
   // Stage 3: Build
@@ -169,10 +177,6 @@ async function generate() {
   fs.writeFileSync(path.join(appDir, 'index.html'), app.html);
 
   // Update manifest (prepend, keep all history)
-  let manifest = [];
-  if (fs.existsSync('apps.json')) {
-    manifest = JSON.parse(fs.readFileSync('apps.json', 'utf8'));
-  }
   manifest.unshift({
     date: today,
     id: runId,
@@ -424,7 +428,7 @@ function generateGallery(manifest) {
       <span class="logo-sub">A NEW APP EVERY DAY</span>
     </div>
     <div class="about">
-      Every day at 9 AM, <strong>Claude</strong> searches the web for something interesting happening in the world,
+      Every day at 6 AM, <strong>Claude</strong> searches the web for something interesting happening in the world,
       uses it as creative inspiration, and builds an interactive web app — completely on its own.<br>
       Each app is a single HTML file that runs entirely in your browser.
     </div>
