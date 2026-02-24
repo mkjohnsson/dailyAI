@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Splitwhirl</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a12; overflow: hidden; display: flex; align-items: center; justify-content: center; height: 100vh; font-family: 'Helvetica Neue', sans-serif; }
+  canvas { display: block; cursor: grab; }
+  canvas:active { cursor: grabbing; }
+  #ui {
+    position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+    color: rgba(255,255,255,0.4); font-size: 13px; text-align: center;
+    pointer-events: none; transition: opacity 0.5s;
+  }
+  #title {
+    position: fixed; top: 30px; left: 50%; transform: translateX(-50%);
+    color: rgba(255,255,255,0.15); font-size: 14px; letter-spacing: 6px;
+    text-transform: uppercase; pointer-events: none;
+  }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="title">SPLITWHIRL</div>
+<div id="ui">drag to spin · swipe fast to split · tap to reunify</div>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+let W, H;
+
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+class Top {
+  constructor(x, y, radius, speed, angle, vx, vy, generation) {
+    this.x = x; this.y = y;
+    this.radius = radius;
+    this.speed = speed;
+    this.angle = angle;
+    this.vx = vx || 0; this.vy = vy || 0;
+    this.generation = generation || 0;
+    this.wobblePhase = Math.random() * Math.PI * 2;
+    this.wobbleAmp = 0;
+    this.trail = [];
+    this.life = 1;
+  }
+}
+
+let tops = [];
+let ripples = [];
+let dragStart = null, dragPrev = null, dragVelocities = [];
+let isDragging = false;
+let lastTap = 0;
+
+function init() {
+  tops = [new Top(W/2, H/2, 30, 0, 0, 0, 0, 0)];
+  ripples = [];
+}
+init();
+
+function hslToStr(h, s, l, a) {
+  return `hsla(${h},${s}%,${l}%,${a})`;
+}
+
+function getTopColor(top, type) {
+  const warmHue = 20 + top.generation * 15;
+  const coolHue = 200 - top.generation * 10;
+  if (type === 'core') return hslToStr(warmHue, 90, 55 + top.speed * 2, Math.min(1, 0.5 + top.speed * 0.1));
+  if (type === 'wake') return hslToStr(coolHue, 80, 50, 0.6);
+  if (type === 'glow') return hslToStr(warmHue, 100, 60, 0.3);
+  return '#fff';
+}
+
+canvas.addEventListener('pointerdown', (e) => {
+  const now = Date.now();
+  if (now - lastTap < 300 && tops.length > 1) {
+    reunify();
+    lastTap = 0;
+    return;
+  }
+  lastTap = now;
+
+  isDragging = true;
+  dragStart = { x: e.clientX, y: e.clientY, t: now };
+  dragPrev = { x: e.clientX, y: e.clientY, t: now };
+  dragVelocities = [];
+});
+
+canvas.addEventListener('pointermove', (e) => {
+  if (!isDragging) return;
+  const now = Date.now();
+  const dx = e.clientX - dragPrev.x;
+  const dy = e.clientY - dragPrev.y;
+  const dt = Math.max(1, now - dragPrev.t);
+
+  dragVelocities.push({ vx: dx / dt * 16, vy: dy / dt * 16, t: now });
+  if (dragVelocities.length > 8) dragVelocities.shift();
+
+  // Spin the closest top
+  let closest = null, closestDist = Infinity;
+  for (const top of tops) {
+    const d = Math.hypot(top.x - e.clientX, top.y - e.clientY);
+    if (d < closestDist) { closestDist = d; closest = top; }
+  }
+  if (closest && closestDist < 150) {
+    const cross = dx * (closest.y - e.clientY) - dy * (closest.x - e.clientX);
+    closest.speed += Math.abs(cross) * 0.0003;
+    closest.speed = Math.min(closest.speed, 25);
+  }
+
+  dragPrev = { x: e.clientX, y: e.clientY, t: now };
+});
+
+canvas.addEventListener('pointerup', (e) => {
+  if (!isDragging) return;
+  isDragging = false;
+
+  const now = Date.now();
+  const totalDx = e.clientX - dragStart.x;
+  const totalDy = e.clientY - dragStart.y;
+  const totalDist = Math.hypot(totalDx, totalDy);
+  const totalTime = now - dragStart.t;
+  const swipeSpeed = totalDist / Math.max(1, totalTime) * 16;
+
+  if (swipeSpeed > 8 && tops.length < 64) {
+    let avgVx = 0, avgVy = 0;
+    for (const v of dragVelocities) { avgVx += v.vx; avgVy += v.vy; }
+    if (dragVelocities.length) { avgVx /= dragVelocities.length; avgVy /= dragVelocities.length; }
+
+    splitTops(avgVx, avgVy);
+  }
+});
+
+function splitTops(svx, svy) {
+  const newTops = [];
+  for (const top of tops) {
+    if (top.speed < 1.5) { newTops.push(top); continue; }
+    if (top.radius < 5) { newTops.push(top); continue; }
+
+    const perpX = -svy, perpY = svx;
+    const mag = Math.hypot(perpX, perpY) || 1;
+    const nx = perpX / mag, ny = perpY / mag;
+    const splitForce = 2 + top.speed * 0.5;
+    const newR = top.radius * 0.72;
+    const newSpeed = top.speed * 0.85;
+    const gen = top.generation + 1;
+
+    const t1 = new Top(top.x + nx * top.radius * 0.5, top.y + ny * top.radius * 0.5,
+      newR, newSpeed, top.angle, top.vx + nx * splitForce, top.vy + ny * splitForce, gen);
+    const t2 = new Top(top.x - nx * top.radius * 0.5, top.y - ny * top.radius * 0.5,
+      newR, newSpeed, top.angle + Math.PI, top.vx - nx * splitForce, top.vy - ny * splitForce, gen);
+
+    ripples.push({ x: top.x, y: top.y, r: 0, maxR: top.radius * 4, alpha: 0.6, hue: 20 + gen * 15 });
+    newTops.push(t1, t2);
+  }
+  tops = newTops;
+  document.getElementById('ui').style.opacity = '0';
+}
+
+function reunify() {
+  let cx = 0, cy = 0, totalSpeed = 0;
+  for (const t of tops) { cx += t.x; cy += t.y; totalSpeed += t.speed; }
+  cx /= tops.length; cy /= tops.length;
+
+  ripples.push({ x: cx, y: cy, r: 0, maxR: 200, alpha: 0.5, hue: 200 });
+  tops = [new Top(cx, cy, 30, Math.min(totalSpeed * 0.5, 20), 0, 0, 0, 0)];
+  document.getElementById('ui').style.opacity = '1';
+}
+
+function update() {
+  const friction = 0.992;
+  const wallBounce = 0.7;
+  const margin = 20;
+
+  for (const top of tops) {
+    top.angle += top.speed * 0.15;
+    top.speed *= 0.9985;
+    if (top.speed < 0.01) top.speed = 0;
+
+    top.wobblePhase += 0.05 + top.speed * 0.02;
+    top.wobbleAmp = Math.max(0, (1 - top.speed * 0.1)) * top.radius * 0.3;
+
+    top.x += top.vx;
+    top.y += top.vy;
+    top.vx *= friction;
+    top.vy *= friction;
+
+    // Wall bouncing
+    if (top.x - top.radius < margin) { top.x = margin + top.radius; top.vx = Math.abs(top.vx) * wallBounce; addWallRipple(margin, top.y, top); }
+    if (top.x + top.radius > W - margin) { top.x = W - margin - top.radius; top.vx = -Math.abs(top.vx) * wallBounce; addWallRipple(W - margin, top.y, top); }
+    if (top.y - top.radius < margin) { top.y = margin + top.radius; top.vy = Math.abs(top.vy) * wallBounce; addWallRipple(top.x, margin, top); }
+    if (top.y + top.radius > H - margin) { top.y = H - margin - top.radius; top.vy = -Math.abs(top.vy) * wallBounce; addWallRipple(top.x, H - margin, top); }
+
+    // Trail
+    if (top.speed > 0.5) {
+      top.trail.push({ x: top.x, y: top.y, alpha: 0.8, hue: 200 - top.generation * 10 });
+    }
+    for (let i = top.trail.length - 1; i >= 0; i--) {
+      top.trail[i].alpha -= 0.015;
+      if (top.trail[i].alpha <= 0) top.trail.splice(i, 1);
+    }
+  }
+
+  // Top-to-top collisions
+  for (let i = 0; i < tops.length; i++) {
+    for (let j = i + 1; j < tops.length; j++) {
+      const a = tops[i], b = tops[j];
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const dist = Math.hypot(dx, dy);
+      const minDist = a.radius + b.radius;
+      if (dist < minDist && dist > 0) {
+        const nx = dx / dist, ny = dy / dist;
+        const overlap = minDist - dist;
+        a.x -= nx * overlap * 0.5;
+        a.y -= ny * overlap * 0.5;
+        b.x += nx * overlap * 0.5;
+        b.y += ny * overlap * 0.5;
+        const relVx = a.vx - b.vx, relVy = a.vy - b.vy;
+        const dot = relVx * nx + relVy * ny;
+        if (dot > 0) {
+          a.vx -= dot * nx * 0.5;
+          a.vy -= dot * ny * 0.5;
+          b.vx += dot * nx * 0.5;
+          b.vy += dot * ny * 0.5;
+        }
+        ripples.push({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, r: 0, maxR: (a.radius + b.radius) * 2, alpha: 0.3, hue: 40 });
+      }
+    }
+  }
+
+  // Ripples
+  for (let i = ripples.length - 1; i >= 0; i--) {
+    ripples[i].r += 2.5;
+    ripples[i].alpha -= 0.012;
+    if (ripples[i].alpha <= 0) ripples.splice(i, 1);
+  }
+}
+
+function addWallRipple(x, y, top) {
+  if (Math.hypot(top.vx, top.vy) > 1) {
+    ripples.push({ x, y, r: 0, maxR: 60, alpha: 0.4, hue: 200 - top.generation * 10 });
+  }
+}
+
+function drawGlassSurface() {
+  const grad = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, Math.max(W, H) * 0.6);
+  grad.addColorStop(0, 'rgba(20, 22, 35, 1)');
+  grad.addColorStop(1, 'rgba(8, 8, 15, 1)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  // Subtle glass reflection
+  const rg = ctx.createRadialGradient(W/2, H * 0.4, 0, W/2, H * 0.4, W * 0.5);
+  rg.addColorStop(0, 'rgba(60, 70, 100, 0.06)');
+  rg.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = rg;
+  ctx.fillRect(0, 0, W, H);
+}
+
+function drawRipples() {
+  for (const r of ripples) {
+    ctx.beginPath();
+    ctx.arc(r.x, r.y, r.r, 0, Math.PI * 2);
+    ctx.strokeStyle = hslToStr(r.hue, 60, 50, r.alpha * 0.5);
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    if (r.r > 5) {
+      ctx.beginPath();
+      ctx.arc(r.x, r.y, r.r * 0.6, 0, Math.PI * 2);
+      ctx.strokeStyle = hslToStr(r.hue, 60, 60, r.alpha * 0.25);
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+  }
+
+  // Interference patterns from multiple tops
+  if (tops.length >= 2) {
+    for (let i = 0; i < tops.length; i++) {
+      if (tops[i].speed < 1) continue;
+      const t = tops[i];
+      const wobbleX = Math.sin(t.wobblePhase) * t.wobbleAmp;
+      const wobbleY = Math.cos(t.wobblePhase * 1.3) * t.wobbleAmp;
+      const rx = t.x + wobbleX, ry = t.y + wobbleY;
+      const intensity = Math.min(0.08, t.speed * 0.006);
+
+      ctx.beginPath();
+      ctx.arc(rx, ry, t.radius * 3 + Math.sin(t.angle * 0.3) * 10, 0, Math.PI * 2);
+      const warmHue = 20 + t.generation * 15;
+      ctx.fillStyle = hslToStr(warmHue, 70, 50, intensity);
+      ctx.fill();
+    }
+  }
+}
+
+function drawTrails() {
+  for (const top of tops) {
+    if (top.trail.length < 2) continue;
+    ctx.beginPath();
+    ctx.moveTo(top.trail[0].x, top.trail[0].y);
+    for (let i = 1; i < top.trail.length; i++) {
+      ctx.lineTo(top.trail[i].x, top.trail[i].y);
+    }
+    ctx.strokeStyle = hslToStr(200 - top.generation * 10, 80, 55, 0.3);
+    ctx.lineWidth = Math.max(1, top.radius * 0.3);
+    ctx.lineCap = 'round';
+    ctx.stroke();
+
+    // Warm inner trail
+    if (top.trail.length > 3) {
+      ctx.beginPath();
+      const start = Math.max(0, top.trail.length - 10);
+      ctx.moveTo(top.trail[start].x, top.trail[start].y);
+      for (let i = start + 1; i < top.trail.length; i++) {
+        ctx.lineTo(top.trail[i].x, top.trail[i].y);
+      }
+      ctx.strokeStyle = hslToStr(20 + top.generation * 15, 90, 55, 0.4);
+      ctx.lineWidth = Math.max(0.5, top.radius * 0.15);
+      ctx.stroke();
+    }
+  }
+}
+
+function drawTop(top) {
+  const wobbleX = Math.sin(top.wobblePhase) * top.wobbleAmp;
+  const wobbleY = Math.cos(top.wobblePhase * 1.3) * top.wobbleAmp;
+  const dx = top.x + wobbleX, dy = top.y + wobbleY;
+  const r = top.radius;
+  const warmHue = 20 + top.generation * 15;
+
+  // Shadow / reflection on surface
+  ctx.beginPath();
+  ctx.ellipse(dx, dy + r * 0.6, r * 1.2, r * 0.3, 0, 0, Math.PI * 2);
+  ctx.fillStyle = `rgba(0,0,0,0.3)`;
+  ctx.fill();
+
+  // Outer glow
+  if (top.speed > 1) {
+    const glowR = r * (1.5 + top.speed * 0.1);
+    const glow = ctx.createRadialGradient(dx, dy, r * 0.5, dx, dy, glowR);
+    glow.addColorStop(0, hslToStr(warmHue, 100, 60, 0.2 + top.speed * 0.02));
+    glow.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(dx, dy, glowR, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Main body
+  ctx.save();
+  ctx.translate(dx, dy);
+  ctx.rotate(top.angle);
+
+  // Body gradient
+  const bodyGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
+  bodyGrad.addColorStop(0, hslToStr(warmHue, 90, 70, 0.95));
+  bodyGrad.addColorStop(0.5, hslToStr(warmHue + 10, 80, 50, 0.9));
+  bodyGrad.addColorStop(1, hslToStr(warmHue + 20, 70, 30, 0.8));
+
+  ctx.beginPath();
+  ctx.arc(0, 0, r, 0, Math.PI * 2);
+  ctx.fillStyle = bodyGrad;
+  ctx.fill();
+
+  // Spinning lines
+  const numLines = 3 + top.generation;
+  for (let i = 0; i < numLines; i++) {
+    const a = (i / numLines) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(Math.cos(a) * r * 0.85, Math.sin(a) * r * 0.85);
+    ctx.strokeStyle = hslToStr(warmHue - 10, 60, 80, 0.4);
+    ctx.lineWidth = Math.max(0.5, r * 0.06);
+    ctx.stroke();
+  }
+
+  // Center dot
+  ctx.beginPath();
+  ctx.arc(0, 0, r * 0.15, 0, Math.PI * 2);
+  ctx.fillStyle = hslToStr(warmHue, 100, 90, 0.9);
+  ctx.fill();
+
+  ctx.restore();
+
+  // Speed indicator ring
+  if (top.speed > 2) {
+    ctx.beginPath();
+    ctx.arc(dx, dy, r + 3, 0, Math.PI * 2);
+    ctx.strokeStyle = hslToStr(200 - top.generation * 10, 80, 60, Math.min(0.5, top.speed * 0.03));
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+}
+
+function draw() {
+  drawGlassSurface();
+  drawRipples();
+  drawTrails();
+  for (const top of tops) drawTop(top);
+}
+
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+</body>
+</html>

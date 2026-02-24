@@ -1,5 +1,16 @@
 [
   {
+    "date": "2026-02-24",
+    "id": "2026-02-24",
+    "name": "Splitwhirl",
+    "description": "A digital spinning top toy where you spin up a glowing top and swipe to split it into smaller careening fragments that leave temperature-colored trails and create ripple interference patterns on a glassy surface.",
+    "inspiration": "The stratospheric warming event splits the polar vortex into two separate cores, which then destabilize and release chaos downward.",
+    "connection": "A spinning top that can split into two smaller tops, each wobbling independently and creating unpredictable chain reactions — warmth above creates cold below, stability breaks into beautiful chaos.",
+    "emoji": "🌀",
+    "category": "Toy",
+    "categoryColor": "#00BCD4"
+  },
+  {
     "date": "2026-02-23",
     "id": "2026-02-23-4",
     "name": "Dreadhorn",
