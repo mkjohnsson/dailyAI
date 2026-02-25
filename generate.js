@@ -646,7 +646,8 @@ function generateGallery(manifest) {
       box-shadow: 5px 5px 0 #1A1A1A;
       text-decoration: none;
       color: inherit;
-      transition: background 0.1s;
+      height: 130px;
+      overflow: hidden;
     }
     .slot-category {
       font-family: 'Bebas Neue', sans-serif;
