@@ -431,25 +431,25 @@ function renderTodaySlot(app) {
   })() : '';
 
   const inspirationHtml = app.inspiration
-    ? `<div class="card-inspiration">
-         <span class="insp-label">Inspired by${sourceDomain ? ` · <a class="source-link" href="${app.source_url}" target="_blank" rel="noopener">${sourceDomain} ↗</a>` : ''}</span>
+    ? `<div class="inspiration">
+         <span class="insp-label">Inspired by${sourceDomain ? ` · <span class="source-link" onclick="event.preventDefault();window.open('${app.source_url}','_blank')">${sourceDomain} ↗</span>` : ''}</span>
          <span class="insp-fact">${app.inspiration}</span>
          <span class="insp-leap">${app.connection || ''}</span>
        </div>`
     : '';
 
   return `
-  <div class="today-slot">
-    <div class="slot-category" style="color:${catColor}">${app.category || ''}</div>
-    <a href="/apps/${app.id || app.date}/" class="card" style="--accent:${catColor}">
-      <span class="card-emoji">${app.emoji || '✨'}</span>
-      <div class="name">${app.name}</div>
-      <div class="desc">${app.description}</div>
-      ${apiTag}
-      <div class="card-cta">▶ Open app</div>
-    </a>
+  <a href="/apps/${app.id || app.date}/" class="card" style="--accent:${catColor}">
+    <div class="card-top">
+      ${app.category ? `<span class="category">${app.category}</span>` : ''}
+    </div>
+    <span class="card-emoji">${app.emoji || '✨'}</span>
+    <div class="name">${app.name}</div>
+    <div class="desc">${app.description}</div>
+    ${apiTag}
     ${inspirationHtml}
-  </div>`;
+    <div class="card-cta">▶ Open app</div>
+  </a>`;
 }
 
 function renderCard(app) {
@@ -617,17 +617,12 @@ function generateGallery(manifest) {
     .today-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      column-gap: 1.25rem;
-      row-gap: 0;
+      gap: 1.25rem;
       align-items: stretch;
     }
     @media (max-width: 900px) {
       .today-grid { grid-template-columns: 1fr; }
     }
-    .today-slot { display: contents; }
-    .slot-category { grid-row: 1; align-self: end; padding-bottom: 0.5rem; }
-    .today-slot .card { grid-row: 2; align-self: stretch; min-height: 220px; }
-    .today-slot .card-inspiration { grid-row: 3; align-self: stretch; margin-bottom: 1.25rem; }
     .card-cta {
       margin-top: auto;
       padding-top: 1rem;
@@ -638,25 +633,6 @@ function generateGallery(manifest) {
       color: var(--accent, #FF2D78);
     }
     .card:hover .card-cta { text-decoration: underline; }
-    .card-inspiration {
-      border: 3px solid #1A1A1A;
-      border-top: none;
-      background: white;
-      padding: 0.75rem 1.4rem 1rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.25rem;
-      box-shadow: 5px 5px 0 #1A1A1A;
-      text-decoration: none;
-      color: inherit;
-    }
-    .slot-category {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 1.1rem;
-      letter-spacing: 0.12em;
-      margin-bottom: 0.5rem;
-      padding-left: 2px;
-    }
 
     /* ── ARCHIVE ── */
     .archive-section {
