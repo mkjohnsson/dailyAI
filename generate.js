@@ -427,11 +427,16 @@ function renderTodaySlot(app) {
   const catColor = CATEGORY_COLORS[app.category] || '#FF2D78';
   const apiTag = app.api ? `<span class="api-tag">${app.api}</span>` : '';
   const inspirationHtml = app.inspiration
-    ? `<div class="card-inspiration">
-         <span class="insp-fact">↳ ${app.inspiration}</span>
-         <span class="insp-leap">${app.connection || ''}</span>
-         ${app.source_url ? `<a class="source-link" href="${app.source_url}" target="_blank" rel="noopener">↗ source</a>` : ''}
-       </div>`
+    ? app.source_url
+      ? `<a class="card-inspiration" href="${app.source_url}" target="_blank" rel="noopener">
+           <span class="insp-fact">↳ ${app.inspiration}</span>
+           <span class="insp-leap">${app.connection || ''}</span>
+           <span class="source-link">↗ source</span>
+         </a>`
+      : `<div class="card-inspiration">
+           <span class="insp-fact">↳ ${app.inspiration}</span>
+           <span class="insp-leap">${app.connection || ''}</span>
+         </div>`
     : '';
 
   return `
@@ -629,7 +634,11 @@ function generateGallery(manifest) {
       flex-direction: column;
       gap: 0.25rem;
       box-shadow: 5px 5px 0 #1A1A1A;
+      text-decoration: none;
+      color: inherit;
+      transition: background 0.1s;
     }
+    a.card-inspiration:hover { background: #FFFBF0; }
     .slot-category {
       font-family: 'Bebas Neue', sans-serif;
       font-size: 1.1rem;
