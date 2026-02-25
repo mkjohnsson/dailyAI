@@ -426,15 +426,20 @@ async function generate() {
 function renderTodaySlot(app) {
   const catColor = CATEGORY_COLORS[app.category] || '#FF2D78';
   const apiTag = app.api ? `<span class="api-tag">${app.api}</span>` : '';
+  const sourceDomain = app.source_url ? (() => {
+    try { return new URL(app.source_url).hostname.replace(/^www\./, ''); } catch { return ''; }
+  })() : '';
+
   const inspirationHtml = app.inspiration
     ? app.source_url
       ? `<a class="card-inspiration" href="${app.source_url}" target="_blank" rel="noopener">
-           <span class="insp-fact">↳ ${app.inspiration}</span>
+           <span class="insp-label">Inspired by${sourceDomain ? ` · ${sourceDomain}` : ''} ↗</span>
+           <span class="insp-fact">${app.inspiration}</span>
            <span class="insp-leap">${app.connection || ''}</span>
-           <span class="source-link">↗ source</span>
          </a>`
       : `<div class="card-inspiration">
-           <span class="insp-fact">↳ ${app.inspiration}</span>
+           <span class="insp-label">Inspired by</span>
+           <span class="insp-fact">${app.inspiration}</span>
            <span class="insp-leap">${app.connection || ''}</span>
          </div>`
     : '';
@@ -732,6 +737,14 @@ function generateGallery(manifest) {
       display: flex;
       flex-direction: column;
       gap: 0.25rem;
+    }
+    .insp-label {
+      font-size: 0.6rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #aaa;
+      margin-bottom: 0.2rem;
     }
     .insp-fact { font-size: 0.72rem; font-weight: 600; color: var(--accent, #FF2D78); line-height: 1.4; }
     .insp-leap { font-size: 0.7rem; font-style: italic; color: #aaa; line-height: 1.4; }
