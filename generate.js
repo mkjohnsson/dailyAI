@@ -617,14 +617,17 @@ function generateGallery(manifest) {
     .today-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 1.25rem;
+      column-gap: 1.25rem;
+      row-gap: 0;
       align-items: stretch;
     }
     @media (max-width: 900px) {
       .today-grid { grid-template-columns: 1fr; }
     }
-    .today-slot { display: flex; flex-direction: column; }
-    .today-slot .card { flex: 1; min-height: 220px; }
+    .today-slot { display: contents; }
+    .slot-category { align-self: end; padding-bottom: 0.5rem; }
+    .today-slot .card { align-self: stretch; min-height: 220px; }
+    .today-slot .card-inspiration { align-self: stretch; margin-bottom: 1.25rem; }
     .card-cta {
       margin-top: auto;
       padding-top: 1rem;
@@ -646,8 +649,6 @@ function generateGallery(manifest) {
       box-shadow: 5px 5px 0 #1A1A1A;
       text-decoration: none;
       color: inherit;
-      height: 130px;
-      overflow: hidden;
     }
     .slot-category {
       font-family: 'Bebas Neue', sans-serif;
