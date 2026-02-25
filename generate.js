@@ -616,12 +616,13 @@ function generateGallery(manifest) {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 1.25rem;
-      align-items: start;
+      align-items: stretch;
     }
     @media (max-width: 900px) {
       .today-grid { grid-template-columns: 1fr; }
     }
     .today-slot { display: flex; flex-direction: column; }
+    .today-slot .card { flex: 1; }
     .slot-category {
       font-family: 'Bebas Neue', sans-serif;
       font-size: 1.1rem;
