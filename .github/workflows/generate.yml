@@ -1,7 +1,9 @@
 name: Generate Daily App
 
 on:
-  workflow_dispatch:      # Triggas av Pi-crontab kl 06:00 (Europe/Stockholm)
+  schedule:
+    - cron: '0 8 * * *'  # 08:00 UTC = 09:00 Stockholm (sommartid)
+  workflow_dispatch:      # Kan triggas manuellt
 
 permissions:
   contents: write

@@ -2,90 +2,117 @@ import fs from 'fs';
 import path from 'path';
 
 const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const MODEL = 'anthropic/claude-opus-4-6';
+const IDEATE_MODEL  = 'anthropic/claude-opus-4-6';
+const BUILD_MODEL   = 'anthropic/claude-sonnet-4-5';
 const RESEARCH_MODEL = 'perplexity/sonar-pro';
 const today = new Date().toISOString().split('T')[0];
 
-// ── Datum-seedat slumpsystem ───────────────────────────────────────────────
-// Samma datum ger alltid samma app (deterministiskt), men varierar maximalt dag för dag.
-
-function seededRng(seed) {
-  let s = seed >>> 0;
-  return () => {
-    s = Math.imul(s ^ (s >>> 16), 0x45d9f3b);
-    s = Math.imul(s ^ (s >>> 16), 0x45d9f3b);
-    s ^= (s >>> 16);
-    return (s >>> 0) / 0xffffffff;
-  };
-}
-
-const dateSeed = parseInt(today.replace(/-/g, ''), 10);
-const rng = seededRng(dateSeed);
-const pick = arr => arr[Math.floor(rng() * arr.length)];
-
-const APP_TYPES = [
-  { label: 'Game',              color: '#FF2D78', instruction: 'Build a game. It must have clear rules, a win/lose state or score, and satisfying feedback. Any genre works — puzzle, arcade, strategy, word game, reflex. No canvas particle effects.' },
-  { label: 'Useful tool',       color: '#00C853', instruction: 'Build something genuinely useful. It must solve a real, specific everyday problem. Use forms, inputs, and outputs — NOT canvas. Examples: a calculator variant, a converter, a checklist, a text tool, a timer with a purpose, a quick-reference table.' },
-  { label: 'Generator',         color: '#FF9800', instruction: 'Build a generator. Press a button (or interact) and it produces something: a name, a poem, a recipe, a plan, a pattern, a palette, a random scenario. Output should feel surprising and delightful.' },
-  { label: 'Creative tool',     color: '#FFD600', instruction: 'Build a tool for making something. The USER is the artist — the app gives them materials, constraints, and a canvas to play with. Could be drawing, composing, writing, designing.' },
-  { label: 'Weird/absurd',      color: '#AA00FF', instruction: 'Build something that makes no logical sense but is weirdly compelling. Lean into the absurd. It can be a toy, a pseudo-app, a fake interface, a surreal experience. The weirder the better.' },
-  { label: 'Data visualization', color: '#0066FF', instruction: 'Turn data or time into something visual and readable. Use real or procedural data. Should communicate something meaningful at a glance. NOT a canvas animation — use SVG, CSS, or DOM.' },
-  { label: 'Interactive story', color: '#E91E63', instruction: 'Build a short interactive narrative or choice-based experience. Text-driven. The user makes choices that branch the story. Atmospheric and well-written.' },
-  { label: 'Toy',               color: '#00BCD4', instruction: 'Build something with no goal — just satisfying or fun to interact with. Could be a fidget toy, a sound toy, a visual toy, a word toy. Simple but irresistible.' },
-  { label: 'Quiz / trivia',     color: '#8BC34A', instruction: 'Build a quiz or trivia experience on any topic. Questions should be interesting, not generic. Include scoring and feedback.' },
-  { label: 'Simulation',        color: '#FF6D00', instruction: 'Build a system with its own rules that evolves over time. The user observes, nudges, or controls it. Should feel alive. Avoid generic particle effects and Conway\'s Game of Life.' },
-  { label: 'Fun/social',        color: '#F50057', instruction: 'Build something best used with another person, or that generates something shareable or personalized. Could be a party game, a personality test, a collaborative tool, a card generator.' },
+const CATEGORIES = [
+  { id: 'game',    label: 'Game',         description: 'Something you play. Has rules, a goal, and feedback. Can be any genre — the only requirement is that it\'s fun to interact with.' },
+  { id: 'art',     label: 'Creative/art', description: 'A tool or toy for making something. The user is the artist — the app gives them materials and constraints to play with.' },
+  { id: 'weird',   label: 'Weird/absurd', description: 'Something that makes no logical sense but is weirdly compelling. Embrace the absurd. The weirder the better.' },
+  { id: 'data',    label: 'Data/visual',  description: 'Turns information or time into something visual and readable. Should communicate something at a glance.' },
+  { id: 'sim',     label: 'Simulation',   description: 'A system with its own rules that evolves over time. The user observes, nudges, or controls it. Should feel alive.' },
+  { id: 'social',  label: 'Fun/social',   description: 'Something best experienced with another person nearby, or that generates something shareable or personalized.' },
 ];
 
-const INTERFACE_STYLES = [
-  'Clean, minimal UI — white background, clear typography, generous whitespace.',
-  'Terminal / command-line aesthetic — monospace font, dark background, green or amber text.',
-  'Card-based layout — information organized in cards or tiles.',
-  'Single centered interaction — one dominant element, everything else fades away.',
-  'Dashboard — multiple panels showing different aspects at once.',
-  'Newspaper / editorial — strong typography, columns, clear hierarchy.',
-  'Playful and colorful — bold colors, rounded shapes, bouncy interactions.',
-  'Dark and atmospheric — moody, immersive, dramatic.',
+// Fixed daily slots (always one of each)
+const API_SLOT = {
+  id: 'api',
+  label: 'API tool',
+  description: 'A genuinely useful tool that fetches real live data from a free public API.',
+};
+
+const AI_SLOT = {
+  id: 'ai_news',
+  label: 'AI-inspired',
+  description: 'An app concept sparked by the latest news in artificial intelligence — new models, research breakthroughs, or emerging AI applications.',
+};
+
+const FREE_APIS = [
+  {
+    name: 'Open-Meteo',
+    description: 'Free weather forecasts and historical climate data. No auth required.',
+    base_url: 'https://api.open-meteo.com/v1/',
+    example: 'https://api.open-meteo.com/v1/forecast?latitude=59.33&longitude=18.07&hourly=temperature_2m,precipitation&forecast_days=7',
+    notes: 'Geocoding: https://geocoding-api.open-meteo.com/v1/search?name=Stockholm&count=1',
+  },
+  {
+    name: 'REST Countries',
+    description: 'Data about every country — population, area, languages, currencies, borders, flags.',
+    base_url: 'https://restcountries.com/v3.1/',
+    example: 'https://restcountries.com/v3.1/all?fields=name,population,area,flags,region,subregion,languages',
+  },
+  {
+    name: 'Frankfurter',
+    description: 'Live and historical currency exchange rates from the European Central Bank.',
+    base_url: 'https://api.frankfurter.app/',
+    example: 'https://api.frankfurter.app/latest?from=EUR',
+    notes: 'Historical: https://api.frankfurter.app/2024-01-01..2024-12-31?from=EUR&to=USD,GBP,SEK',
+  },
+  {
+    name: 'Open Library',
+    description: 'Search millions of books — titles, authors, subjects, covers, publication years.',
+    base_url: 'https://openlibrary.org/',
+    example: 'https://openlibrary.org/search.json?q=tolkien&limit=20&fields=title,author_name,first_publish_year,subject',
+    notes: 'Cover images: https://covers.openlibrary.org/b/id/{cover_id}-M.jpg',
+  },
+  {
+    name: 'Wikipedia',
+    description: 'Article summaries, search results, and random articles.',
+    base_url: 'https://en.wikipedia.org/api/rest_v1/',
+    example: 'https://en.wikipedia.org/api/rest_v1/page/summary/Sweden',
+    notes: 'Random: https://en.wikipedia.org/api/rest_v1/page/random/summary',
+  },
+  {
+    name: 'Sunrise-Sunset',
+    description: 'Precise sunrise, sunset, dawn and dusk times for any location and date.',
+    base_url: 'https://api.sunrise-sunset.org/',
+    example: 'https://api.sunrise-sunset.org/json?lat=59.33&lng=18.07&formatted=0',
+  },
+  {
+    name: 'CoinGecko',
+    description: 'Cryptocurrency prices, market cap, volume, and historical data. No auth for public endpoints.',
+    base_url: 'https://api.coingecko.com/api/v3/',
+    example: 'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=20&sparkline=false',
+  },
+  {
+    name: 'NASA APOD',
+    description: "NASA's Astronomy Picture of the Day — stunning images with scientific explanations.",
+    base_url: 'https://api.nasa.gov/planetary/apod',
+    example: 'https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY&count=9',
+    notes: 'Use api_key=DEMO_KEY (free, rate-limited).',
+  },
+  {
+    name: 'ipapi',
+    description: "Visitor's IP geolocation — country, city, timezone, coordinates. No auth.",
+    base_url: 'https://ipapi.co/',
+    example: 'https://ipapi.co/json/',
+  },
+  {
+    name: 'OpenFoodFacts',
+    description: 'Nutritional info, ingredients and labels for millions of food products worldwide.',
+    base_url: 'https://world.openfoodfacts.org/api/v2/',
+    example: 'https://world.openfoodfacts.org/api/v2/search?categories_tags=breakfast_cereals&fields=product_name,nutriments,nutriscore_grade&page_size=20',
+  },
 ];
 
-const SCALES = [
-  'Small and focused — does one thing perfectly. Under 200 lines. No feature creep.',
-  'Medium — a few features that complement each other. Around 300 lines.',
-  'Ambitious — rich and complex, many moving parts, but still coherent. Up to 500 lines.',
-];
+const CATEGORY_COLORS = {
+  'Game':         '#FF2D78',
+  'Creative/art': '#FFD600',
+  'Weird/absurd': '#AA00FF',
+  'Data/visual':  '#0066FF',
+  'Simulation':   '#FF6D00',
+  'Fun/social':   '#F50057',
+  'API tool':     '#00BCD4',
+  'AI-inspired':  '#7C4DFF',
+};
 
-const RESEARCH_DOMAINS = [
-  'mathematics, geometry, logic, or patterns',
-  'history, archaeology, linguistics, or forgotten knowledge',
-  'physics, materials science, or engineering',
-  'ecology, animal behavior, or evolution',
-  'economics, game theory, or human psychology',
-  'astronomy, geology, or earth systems',
-  'music, acoustics, architecture, or design',
-  'chemistry, food science, or everyday phenomena',
-  'sports science, movement, or the physics of play',
-  'cartography, urbanism, or infrastructure',
-  'neuroscience, perception, or cognition',
-  'folklore, mythology, or cultural rituals',
-  'mathematics and number theory',
-  'climate, weather, or natural phenomena',
-  'philosophy, ethics, or decision theory',
-];
-
-const todayType      = pick(APP_TYPES);
-const todayInterface = pick(INTERFACE_STYLES);
-const todayScale     = pick(SCALES);
-const todayDomain    = pick(RESEARCH_DOMAINS);
-
-// Keep todayCategory alias for backward compat with gallery color logic
-const todayCategory = { label: todayType.label };
-
-console.log(`Today's profile: ${todayType.label} / ${todayInterface.split('—')[0].trim()} / ${todayScale.split('—')[0].trim()}`);
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function parseJSON(text) {
   if (!text) throw new Error('Empty response');
   let json = text.trim();
-  // Strip only the outermost code fence (the content may itself contain ``` blocks)
   if (json.startsWith('```')) {
     json = json.replace(/^```(?:json)?\s*\n?/, '');
     json = json.replace(/\n?```\s*$/, '');
@@ -109,43 +136,94 @@ async function callAPI(model, messages, maxTokens = 2000) {
   return text;
 }
 
-async function research(recentInspirations) {
-  console.log('Researching...');
-  const avoidBlock = recentInspirations.length > 0
-    ? `\nDO NOT return anything similar to these recent topics (already used):\n${recentInspirations.map(i => `- ${i}`).join('\n')}\n`
-    : '';
-  return callAPI(RESEARCH_MODEL, [{
-    role: 'user',
-    content: `What are 5 fascinating, surprising, or counterintuitive things from the world recently (around ${today})?
-
-TODAY'S FOCUS DOMAIN: ${todayDomain}
-Prioritize findings from this domain. Avoid biology, genetics, medicine, and cancer unless the focus domain explicitly includes them.
-${avoidBlock}
-Focus on things that are visually interesting, conceptually rich, or mechanically inspiring. Avoid politics. Be specific and concrete.`,
-  }]);
+function formatDate(dateStr) {
+  const d = new Date(dateStr + 'T12:00:00');
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-async function ideate(researchResults, recentNames) {
-  console.log('Ideating...');
-  const avoidBlock = recentNames.length > 0
-    ? `\nRECENT APP NAMES TO AVOID REPEATING (pick something clearly different in theme and mechanic):\n${recentNames.map(n => `- ${n}`).join('\n')}\n`
-    : '';
-  const text = await callAPI(MODEL, [{
+// ── Research ──────────────────────────────────────────────────────────────────
+
+// Returns: Array<{ finding: string, detail: string, url: string }>
+async function research(focusArea = 'general') {
+  const topic = focusArea === 'ai'
+    ? `the latest news and developments in artificial intelligence this week (around ${today}). Include new model releases, research papers, product launches, and interesting AI applications.`
+    : `5 fascinating, surprising, or counterintuitive things from the world this week (around ${today}). Cover different domains — science, nature, culture, mathematics, human behavior, technology. Avoid politics.`;
+
+  const label = focusArea === 'ai' ? 'Researching AI news...' : 'Researching world news...';
+  console.log(label);
+
+  const text = await callAPI(RESEARCH_MODEL, [{
     role: 'user',
-    content: `REAL-WORLD CONTEXT (from a web search today, ${today}):
-${researchResults}
+    content: `Find ${topic}
 
-TODAY'S CATEGORY: ${todayCategory.label}
-${todayCategory.description}
-${avoidBlock}
-Your task: Pick ONE thing from the context above and use it as creative inspiration — not as the literal subject.
+Focus on things that are visually interesting, conceptually rich, or mechanically inspiring. Be specific and concrete.
 
-Let it spark a mechanic, a feeling, a visual idea, or a constraint. The connection can be loose or metaphorical — the further the creative leap from the source material, the more interesting the result.
+Respond with a JSON array only — no extra text:
+[
+  {
+    "finding": "One sentence describing the finding",
+    "detail": "One more sentence of concrete context or data",
+    "url": "Direct URL to the source article"
+  }
+]`,
+  }]);
+
+  try {
+    return parseJSON(text);
+  } catch {
+    // Fallback: if Perplexity doesn't return clean JSON, wrap it as a single item
+    return [{ finding: text.slice(0, 200), detail: '', url: '' }];
+  }
+}
+
+// ── Category selection ────────────────────────────────────────────────────────
+
+function selectDailyCategories(manifest) {
+  const previous = manifest.filter(a => a.date !== today);
+  const lastDate = previous[0]?.date;
+  const recentLabels = new Set(
+    previous.filter(a => a.date === lastDate).map(a => a.category)
+  );
+
+  const available = CATEGORIES.filter(c => !recentLabels.has(c.label));
+  const pool = available.length >= 1 ? available : [...CATEGORIES];
+  const shuffled = [...pool].sort(() => Math.random() - 0.5);
+
+  // Always: 1 rotating category + API slot + AI news slot
+  return [shuffled[0], API_SLOT, AI_SLOT];
+}
+
+// ── Ideation ──────────────────────────────────────────────────────────────────
+
+async function ideate(researchItems, category, recentSummaries, previousConcepts) {
+  if (category.id === 'api') return ideateApiApp(researchItems, recentSummaries, previousConcepts);
+
+  const avoidLines = [
+    recentSummaries ? `RECENTLY BUILT — avoid similar concepts:\n${recentSummaries}` : '',
+    previousConcepts.length > 0 ? `ALSO BUILDING TODAY — must be clearly different:\n${previousConcepts.join('\n')}` : '',
+  ].filter(Boolean).join('\n\n');
+
+  const researchText = researchItems.map((r, i) =>
+    `[${i + 1}] ${r.finding} ${r.detail}${r.url ? ` (${r.url})` : ''}`
+  ).join('\n');
+
+  const text = await callAPI(IDEATE_MODEL, [{
+    role: 'user',
+    content: `REAL-WORLD CONTEXT (web search, ${today}):
+${researchText}
+
+TODAY'S CATEGORY: ${category.label}
+${category.description}
+
+${avoidLines}
+
+Pick ONE item from the context above and use it as creative inspiration — not as the literal subject. The connection can be loose or metaphorical. The further the creative leap, the better.
 
 Respond with valid JSON only:
 {
   "inspiration": "The real-world thing you chose, in one sentence",
   "connection": "How it sparked the idea — the creative leap, in one sentence",
+  "source_url": "The URL from the chosen context item, or empty string if none",
   "concept": "The app concept in 2-3 sentences",
   "name": "Short app name",
   "emoji": "🎯"
@@ -154,29 +232,95 @@ Respond with valid JSON only:
   return parseJSON(text);
 }
 
-async function build(idea) {
-  console.log('Building...');
-  const text = await callAPI(MODEL, [
+async function ideateApiApp(researchItems, recentSummaries, previousConcepts) {
+  const apiList = FREE_APIS.map(a => `- ${a.name}: ${a.description}`).join('\n');
+
+  const avoidLines = [
+    recentSummaries ? `RECENTLY BUILT — avoid similar concepts:\n${recentSummaries}` : '',
+    previousConcepts.length > 0 ? `ALSO BUILDING TODAY — must be clearly different:\n${previousConcepts.join('\n')}` : '',
+  ].filter(Boolean).join('\n\n');
+
+  const researchText = researchItems.map((r, i) =>
+    `[${i + 1}] ${r.finding} ${r.detail}${r.url ? ` (${r.url})` : ''}`
+  ).join('\n');
+
+  const text = await callAPI(IDEATE_MODEL, [{
+    role: 'user',
+    content: `AVAILABLE FREE APIs:
+${apiList}
+
+REAL-WORLD CONTEXT (web search, ${today}):
+${researchText}
+
+${avoidLines}
+
+Design a genuinely useful web tool that uses one of the APIs above. It should solve a real, specific problem someone would actually use. The real-world context can optionally inspire the angle.
+
+Respond with valid JSON only:
+{
+  "api": "Exact name of the chosen API from the list",
+  "inspiration": "What real-world problem or need this solves",
+  "connection": "Why this API is perfect for it, in one sentence",
+  "source_url": "URL from the context that inspired this, or empty string",
+  "concept": "The app concept in 2-3 sentences. Be specific about what data it fetches and how it's displayed.",
+  "name": "Short app name",
+  "emoji": "🛠️"
+}`,
+  }]);
+
+  const idea = parseJSON(text);
+  idea.apiDetails = FREE_APIS.find(a => a.name === idea.api) || null;
+  return idea;
+}
+
+// ── Build ─────────────────────────────────────────────────────────────────────
+
+function getCategoryInstructions(category) {
+  const map = {
+    game:     'Must have clear UI elements — buttons, score, game state. NOT a canvas animation. A real game with rules and win/lose conditions.',
+    art:      'Give the user controls (sliders, color pickers, buttons, drawing surface). The user creates — the app provides tools.',
+    weird:    'Must have a clear (however absurd) purpose and at least one real interaction. Weird, not just visually random.',
+    data:     'Charts, tables, timelines, or grids. Data-driven. NOT a physics simulation or particle animation.',
+    sim:      'Canvas is fine here. The system should feel alive and respond to user nudges or parameters.',
+    social:   'Generates something shareable, or works as a 2-player/group experience.',
+    api:      'Show a loading state while fetching. Handle errors gracefully. Display real fetched data clearly.',
+    ai_news:  'Can be any interaction style, but the concept must genuinely reflect the AI topic that inspired it.',
+  };
+  return map[category.id] ? `\nCATEGORY REQUIREMENT: ${map[category.id]}` : '';
+}
+
+async function build(idea, category) {
+  const apiSection = category.id === 'api' && idea.apiDetails
+    ? `\nAPI TO USE:
+Name: ${idea.apiDetails.name}
+Base URL: ${idea.apiDetails.base_url}
+Example: ${idea.apiDetails.example}
+${idea.apiDetails.notes ? `Notes: ${idea.apiDetails.notes}` : ''}
+IMPORTANT: The app MUST make real fetch() calls to this API. No mocked or hardcoded data.`
+    : '';
+
+  const text = await callAPI(BUILD_MODEL, [
     {
       role: 'system',
       content: `You are a creative web developer who builds small, interactive web apps as a single HTML file.
 
 RULES:
-- A single HTML file with inline CSS and JavaScript — no external files
-- No server, no API keys — everything runs in the browser
-- CDN libraries are allowed (Three.js, p5.js, Tone.js, Chart.js, GSAP, etc.)
-- Must be interactive in some way
-- Must work immediately in the browser
+- Single HTML file with inline CSS and JS — no external files
+- No server, no API keys — runs entirely in the browser
+- CDN libraries allowed (Three.js, p5.js, Tone.js, Chart.js, GSAP, etc.)
+- Must be interactive
+- Max ~500 lines of code
+- Works immediately in the browser
 
-ALWAYS AVOID:
-- Particle systems that react to mouse movement
-- Psychedelic/trippy visuals with floating orbs or nebulas
-- "Meditative" or "zen" experiences
-- Space/cosmos themes
-- Generic canvas animations
-- Conway's Game of Life or obvious clones
+AVOID:
+- Particle systems reacting to mouse movement
+- Psychedelic visuals, floating orbs, nebulas
+- "Meditative" or "zen" themes
+- Space/cosmos (unless the concept specifically requires it)
+- Generic canvas animations as a substitute for real interaction
+- Physics simulations as the main mechanic (unless category is Simulation)
 
-RESPOND IN EXACTLY THIS FORMAT (no JSON, no code fences):
+RESPOND IN EXACTLY THIS FORMAT:
 DESCRIPTION: One sentence about what the app does or feels like.
 ---HTML---
 <!DOCTYPE html>
@@ -184,19 +328,13 @@ DESCRIPTION: One sentence about what the app does or feels like.
     },
     {
       role: 'user',
-      content: `Build this app concept as a single interactive HTML file.
+      content: `Build this as a single interactive HTML file.
 
 CONCEPT: ${idea.concept}
+CATEGORY: ${category.label} — ${category.description}
 NAME: ${idea.name}
-
-TODAY'S APP TYPE: ${todayType.label}
-${todayType.instruction}
-
-VISUAL STYLE: ${todayInterface}
-
-SCALE: ${todayScale}
-
-Be faithful to the concept AND the app type. The type instruction overrides your defaults — if it says "use forms not canvas", use forms. If it says "text-driven", make it text-driven.`,
+${apiSection}
+${getCategoryInstructions(category)}`,
     },
   ], 16000);
 
@@ -209,88 +347,153 @@ Be faithful to the concept AND the app type. The type instruction overrides your
   };
 }
 
+// ── Main ──────────────────────────────────────────────────────────────────────
+
 async function generate() {
-  console.log(`Generating app for ${today}...`);
+  console.log(`Generating apps for ${today}...`);
+  if (!process.env.OPENROUTER_API_KEY) throw new Error('OPENROUTER_API_KEY not set');
 
-  const apiKey = process.env.OPENROUTER_API_KEY;
-  if (!apiKey) throw new Error('OPENROUTER_API_KEY not set');
-
-  // Load manifest early — needed for recent history in both research and ideate
   let manifest = [];
   if (fs.existsSync('apps.json')) {
     manifest = JSON.parse(fs.readFileSync('apps.json', 'utf8'));
   }
-  const recentNames = manifest.slice(0, 7).map(a => a.name);
-  const recentInspirations = manifest.slice(0, 7).map(a => a.inspiration).filter(Boolean);
 
-  // Stage 1: Research (aware of recent topics to avoid repetition)
-  const researchResults = await research(recentInspirations);
+  const dailyCategories = selectDailyCategories(manifest);
+  console.log(`Categories: ${dailyCategories.map(c => c.label).join(' · ')}`);
 
-  // Stage 2: Ideate (aware of recent app names to avoid repetition)
-  const idea = await ideate(researchResults, recentNames);
-  console.log(`✦ Idea: ${idea.name} — ${idea.concept}`);
+  // Run both research calls in parallel
+  const [generalResearch, aiResearch] = await Promise.all([
+    research('general'),
+    research('ai'),
+  ]);
 
-  // Stage 3: Build
-  const app = await build(idea);
+  const recentSummaries = manifest.slice(0, 9).map(a => `${a.name}: ${a.description}`).join('\n');
+  const newEntries = [];
+  const todayConcepts = [];
 
-  // Determine unique run ID (keep history if run multiple times in a day)
-  let runId = today;
-  let runNum = 1;
-  while (fs.existsSync(path.join('public', 'apps', runId))) {
-    runNum++;
-    runId = `${today}-${runNum}`;
+  for (let i = 0; i < dailyCategories.length; i++) {
+    const category = dailyCategories[i];
+    console.log(`\n[${i + 1}/3] ${category.label}`);
+
+    // AI slot uses AI-specific research, others use general
+    const researchItems = category.id === 'ai_news' ? aiResearch : generalResearch;
+
+    const idea = await ideate(researchItems, category, recentSummaries, todayConcepts);
+    todayConcepts.push(`${idea.name}: ${idea.concept}`);
+    console.log(`  ✦ ${idea.name} — ${idea.concept.slice(0, 70)}...`);
+
+    const app = await build(idea, category);
+
+    // Unique run ID
+    let runId = today;
+    let runNum = 1;
+    while (fs.existsSync(path.join('public', 'apps', runId))) {
+      runNum++;
+      runId = `${today}-${runNum}`;
+    }
+
+    const appDir = path.join('public', 'apps', runId);
+    fs.mkdirSync(appDir, { recursive: true });
+    fs.writeFileSync(path.join(appDir, 'index.html'), app.html);
+
+    const entry = {
+      date: today,
+      id: runId,
+      name: idea.name,
+      description: app.description,
+      inspiration: idea.inspiration,
+      connection: idea.connection,
+      source_url: idea.source_url || '',
+      emoji: idea.emoji,
+      category: category.label,
+      ...(category.id === 'api' && idea.api ? { api: idea.api } : {}),
+    };
+
+    newEntries.push(entry);
+    manifest.unshift(entry);
+
+    console.log(`  ✓ ${idea.emoji} ${idea.name}`);
   }
 
-  // Save app
-  const appDir = path.join('public', 'apps', runId);
-  fs.mkdirSync(appDir, { recursive: true });
-  fs.writeFileSync(path.join(appDir, 'index.html'), app.html);
-
-  // Update manifest (prepend, keep all history)
-  manifest.unshift({
-    date: today,
-    id: runId,
-    name: idea.name,
-    description: app.description,
-    inspiration: idea.inspiration,
-    connection: idea.connection,
-    emoji: idea.emoji,
-    category: todayType.label,
-    categoryColor: todayType.color,
-  });
   fs.writeFileSync('apps.json', JSON.stringify(manifest, null, 2));
-
-  // Regenerate gallery
   generateGallery(manifest);
 
-  console.log(`✓ ${idea.emoji} ${idea.name}`);
-  console.log(`  ${app.description}`);
-  console.log(`  Inspired by: ${idea.inspiration}`);
+  console.log(`\n✓ Done — ${newEntries.length} apps for ${today}`);
+}
+
+// ── Gallery ───────────────────────────────────────────────────────────────────
+
+function renderCard(app, compact = false) {
+  const catColor = CATEGORY_COLORS[app.category] || '#FF2D78';
+
+  const sourceHtml = app.source_url
+    ? `<a class="source-link" href="${app.source_url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">↗ source</a>`
+    : '';
+
+  const apiTag = app.api
+    ? `<span class="api-tag">${app.api}</span>`
+    : '';
+
+  const inspirationHtml = !compact && app.inspiration
+    ? `<div class="inspiration">
+         <span class="insp-fact">↳ ${app.inspiration}</span>
+         <span class="insp-leap">${app.connection || ''}</span>
+         ${sourceHtml}
+       </div>`
+    : compact && app.inspiration
+      ? `<div class="insp-compact">${app.inspiration} ${sourceHtml}</div>`
+      : '';
+
+  return `
+  <a href="/apps/${app.id || app.date}/" class="card${compact ? ' card--compact' : ''}" style="--accent:${catColor}">
+    <span class="card-emoji">${app.emoji || '✨'}</span>
+    <div class="card-top">
+      ${app.category ? `<span class="category">${app.category}</span>` : ''}
+    </div>
+    <div class="name">${app.name}</div>
+    <div class="desc">${app.description}</div>
+    ${apiTag}
+    ${inspirationHtml}
+  </a>`;
 }
 
 function generateGallery(manifest) {
-  const cards = manifest.map(app => {
-    const catColor = app.categoryColor || '#FF2D78';
-    const inspirationHtml = app.inspiration
-      ? `<div class="inspiration">
-           <span class="insp-fact">↳ ${app.inspiration}</span>
-           <span class="insp-leap">${app.connection}</span>
-         </div>`
-      : app.prompt
-        ? `<div class="inspiration"><span class="insp-leap">${app.prompt}</span></div>`
-        : '';
-    return `
-    <a href="/apps/${app.id || app.date}/" class="card" style="--accent:${catColor}">
-      <span class="card-emoji">${app.emoji}</span>
-      <div class="card-top">
-        <span class="date">${app.date}</span>
-        ${app.category ? `<span class="category">${app.category}</span>` : ''}
+  // Group by date
+  const byDate = [];
+  const seen = new Map();
+  for (const app of manifest) {
+    if (!seen.has(app.date)) {
+      seen.set(app.date, []);
+      byDate.push({ date: app.date, apps: seen.get(app.date) });
+    }
+    seen.get(app.date).push(app);
+  }
+
+  const todayGroup    = byDate[0] || null;
+  const archiveGroups = byDate.slice(1);
+
+  const todaySection = todayGroup ? `
+  <section class="today-section">
+    <div class="today-header">
+      <span class="today-label">TODAY</span>
+      <span class="today-date">${formatDate(todayGroup.date)}</span>
+    </div>
+    <div class="today-grid">
+      ${todayGroup.apps.map(a => renderCard(a, false)).join('')}
+    </div>
+  </section>` : '';
+
+  const archiveSection = archiveGroups.length > 0 ? `
+  <section class="archive-section">
+    <h2 class="archive-title">ARCHIVE</h2>
+    ${archiveGroups.map(group => `
+    <div class="archive-day">
+      <div class="archive-day-label">${formatDate(group.date)}</div>
+      <div class="archive-day-grid">
+        ${group.apps.map(a => renderCard(a, true)).join('')}
       </div>
-      <div class="name">${app.name}</div>
-      <div class="desc">${app.description}</div>
-      ${inspirationHtml}
-    </a>`;
-  }).join('');
+    </div>`).join('')}
+  </section>` : '';
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -320,28 +523,18 @@ function generateGallery(manifest) {
       border-bottom: 4px solid #1A1A1A;
       background: #FFFBF0;
     }
-
-    /* Ray burst background */
     .hero::before {
       content: '';
       position: absolute;
       inset: -50%;
-      background: repeating-conic-gradient(
-        rgba(255, 229, 0, 0.18) 0deg 9deg,
-        transparent 9deg 18deg
-      );
+      background: repeating-conic-gradient(rgba(255,229,0,0.18) 0deg 9deg, transparent 9deg 18deg);
       animation: slowspin 60s linear infinite;
       z-index: 0;
     }
     @keyframes slowspin { to { transform: rotate(360deg); } }
-
     .hero > * { position: relative; z-index: 1; }
 
-    /* Logo */
-    .logo-wrap {
-      display: inline-block;
-      margin-bottom: 0.5rem;
-    }
+    .logo-wrap { display: inline-block; margin-bottom: 0.5rem; }
     .logo {
       font-family: 'Bebas Neue', sans-serif;
       font-size: clamp(5rem, 14vw, 10rem);
@@ -363,8 +556,6 @@ function generateGallery(manifest) {
       border: 3px solid #1A1A1A;
       margin-top: 0.4rem;
     }
-
-    /* About box */
     .about {
       display: inline-block;
       max-width: 540px;
@@ -382,17 +573,74 @@ function generateGallery(manifest) {
     }
     .about strong { color: #FF2D78; font-weight: 800; }
 
-    /* ── GRID ── */
-    .grid-wrap {
+    /* ── TODAY ── */
+    .today-section {
       max-width: 1200px;
-      margin: 3rem auto;
+      margin: 3rem auto 0;
       padding: 0 1.5rem;
     }
-
-    .grid {
+    .today-header {
+      display: flex;
+      align-items: baseline;
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+      border-bottom: 4px solid #1A1A1A;
+      padding-bottom: 0.75rem;
+    }
+    .today-label {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2.5rem;
+      color: #FF2D78;
+      -webkit-text-stroke: 2px #1A1A1A;
+      paint-order: stroke fill;
+      line-height: 1;
+    }
+    .today-date {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #999;
+      letter-spacing: 0.06em;
+    }
+    .today-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
       gap: 1.25rem;
+    }
+
+    /* ── ARCHIVE ── */
+    .archive-section {
+      max-width: 1200px;
+      margin: 3rem auto 4rem;
+      padding: 0 1.5rem;
+    }
+    .archive-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.5rem;
+      letter-spacing: 0.15em;
+      color: #aaa;
+      margin-bottom: 2rem;
+      border-bottom: 2px solid #E8E8E8;
+      padding-bottom: 0.5rem;
+    }
+    .archive-day {
+      display: grid;
+      grid-template-columns: 100px 1fr;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      align-items: start;
+    }
+    .archive-day-label {
+      font-size: 0.68rem;
+      font-weight: 800;
+      color: #bbb;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding-top: 1rem;
+    }
+    .archive-day-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 0.75rem;
     }
 
     /* ── CARDS ── */
@@ -409,32 +657,14 @@ function generateGallery(manifest) {
       box-shadow: 5px 5px 0 #1A1A1A;
       transition: transform 0.1s, box-shadow 0.1s;
     }
-    .card:hover {
-      transform: translate(-3px, -3px);
-      box-shadow: 8px 8px 0 #1A1A1A;
-    }
+    .card:hover { transform: translate(-3px, -3px); box-shadow: 8px 8px 0 #1A1A1A; }
+    .card--compact { padding: 1rem; box-shadow: 3px 3px 0 #1A1A1A; }
+    .card--compact:hover { box-shadow: 6px 6px 0 #1A1A1A; }
 
-    .card-emoji {
-      font-size: 2.4rem;
-      display: block;
-      margin-bottom: 0.75rem;
-    }
+    .card-emoji { font-size: 2.4rem; display: block; margin-bottom: 0.75rem; }
+    .card--compact .card-emoji { font-size: 1.5rem; margin-bottom: 0.5rem; }
 
-    .card-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 0.5rem;
-      gap: 0.5rem;
-    }
-
-    .date {
-      font-size: 0.68rem;
-      font-weight: 600;
-      color: #999;
-      letter-spacing: 0.06em;
-    }
-
+    .card-top { display: flex; justify-content: flex-end; margin-bottom: 0.5rem; }
     .category {
       font-size: 0.6rem;
       font-weight: 800;
@@ -447,21 +677,13 @@ function generateGallery(manifest) {
       white-space: nowrap;
     }
 
-    .name {
-      font-size: 1.05rem;
-      font-weight: 800;
-      margin-bottom: 0.4rem;
-      color: #1A1A1A;
-      line-height: 1.25;
-    }
+    .name { font-size: 1.05rem; font-weight: 800; margin-bottom: 0.4rem; line-height: 1.25; }
+    .card--compact .name { font-size: 0.88rem; }
 
-    .desc {
-      font-size: 0.82rem;
-      color: #555;
-      line-height: 1.55;
-      flex: 1;
-      margin-bottom: 0.75rem;
-    }
+    .desc { font-size: 0.82rem; color: #555; line-height: 1.55; flex: 1; margin-bottom: 0.75rem; }
+    .card--compact .desc { font-size: 0.74rem; margin-bottom: 0.4rem; }
+
+    .api-tag { font-size: 0.62rem; font-weight: 700; color: #00BCD4; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
 
     .inspiration {
       border-top: 2px solid #F0F0F0;
@@ -471,24 +693,33 @@ function generateGallery(manifest) {
       flex-direction: column;
       gap: 0.25rem;
     }
-    .insp-fact {
-      font-size: 0.72rem;
-      font-weight: 600;
-      color: var(--accent, #FF2D78);
+    .insp-fact { font-size: 0.72rem; font-weight: 600; color: var(--accent, #FF2D78); line-height: 1.4; }
+    .insp-leap { font-size: 0.7rem; font-style: italic; color: #aaa; line-height: 1.4; }
+
+    .insp-compact {
+      font-size: 0.68rem;
+      color: #bbb;
       line-height: 1.4;
-    }
-    .insp-leap {
-      font-size: 0.7rem;
-      font-style: italic;
-      color: #aaa;
-      line-height: 1.4;
+      margin-top: auto;
+      padding-top: 0.5rem;
+      border-top: 1px solid #F0F0F0;
     }
 
-    .empty {
-      text-align: center;
-      color: #ccc;
-      padding: 6rem 0;
-      font-size: 1.1rem;
+    .source-link {
+      display: inline-block;
+      margin-top: 0.35rem;
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: var(--accent, #FF2D78);
+      text-decoration: none;
+      letter-spacing: 0.04em;
+      opacity: 0.7;
+    }
+    .source-link:hover { opacity: 1; text-decoration: underline; }
+
+    @media (max-width: 600px) {
+      .archive-day { grid-template-columns: 1fr; }
+      .archive-day-label { padding-top: 0; }
     }
   </style>
 </head>
@@ -499,16 +730,14 @@ function generateGallery(manifest) {
       <span class="logo-sub">A NEW APP EVERY DAY</span>
     </div>
     <div class="about">
-      Every day at 6 AM, <strong>Claude</strong> searches the web for something interesting happening in the world,
-      uses it as creative inspiration, and builds an interactive web app — completely on its own.<br>
+      Every day at 9 AM, <strong>Claude</strong> searches the web for something interesting,
+      uses it as creative inspiration, and builds three interactive web apps — completely on its own.<br>
       Each app is a single HTML file that runs entirely in your browser.
     </div>
   </div>
-  <div class="grid-wrap">
-    <div class="grid">
-      ${manifest.length > 0 ? cards : '<p class="empty">No apps yet — check back tomorrow!</p>'}
-    </div>
-  </div>
+
+  ${todaySection}
+  ${archiveSection}
 </body>
 </html>`;
 
