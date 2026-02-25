@@ -614,9 +614,12 @@ function generateGallery(manifest) {
     }
     .today-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      grid-template-columns: repeat(3, 1fr);
       gap: 1.25rem;
       align-items: start;
+    }
+    @media (max-width: 900px) {
+      .today-grid { grid-template-columns: 1fr; }
     }
     .today-slot { display: flex; flex-direction: column; }
     .slot-category {
@@ -764,7 +767,13 @@ function generateGallery(manifest) {
   fs.writeFileSync(path.join('public', 'index.html'), html);
 }
 
-generate().catch(err => {
-  console.error('Generation failed:', err.message);
-  process.exit(1);
-});
+if (process.argv.includes('--regen-gallery')) {
+  const manifest = JSON.parse(fs.readFileSync('apps.json', 'utf8'));
+  generateGallery(manifest);
+  console.log('✓ Gallery regenerated.');
+} else {
+  generate().catch(err => {
+    console.error('Generation failed:', err.message);
+    process.exit(1);
+  });
+}
