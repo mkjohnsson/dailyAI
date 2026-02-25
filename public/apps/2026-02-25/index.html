@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shuntburg</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1a1a2e; color: #e0e0e0; font-family: 'Courier New', monospace; display: flex; height: 100vh; overflow: hidden; }
+#grid-panel { flex: 2; position: relative; display: flex; align-items: center; justify-content: center; }
+#sidebar { flex: 1; max-width: 320px; display: flex; flex-direction: column; gap: 8px; padding: 10px; border-left: 2px solid #333; overflow-y: auto; }
+canvas { background: #0f0f23; border-radius: 8px; }
+.panel { background: #16213e; border: 1px solid #0f3460; border-radius: 6px; padding: 10px; }
+.panel h3 { color: #e94560; font-size: 13px; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px; }
+.stat-row { display: flex; justify-content: space-between; font-size: 12px; margin: 3px 0; }
+.stat-val { color: #53d8fb; font-weight: bold; }
+.bar-wrap { height: 8px; background: #0a0a1a; border-radius: 4px; margin: 4px 0; }
+.bar-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
+.log { font-size: 11px; max-height: 150px; overflow-y: auto; line-height: 1.5; }
+.log-entry { padding: 2px 0; border-bottom: 1px solid #111; }
+.log-erupt { color: #ff6b6b; }
+.log-build { color: #51cf66; }
+.log-warn { color: #ffd43b; }
+button { background: #0f3460; color: #e0e0e0; border: 1px solid #e94560; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-family: inherit; font-size: 12px; }
+button:hover { background: #e94560; }
+button:disabled { opacity: 0.4; cursor: default; background: #0f3460; }
+.tool-bar { display: flex; gap: 4px; flex-wrap: wrap; }
+.tool-bar button.active { background: #e94560; }
+#tooltip { position: absolute; background: #16213eee; border: 1px solid #e94560; padding: 8px; border-radius: 4px; font-size: 11px; pointer-events: none; display: none; z-index: 10; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px; font-size: 10px; }
+.legend-item { display: flex; align-items: center; gap: 3px; }
+.legend-swatch { width: 12px; height: 12px; border-radius: 2px; }
+</style>
+</head>
+<body>
+<div id="grid-panel">
+<canvas id="c"></canvas>
+<div id="tooltip"></div>
+</div>
+<div id="sidebar">
+<div class="panel">
+<h3>⬡ Shuntburg</h3>
+<div class="stat-row"><span>Cycle</span><span class="stat-val" id="s-cycle">0</span></div>
+<div class="stat-row"><span>Population</span><span class="stat-val" id="s-pop">0</span></div>
+<div class="stat-row"><span>Districts</span><span class="stat-val" id="s-dist">0</span></div>
+<div class="stat-row"><span>Stability</span><span class="stat-val" id="s-stab">100%</span></div>
+<div class="bar-wrap"><div class="bar-fill" id="bar-stab" style="width:100%;background:#51cf66;"></div></div>
+<div class="stat-row"><span>Cascade Risk</span><span class="stat-val" id="s-risk">0%</span></div>
+<div class="bar-wrap"><div class="bar-fill" id="bar-risk" style="width:0%;background:#e94560;"></div></div>
+<div class="stat-row"><span>Resources</span><span class="stat-val" id="s-res">50</span></div>
+</div>
+<div class="panel">
+<h3>🔧 Tools (click hex)</h3>
+<div class="tool-bar">
+<button data-tool="road" class="active">Road (5)</button>
+<button data-tool="power">Power (8)</button>
+<button data-tool="water">Water (8)</button>
+<button data-tool="stabilize">Stabilize (15)</button>
+</div>
+</div>
+<div class="panel">
+<h3>Controls</h3>
+<div class="tool-bar">
+<button id="btn-pause">⏸ Pause</button>
+<button id="btn-speed">⏩ Fast</button>
+<button id="btn-reset">↺ Reset</button>
+</div>
+</div>
+<div class="panel">
+<h3>Legend</h3>
+<div class="legend">
+<div class="legend-item"><div class="legend-swatch" style="background:#2d6a4f"></div>Stable</div>
+<div class="legend-item"><div class="legend-swatch" style="background:#e9c46a"></div>Pressured</div>
+<div class="legend-item"><div class="legend-swatch" style="background:#e76f51"></div>Critical</div>
+<div class="legend-item"><div class="legend-swatch" style="background:#d62828"></div>Erupting</div>
+<div class="legend-item"><div class="legend-swatch" style="background:#7209b7"></div>Unstable</div>
+<div class="legend-item"><div class="legend-swatch" style="background:#4361ee"></div>Has Infra</div>
+</div>
+</div>
+<div class="panel">
+<h3>📋 Event Log</h3>
+<div class="log" id="log"></div>
+</div>
+</div>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const tooltip = document.getElementById('tooltip');
+const logEl = document.getElementById('log');
+
+const HEX_SIZE = 28;
+const sqrt3 = Math.sqrt(3);
+let W, H, offsetX, offsetY;
+let cycle = 0, paused = false, speed = 1, resources = 50, tool = 'road';
+let tiles = new Map();
+let cascadeCount = 0;
+
+const TOOL_COST = { road: 5, power: 8, water: 8, stabilize: 15 };
+const THRESHOLD_BASE = 40;
+
+function resize() {
+  W = canvas.width = canvas.parentElement.clientWidth - 20;
+  H = canvas.height = canvas.parentElement.clientHeight - 20;
+  offsetX = W / 2;
+  offsetY = H / 2;
+}
+resize();
+window.addEventListener('resize', resize);
+
+function key(q, r) { return q + ',' + r; }
+function hexToPixel(q, r) {
+  const x = HEX_SIZE * (sqrt3 * q + sqrt3/2 * r) + offsetX;
+  const y = HEX_SIZE * (3/2 * r) + offsetY;
+  return [x, y];
+}
+function pixelToHex(px, py) {
+  const x = px - offsetX, y = py - offsetY;
+  const q = (sqrt3/3 * x - 1/3 * y) / HEX_SIZE;
+  const r = (2/3 * y) / HEX_SIZE;
+  return hexRound(q, r);
+}
+function hexRound(q, r) {
+  const s = -q - r;
+  let rq = Math.round(q), rr = Math.round(r), rs = Math.round(s);
+  const dq = Math.abs(rq - q), dr = Math.abs(rr - r), ds = Math.abs(rs - s);
+  if (dq > dr && dq > ds) rq = -rr - rs;
+  else if (dr > ds) rr = -rq - rs;
+  return [rq, rr];
+}
+const DIRS = [[1,0],[-1,0],[0,1],[0,-1],[1,-1],[-1,1]];
+function neighbors(q, r) { return DIRS.map(([dq,dr]) => [q+dq, r+dr]); }
+
+function createTile(q, r, type='settled') {
+  const k = key(q, r);
+  if (tiles.has(k)) return null;
+  const t = {
+    q, r, type,
+    pop: type === 'settled' ? 10 : 5,
+    pressure: type === 'unstable' ? 30 : 0,
+    threshold: THRESHOLD_BASE + Math.floor(Math.random()*20) - 10,
+    road: false, power: false, water: false,
+    stabilized: false,
+    eruptCooldown: 0,
+    age: 0
+  };
+  tiles.set(k, t);
+  return t;
+}
+
+function init() {
+  tiles.clear();
+  cycle = 0; resources = 50; cascadeCount = 0;
+  createTile(0, 0, 'settled');
+  for (const [dq, dr] of DIRS.slice(0, 3)) {
+    const t = createTile(dq, dr, 'settled');
+    if (t) { t.road = true; t.pop = 8; }
+  }
+  logEl.innerHTML = '';
+  addLog('Shuntburg founded. Watch the pressure.', 'build');
+}
+
+function addLog(msg, cls='') {
+  const d = document.createElement('div');
+  d.className = 'log-entry' + (cls ? ' log-'+cls : '');
+  d.textContent = `[${cycle}] ${msg}`;
+  logEl.prepend(d);
+  while (logEl.children.length > 60) logEl.lastChild.remove();
+}
+
+function erupt(tile) {
+  const adj = neighbors(tile.q, tile.r).filter(([q,r]) => !tiles.has(key(q,r)));
+  if (adj.length === 0) {
+    addLog(`District (${tile.q},${tile.r}) BLOWOUT — no room!`, 'erupt');
+    tile.pop = Math.max(tile.pop - 10, 2);
+    cascadeCount += 2;
+    return;
+  }
+  const [nq, nr] = adj[Math.floor(Math.random() * adj.length)];
+  const nt = createTile(nq, nr, 'unstable');
+  if (nt) {
+    nt.pop = Math.floor(tile.pop * 0.3);
+    nt.pressure = 20;
+    tile.pop = Math.ceil(tile.pop * 0.6);
+    tile.pressure = Math.max(tile.pressure - 25, 0);
+    tile.eruptCooldown = 8;
+    addLog(`ERUPTION at (${tile.q},${tile.r}) → shunt to (${nq},${nr})!`, 'erupt');
+    cascadeCount++;
+    // chain check on neighbors
+    for (const [aq, ar] of neighbors(nq, nr)) {
+      const ak = key(aq, ar);
+      if (tiles.has(ak)) {
+        const at = tiles.get(ak);
+        if (at.type === 'unstable' && !at.stabilized) {
+          at.pressure += 8;
+        }
+      }
+    }
+  }
+}
+
+function simulate() {
+  if (paused) return;
+  cycle++;
+  cascadeCount = Math.max(cascadeCount - 0.3, 0);
+  resources += Math.max(1, Math.floor(tiles.size * 0.3));
+
+  for (const [k, t] of tiles) {
+    t.age++;
+    if (t.eruptCooldown > 0) t.eruptCooldown--;
+
+    // Population growth
+    const infraBonus = (t.road ? 1 : 0) + (t.power ? 1 : 0) + (t.water ? 1 : 0);
+    const growthRate = 0.5 + infraBonus * 0.4;
+    if (t.pop < 80) t.pop += growthRate * (0.5 + Math.random() * 0.5);
+
+    // Pressure builds
+    let pressureGain = t.pop / 20;
+    if (t.type === 'unstable' && !t.stabilized) pressureGain *= 1.8;
+    if (t.road) pressureGain *= 0.7;
+    if (t.power) pressureGain *= 0.75;
+    if (t.water) pressureGain *= 0.75;
+    if (t.stabilized) pressureGain *= 0.4;
+
+    // Neighbor density pressure
+    const nbs = neighbors(t.q, t.r);
+    let neighborPop = 0;
+    for (const [nq, nr] of nbs) {
+      const nt = tiles.get(key(nq, nr));
+      if (nt) neighborPop += nt.pop;
+    }
+    pressureGain += neighborPop / 100;
+    t.pressure += pressureGain;
+
+    // Connected infra relief
+    let connectedInfra = 0;
+    for (const [nq, nr] of nbs) {
+      const nt = tiles.get(key(nq, nr));
+      if (nt) {
+        if (nt.road) connectedInfra++;
+        if (nt.power) connectedInfra++;
+      }
+    }
+    t.pressure -= connectedInfra * 0.3;
+    t.pressure = Math.max(0, t.pressure);
+
+    // Eruption check
+    if (t.pressure >= t.threshold && t.eruptCooldown <= 0) {
+      erupt(t);
+    }
+
+    // Unstable tiles decay without infra
+    if (t.type === 'unstable' && !t.road && !t.stabilized && t.age > 15) {
+      t.pop = Math.max(t.pop - 1, 1);
+      if (t.age % 10 === 0) addLog(`Unstable (${t.q},${t.r}) decaying without roads`, 'warn');
+    }
+
+    // Auto-stabilize after sufficient infra
+    if (t.type === 'unstable' && t.road && t.power && t.water) {
+      t.type = 'settled';
+      t.stabilized = true;
+      addLog(`District (${t.q},${t.r}) stabilized!`, 'build');
+    }
+  }
+}
+
+function getColor(t) {
+  const ratio = t.pressure / t.threshold;
+  if (t.type === 'unstable' && !t.stabilized) {
+    return ratio > 0.8 ? '#d62828' : '#7209b7';
+  }
+  const hasInfra = t.road || t.power || t.water;
+  if (ratio > 0.9) return '#d62828';
+  if (ratio > 0.65) return '#e76f51';
+  if (ratio > 0.4) return '#e9c46a';
+  if (hasInfra) return '#2a9d8f';
+  return '#2d6a4f';
+}
+
+function drawHex(cx, cy, size, fill, stroke, lineW=1) {
+  ctx.beginPath();
+  for (let i = 0; i < 6; i++) {
+    const angle = Math.PI / 180 * (60 * i - 30);
+    const x = cx + size * Math.cos(angle);
+    const y = cy + size * Math.sin(angle);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+  if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lineW; ctx.stroke(); }
+}
+
+function drawInfraIcons(cx, cy, t) {
+  ctx.font = '8px monospace';
+  ctx.textAlign = 'center';
+  const icons = [];
+  if (t.road) icons.push('R');
+  if (t.power) icons.push('⚡');
+  if (t.water) icons.push('💧');
+  if (icons.length) {
+    ctx.fillStyle = '#fff';
+    ctx.fillText(icons.join(''), cx, cy + 14);
+  }
+}
+
+function render() {
+  ctx.clearRect(0, 0, W, H);
+
+  // Draw possible expansion spots faintly
+  const emptyAdj = new Set();
+  for (const [k, t] of tiles) {
+    for (const [nq, nr] of neighbors(t.q, t.r)) {
+      if (!tiles.has(key(nq, nr))) emptyAdj.add(key(nq, nr));
+    }
+  }
+
+  for (const [k, t] of tiles) {
+    const [cx, cy] = hexToPixel(t.q, t.r);
+    if (cx < -50 || cx > W+50 || cy < -50 || cy > H+50) continue;
+
+    const col = getColor(t);
+    const pulseAlpha = t.eruptCooldown > 0 ? 0.3 + 0.3 * Math.sin(Date.now()/100) : 0;
+    
+    drawHex(cx, cy, HEX_SIZE - 2, col, '#0a0a1a', 1.5);
+
+    if (pulseAlpha > 0) {
+      ctx.globalAlpha = pulseAlpha;
+      drawHex(cx, cy, HEX_SIZE + 2, null, '#ff0000', 3);
+      ctx.globalAlpha = 1;
+    }
+
+    // Pressure bar inside hex
+    const ratio = Math.min(t.pressure / t.threshold, 1);
+    const barW = 18, barH = 3;
+    ctx.fillStyle = '#0008';
+    ctx.fillRect(cx - barW/2, cy - 10, barW, barH);
+    ctx.fillStyle = ratio > 0.7 ? '#ff4444' : '#88ff88';
+    ctx.fillRect(cx - barW/2, cy - 10, barW * ratio, barH);
+
+    // Pop number
+    ctx.fillStyle = '#ffffffcc';
+    ctx.font = 'bold 10px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(Math.floor(t.pop), cx, cy + 4);
+
+    drawInfraIcons(cx, cy, t);
+  }
+
+  // Stats update
+  let totalPop = 0, totalPressure = 0, totalThresh = 0;
+  for (const [k, t] of tiles) {
+    totalPop += t.pop;
+    totalPressure += t.pressure;
+    totalThresh += t.threshold;
+  }
+  const stability = totalThresh > 0 ? Math.max(0, 100 - (totalPressure / totalThresh) * 100) : 100;
+  const risk = Math.min(100, cascadeCount * 15);
+
+  document.getElementById('s-cycle').textContent = cycle;
+  document.getElementById('s-pop').textContent = Math.floor(totalPop);
+  document.getElementById('s-dist').textContent = tiles.size;
+  document.getElementById('s-stab').textContent = Math.floor(stability) + '%';
+  document.getElementById('s-res').textContent = Math.floor(resources);
+  document.getElementById('s-risk').textContent = Math.floor(risk) + '%';
+  document.getElementById('bar-stab').style.width = stability + '%';
+  document.getElementById('bar-stab').style.background = stability > 60 ? '#51cf66' : stability > 30 ? '#ffd43b' : '#e94560';
+  document.getElementById('bar-risk').style.width = risk + '%';
+}
+
+// Interaction
+canvas.addEventListener('mousemove', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const [q, r] = pixelToHex(e.clientX - rect.left, e.clientY - rect.top);
+  const t = tiles.get(key(q, r));
+  if (t) {
+    tooltip.style.display = 'block';
+    tooltip.style.left = (e.clientX - canvas.parentElement.getBoundingClientRect().left + 15) + 'px';
+    tooltip.style.top = (e.clientY - canvas.parentElement.getBoundingClientRect().top - 10) + 'px';
+    const ratio = (t.pressure / t.threshold * 100).toFixed(0);
+    tooltip.innerHTML = `<b>(${t.q},${t.r})</b> ${t.type}<br>Pop: ${Math.floor(t.pop)} | Pressure: ${ratio}%<br>Threshold: ${t.threshold}<br>Infra: ${t.road?'Road ':' '}${t.power?'Power ':' '}${t.water?'Water':' '}<br>${t.stabilized ? '✓ Stabilized' : ''}`;
+  } else {
+    tooltip.style.display = 'none';
+  }
+});
+canvas.addEventListener('mouseleave', () => tooltip.style.display = 'none');
+
+canvas.addEventListener('click', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const [q, r] = pixelToHex(e.clientX - rect.left, e.clientY - rect.top);
+  const t = tiles.get(key(q, r));
+  if (!t) return;
+  const cost = TOOL_COST[tool];
+  if (resources < cost) { addLog('Not enough resources!', 'warn'); return; }
+  
+  if (tool === 'road' && !t.road) { t.road = true; resources -= cost; addLog(`Road built at (${q},${r})`, 'build'); }
+  else if (tool === 'power' && !t.power) { t.power = true; resources -= cost; addLog(`Power at (${q},${r})`, 'build'); }
+  else if (tool === 'water' && !t.water) { t.water = true; resources -= cost; addLog(`Water at (${q},${r})`, 'build'); }
+  else if (tool === 'stabilize' && !t.stabilized) {
+    t.stabilized = true; t.pressure = Math.max(0, t.pressure - 20); resources -= cost;
+    addLog(`Stabilized (${q},${r})`, 'build');
+  }
+});
+
+document.querySelectorAll('.tool-bar button[data-tool]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tool-bar button[data-tool]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    tool = btn.dataset.tool;
+  });
+});
+
+document.getElementById('btn-pause').addEventListener('click', function() {
+  paused = !paused;
+  this.textContent = paused ? '▶ Play' : '⏸ Pause';
+});
+document.getElementById('btn-speed').addEventListener('click', function() {
+  speed = speed === 1 ? 3 : 1;
+  this.textContent = speed === 1 ? '⏩ Fast' : '⏩ Normal';
+});
+document.getElementById('btn-reset').addEventListener('click', init);
+
+// Panning
+let panX = 0, panY = 0, dragging = false, lastMouse = null;
+canvas.addEventListener('mousedown', (e) => { if (e.button === 2 || e.shiftKey) { dragging = true; lastMouse = [e.clientX, e.clientY]; }});
+canvas.addEventListener('mousemove', (e) => {
+  if (!dragging) return;
+  offsetX += e.clientX - lastMouse[0];
+  offsetY += e.clientY - lastMouse[1];
+  lastMouse = [e.clientX, e.clientY];
+});
+canvas.addEventListener('mouseup', () => { dragging = false; });
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+init();
+
+let simAccum = 0;
+function loop(ts) {
+  simAccum++;
+  const simInterval = speed === 1 ? 30 : 10;
+  if (simAccum >= simInterval) {
+    simulate();
+    simAccum = 0;
+  }
+  render();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
