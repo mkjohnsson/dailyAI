@@ -625,9 +625,9 @@ function generateGallery(manifest) {
       .today-grid { grid-template-columns: 1fr; }
     }
     .today-slot { display: contents; }
-    .slot-category { align-self: end; padding-bottom: 0.5rem; }
-    .today-slot .card { align-self: stretch; min-height: 220px; }
-    .today-slot .card-inspiration { align-self: stretch; margin-bottom: 1.25rem; }
+    .slot-category { grid-row: 1; align-self: end; padding-bottom: 0.5rem; }
+    .today-slot .card { grid-row: 2; align-self: stretch; min-height: 220px; }
+    .today-slot .card-inspiration { grid-row: 3; align-self: stretch; margin-bottom: 1.25rem; }
     .card-cta {
       margin-top: auto;
       padding-top: 1rem;
