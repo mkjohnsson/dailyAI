@@ -114,7 +114,17 @@
       .today-grid { grid-template-columns: 1fr; }
     }
     .today-slot { display: flex; flex-direction: column; }
-    .today-slot .card { flex: 1; }
+    .today-slot .card { flex: 1; min-height: 220px; }
+    .card-cta {
+      margin-top: auto;
+      padding-top: 1rem;
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent, #FF2D78);
+    }
+    .card:hover .card-cta { text-decoration: underline; }
     .card-inspiration {
       border: 3px solid #1A1A1A;
       border-top: none;
@@ -288,6 +298,7 @@
       <div class="name">Glossolith</div>
       <div class="desc">A language emergence simulator where you decode and shape an evolving glyph civilization through observation, hypothesis testing, and environmental intervention.</div>
       
+      <div class="card-cta">▶ Open app</div>
     </a>
     <div class="card-inspiration">
          <span class="insp-label">Inspired by · <a class="source-link" href="https://www.marketingprofs.com/opinions/2026/54257/ai-update-february-6-2026-ai-news-and-views-from-the-past-week" target="_blank" rel="noopener">marketingprofs.com ↗</a></span>
@@ -302,6 +313,7 @@
       <div class="name">Soilwise</div>
       <div class="desc">A smart garden assistant that fetches real weather and soil data for your location, then tells you exactly when to water, plant, or protect your crops based on soil moisture, temperature at root depth, and frost risk.</div>
       <span class="api-tag">Open-Meteo</span>
+      <div class="card-cta">▶ Open app</div>
     </a>
     <div class="card-inspiration">
          <span class="insp-label">Inspired by · <a class="source-link" href="https://www.cas.org/resources/cas-insights/scientific-breakthroughs-2026-emerging-trends-watch" target="_blank" rel="noopener">cas.org ↗</a></span>
@@ -316,6 +328,7 @@
       <div class="name">Maskdrift</div>
       <div class="desc">A stealth survival game where disguising yourself as predators eventually makes you too unique to hide, forcing you to find the one biome that accepts your chimeric form.</div>
       
+      <div class="card-cta">▶ Open app</div>
     </a>
     <div class="card-inspiration">
          <span class="insp-label">Inspired by · <a class="source-link" href="https://www.ucsf.edu/news/2026/01/431411/two-new-breakthroughs-advance-neurological-disorders-and-cancer-research" target="_blank" rel="noopener">ucsf.edu ↗</a></span>
@@ -330,6 +343,7 @@
       <div class="name">Shuntburg</div>
       <div class="desc">A hex-grid city-building simulation where overpressured districts violently erupt outward, spawning unstable settlements you must frantically connect with infrastructure before cascade failures shatter your civilization.</div>
       
+      <div class="card-cta">▶ Open app</div>
     </a>
     <div class="card-inspiration">
          <span class="insp-label">Inspired by</span>

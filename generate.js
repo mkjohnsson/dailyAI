@@ -446,6 +446,7 @@ function renderTodaySlot(app) {
       <div class="name">${app.name}</div>
       <div class="desc">${app.description}</div>
       ${apiTag}
+      <div class="card-cta">▶ Open app</div>
     </a>
     ${inspirationHtml}
   </div>`;
@@ -623,7 +624,17 @@ function generateGallery(manifest) {
       .today-grid { grid-template-columns: 1fr; }
     }
     .today-slot { display: flex; flex-direction: column; }
-    .today-slot .card { flex: 1; }
+    .today-slot .card { flex: 1; min-height: 220px; }
+    .card-cta {
+      margin-top: auto;
+      padding-top: 1rem;
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent, #FF2D78);
+    }
+    .card:hover .card-cta { text-decoration: underline; }
     .card-inspiration {
       border: 3px solid #1A1A1A;
       border-top: none;
