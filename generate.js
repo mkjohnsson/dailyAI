@@ -423,37 +423,48 @@ async function generate() {
 
 // ── Gallery ───────────────────────────────────────────────────────────────────
 
-function renderCard(app, compact = false) {
+function renderTodaySlot(app) {
   const catColor = CATEGORY_COLORS[app.category] || '#FF2D78';
-
   const sourceHtml = app.source_url
     ? `<a class="source-link" href="${app.source_url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">↗ source</a>`
     : '';
-
-  const apiTag = app.api
-    ? `<span class="api-tag">${app.api}</span>`
-    : '';
-
-  const inspirationHtml = !compact && app.inspiration
+  const apiTag = app.api ? `<span class="api-tag">${app.api}</span>` : '';
+  const inspirationHtml = app.inspiration
     ? `<div class="inspiration">
          <span class="insp-fact">↳ ${app.inspiration}</span>
          <span class="insp-leap">${app.connection || ''}</span>
          ${sourceHtml}
        </div>`
-    : compact && app.inspiration
-      ? `<div class="insp-compact">${app.inspiration} ${sourceHtml}</div>`
-      : '';
+    : '';
 
   return `
-  <a href="/apps/${app.id || app.date}/" class="card${compact ? ' card--compact' : ''}" style="--accent:${catColor}">
+  <div class="today-slot">
+    <div class="slot-category" style="color:${catColor}">${app.category || ''}</div>
+    <a href="/apps/${app.id || app.date}/" class="card" style="--accent:${catColor}">
+      <span class="card-emoji">${app.emoji || '✨'}</span>
+      <div class="name">${app.name}</div>
+      <div class="desc">${app.description}</div>
+      ${apiTag}
+      ${inspirationHtml}
+    </a>
+  </div>`;
+}
+
+function renderCard(app) {
+  const catColor = CATEGORY_COLORS[app.category] || '#FF2D78';
+  const sourceHtml = app.source_url
+    ? `<a class="source-link" href="${app.source_url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">↗ source</a>`
+    : '';
+
+  return `
+  <a href="/apps/${app.id || app.date}/" class="card card--compact" style="--accent:${catColor}">
     <span class="card-emoji">${app.emoji || '✨'}</span>
     <div class="card-top">
       ${app.category ? `<span class="category">${app.category}</span>` : ''}
     </div>
     <div class="name">${app.name}</div>
     <div class="desc">${app.description}</div>
-    ${apiTag}
-    ${inspirationHtml}
+    ${app.inspiration ? `<div class="insp-compact">${app.inspiration} ${sourceHtml}</div>` : ''}
   </a>`;
 }
 
@@ -479,7 +490,7 @@ function generateGallery(manifest) {
       <span class="today-date">${formatDate(todayGroup.date)}</span>
     </div>
     <div class="today-grid">
-      ${todayGroup.apps.map(a => renderCard(a, false)).join('')}
+      ${todayGroup.apps.map(a => renderTodaySlot(a)).join('')}
     </div>
   </section>` : '';
 
@@ -490,7 +501,7 @@ function generateGallery(manifest) {
     <div class="archive-day">
       <div class="archive-day-label">${formatDate(group.date)}</div>
       <div class="archive-day-grid">
-        ${group.apps.map(a => renderCard(a, true)).join('')}
+        ${group.apps.map(a => renderCard(a)).join('')}
       </div>
     </div>`).join('')}
   </section>` : '';
@@ -605,6 +616,15 @@ function generateGallery(manifest) {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
       gap: 1.25rem;
+      align-items: start;
+    }
+    .today-slot { display: flex; flex-direction: column; }
+    .slot-category {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.1rem;
+      letter-spacing: 0.12em;
+      margin-bottom: 0.5rem;
+      padding-left: 2px;
     }
 
     /* ── ARCHIVE ── */
