@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Soilwise - Garden Intelligence</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #2d5016 0%, #4a7c2c 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+        .setup {
+            padding: 30px;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border 0.3s;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #4a7c2c;
+        }
+        button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #4a7c2c 0%, #2d5016 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+        }
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            display: none;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4a7c2c;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .error {
+            background: #fee;
+            border: 2px solid #c33;
+            color: #c33;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 30px;
+            display: none;
+        }
+        .results {
+            display: none;
+            padding: 30px;
+        }
+        .day-card {
+            background: #f9f9f9;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 5px solid #4a7c2c;
+        }
+        .day-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .day-date {
+            font-size: 1.3em;
+            font-weight: 700;
+            color: #2d5016;
+        }
+        .day-weather {
+            font-size: 0.9em;
+            color: #666;
+        }
+        .actions {
+            margin: 15px 0;
+        }
+        .action {
+            background: white;
+            padding: 12px 15px;
+            margin: 8px 0;
+            border-radius: 8px;
+            border-left: 4px solid;
+            font-size: 0.95em;
+        }
+        .action.water {
+            border-left-color: #3498db;
+            background: #e3f2fd;
+        }
+        .action.frost {
+            border-left-color: #e74c3c;
+            background: #ffebee;
+        }
+        .action.plant {
+            border-left-color: #27ae60;
+            background: #e8f5e9;
+        }
+        .action.info {
+            border-left-color: #f39c12;
+            background: #fff8e1;
+        }
+        .soil-viz {
+            margin-top: 15px;
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        .soil-layer {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+            gap: 10px;
+        }
+        .layer-label {
+            width: 80px;
+            font-size: 0.85em;
+            color: #666;
+        }
+        .layer-bar {
+            flex: 1;
+            height: 30px;
+            border-radius: 6px;
+            position: relative;
+            overflow: hidden;
+        }
+        .layer-info {
+            width: 140px;
+            font-size: 0.85em;
+            text-align: right;
+        }
+        .temp-label {
+            color: #e74c3c;
+            font-weight: 600;
+        }
+        .moisture-label {
+            color: #3498db;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌱 Soilwise</h1>
+            <p>Smart garden care based on real soil conditions</p>
+        </div>
+        
+        <div class="setup" id="setup">
+            <div class="input-group">
+                <label for="location">Your Location (city, country)</label>
+                <input type="text" id="location" placeholder="e.g., Portland, Oregon">
+            </div>
+            
+            <div class="input-group">
+                <label for="plant">What are you growing?</label>
+                <select id="plant">
+                    <option value="">Select a plant...</option>
+                    <option value="tomato">Tomatoes</option>
+                    <option value="pepper">Peppers</option>
+                    <option value="lettuce">Lettuce</option>
+                    <option value="carrot">Carrots</option>
+                    <option value="basil">Basil</option>
+                    <option value="cucumber">Cucumbers</option>
+                    <option value="zucchini">Zucchini</option>
+                    <option value="beans">Beans</option>
+                    <option value="peas">Peas</option>
+                    <option value="spinach">Spinach</option>
+                    <option value="kale">Kale</option>
+                    <option value="sunflower">Sunflowers</option>
+                    <option value="marigold">Marigolds</option>
+                    <option value="lavender">Lavender</option>
+                </select>
+            </div>
+            
+            <button onclick="fetchForecast()">Get Smart Forecast</button>
+        </div>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Fetching soil and weather data...</p>
+        </div>
+        
+        <div class="error" id="error"></div>
+        
+        <div class="results" id="results"></div>
+    </div>
+
+    <script>
+        const plantData = {
+            tomato: { name: 'Tomatoes', minTemp: 15, idealTemp: 24, frostSensitive: true, waterDepth: 18, minMoisture: 0.25 },
+            pepper: { name: 'Peppers', minTemp: 18, idealTemp: 27, frostSensitive: true, waterDepth: 18, minMoisture: 0.22 },
+            lettuce: { name: 'Lettuce', minTemp: 7, idealTemp: 18, frostSensitive: false, waterDepth: 6, minMoisture: 0.30 },
+            carrot: { name: 'Carrots', minTemp: 8, idealTemp: 18, frostSensitive: false, waterDepth: 18, minMoisture: 0.20 },
+            basil: { name: 'Basil', minTemp: 15, idealTemp: 24, frostSensitive: true, waterDepth: 6, minMoisture: 0.28 },
+            cucumber: { name: 'Cucumbers', minTemp: 18, idealTemp: 27, frostSensitive: true, waterDepth: 18, minMoisture: 0.30 },
+            zucchini: { name: 'Zucchini', minTemp: 16, idealTemp: 25, frostSensitive: true, waterDepth: 18, minMoisture: 0.27 },
+            beans: { name: 'Beans', minTemp: 15, idealTemp: 24, frostSensitive: true, waterDepth: 18, minMoisture: 0.25 },
+            peas: { name: 'Peas', minTemp: 4, idealTemp: 16, frostSensitive: false, waterDepth: 18, minMoisture: 0.22 },
+            spinach: { name: 'Spinach', minTemp: 5, idealTemp: 15, frostSensitive: false, waterDepth: 6, minMoisture: 0.25 },
+            kale: { name: 'Kale', minTemp: 4, idealTemp: 18, frostSensitive: false, waterDepth: 18, minMoisture: 0.23 },
+            sunflower: { name: 'Sunflowers', minTemp: 12, idealTemp: 24, frostSensitive: true, waterDepth: 18, minMoisture: 0.20 },
+            marigold: { name: 'Marigolds', minTemp: 10, idealTemp: 22, frostSensitive: true, waterDepth: 6, minMoisture: 0.18 },
+            lavender: { name: 'Lavender', minTemp: 10, idealTemp: 22, frostSensitive: false, waterDepth: 18, minMoisture: 0.15 }
+        };
+
+        async function fetchForecast() {
+            const location = document.getElementById('location').value.trim();
+            const plantType = document.getElementById('plant').value;
+            
+            if (!location || !plantType) {
+                showError('Please enter a location and select a plant.');
+                return;
+            }
+            
+            document.getElementById('setup').style.display = 'none';
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('error').style.display = 'none';
+            document.getElementById('results').style.display = 'none';
+            
+            try {
+                // Geocode location
+                const geoResponse = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&count=1&language=en&format=json`);
+                const geoData = await geoResponse.json();
+                
+                if (!geoData.results || geoData.results.length === 0) {
+                    throw new Error('Location not found. Try a different city name.');
+                }
+                
+                const { latitude, longitude, name, country } = geoData.results[0];
+                
+                // Fetch weather and soil data
+                const weatherResponse = await fetch(
+                    `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&hourly=temperature_2m,precipitation,soil_temperature_6cm,soil_temperature_18cm,soil_temperature_54cm,soil_moisture_3_to_9cm,soil_moisture_9_to_27cm,soil_moisture_27_to_81cm,et0_fao_evapotranspiration&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=auto&forecast_days=7`
+                );
+                const weatherData = await weatherResponse.json();
+                
+                displayResults(weatherData, plantType, `${name}, ${country}`);
+                
+            } catch (error) {
+                showError(error.message);
+                document.getElementById('setup').style.display = 'block';
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        function displayResults(data, plantType, locationName) {
+            const plant = plantData[plantType];
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '';
+            
+            const headerDiv = document.createElement('div');
+            headerDiv.innerHTML = `<h2 style="margin-bottom: 20px; color: #2d5016;">7-Day Forecast for ${plant.name} in ${locationName}</h2>`;
+            resultsDiv.appendChild(headerDiv);
+            
+            // Process daily data
+            for (let day = 0; day < 7; day++) {
+                const dayCard = createDayCard(data, plant, day);
+                resultsDiv.appendChild(dayCard);
+            }
+            
+            resultsDiv.style.display = 'block';
+        }
+
+        function createDayCard(data, plant, dayIndex) {
+            const card = document.createElement('div');
+            card.className = 'day-card';
+            
+            const date = new Date(data.daily.time[dayIndex]);
+            const dayName = date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+            
+            const startHour = dayIndex * 24;
+            const endHour = startHour + 24;
+            
+            // Calculate daily averages and totals
+            const avgTemp6cm = avg(data.hourly.soil_temperature_6cm.slice(startHour, endHour));
+            const avgTemp18cm = avg(data.hourly.soil_temperature_18cm.slice(startHour, endHour));
+            const avgTemp54cm = avg(data.hourly.soil_temperature_54cm.slice(startHour, endHour));
+            const avgMoisture6cm = avg(data.hourly.soil_moisture_3_to_9cm.slice(startHour, endHour));
+            const avgMoisture18cm = avg(data.hourly.soil_moisture_9_to_27cm.slice(startHour, endHour));
+            const avgMoisture54cm = avg(data.hourly.soil_moisture_27_to_81cm.slice(startHour, endHour));
+            const totalPrecip = data.daily.precipitation_sum[dayIndex];
+            const minTemp = data.daily.temperature_2m_min[dayIndex];
+            const maxTemp = data.daily.temperature_2m_max[dayIndex];
+            
+            // Generate actions
+            const actions = [];
+            
+            // Check for watering needs
+            const relevantMoisture = plant.waterDepth === 6 ? avgMoisture6cm : avgMoisture18cm;
+            const relevantTemp = plant.waterDepth === 6 ? avgTemp6cm : avgTemp18cm;
+            
+            if (relevantMoisture < plant.minMoisture && totalPrecip < 5) {
+                const daysToCheck = Math.min(3, 7 - dayIndex);
+                let upcomingRain = 0;
+                for (let i = dayIndex; i < dayIndex + daysToCheck; i++) {
+                    upcomingRain += data.daily.precipitation_sum[i];
+                }
+                
+                if (upcomingRain < 5) {
+                    actions.push({
+                        type: 'water',
+                        text: `💧 Water deeply ${dayIndex === 0 ? 'today' : 'this day'} — soil moisture at ${plant.waterDepth}cm is ${(relevantMoisture * 100).toFixed(1)}% (threshold: ${(plant.minMoisture * 100).toFixed(0)}%) and little rain expected`
+                    });
+                }
+            }
+            
+            // Frost warning
+            if (plant.frostSensitive && minTemp < 2) {
+                actions.push({
+                    type: 'frost',
+                    text: `❄️ FROST RISK — minimum temperature ${minTemp.toFixed(1)}°C. Cover or bring ${plant.name.toLowerCase()} indoors!`
+                });
+            }
+            
+            // Planting conditions
+            if (avgTemp6cm >= plant.minTemp && avgTemp6cm < plant.minTemp + 3) {
+                actions.push({
+                    type: 'plant',
+                    text: `🌱 Soil temperature at 6cm is ${avgTemp6cm.toFixed(1)}°C — safe to transplant ${plant.name.toLowerCase()} (minimum: ${plant.minTemp}°C)`
+                });
+            } else if (avgTemp6cm < plant.minTemp) {
+                actions.push({
+                    type: 'info',
+                    text: `⏳ Soil still too cold for transplanting (${avgTemp6cm.toFixed(1)}°C, need ${plant.minTemp}°C+)`
+                });
+            }
+            
+            // Good rain
+            if (totalPrecip > 10) {
+                actions.push({
+                    type: 'info',
+                    text: `🌧️ Heavy rain expected (${totalPrecip.toFixed(1)}mm) — skip watering`
+                });
+            }
+            
+            if (actions.length === 0) {
+                actions.push({
+                    type: 'info',
+                    text: `✅ Conditions look good — monitor as usual`
+                });
+            }
+            
+            card.innerHTML = `
+                <div class="day-header">
+                    <div class="day-date">${dayName}</div>
+                    <div class="day-weather">${minTemp.toFixed(0)}°C - ${maxTemp.toFixed(0)}°C | ${totalPrecip.toFixed(1)}mm rain</div>
+                </div>
+                <div class="actions">
+                    ${actions.map(a => `<div class="action ${a.type}">${a.text}</div>`).join('')}
+                </div>
+                <div class="soil-viz">
+                    <strong style="display: block; margin-bottom: 10px; color: #555;">Soil Profile</strong>
+                    ${createSoilLayer('Surface (6cm)', avgTemp6cm, avgMoisture6cm, plant.waterDepth === 6)}
+                    ${createSoilLayer('Mid (18cm)', avgTemp18cm, avgMoisture18cm, plant.waterDepth === 18)}
+                    ${createSoilLayer('Deep (54cm)', avgTemp54cm, avgMoisture54cm, false)}
+                </div>
+            `;
+            
+            return card;
+        }
+
+        function createSoilLayer(label, temp, moisture, isTarget) {
+            const moistureColor = getMoistureColor(moisture);
+            const tempColor = getTempColor(temp);
+            
+            return `
+                <div class="soil-layer">
+                    <div class="layer-label">${isTarget ? '🎯 ' : ''}${label}</div>
+                    <div class="layer-bar" style="background: linear-gradient(to right, ${tempColor} 0%, ${tempColor} 50%, ${moistureColor} 50%, ${moistureColor} 100%);">
+                    </div>
+                    <div class="layer-info">
+                        <span class="temp-label">${temp.toFixed(1)}°C</span> | 
+                        <span class="moisture-label">${(moisture * 100).toFixed(0)}%</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        function getMoistureColor(moisture) {
+            if (moisture < 0.15) return '#d4a574';
+            if (moisture < 0.25) return '#c8b896';
+            if (moisture < 0.35) return '#8bb8d8';
+            return '#5a9bd5';
+        }
+
+        function getTempColor(temp) {
+            if (temp < 5) return '#6ba3d9';
+            if (temp < 10) return '#85c1e2';
+            if (temp < 15) return '#a8d5a8';
+            if (temp < 20) return '#f5d76e';
+            if (temp < 25) return '#f5a76e';
+            return '#e8896b';
+        }
+
+        function avg(arr) {
+            return arr.reduce((a, b) => a + b, 0) / arr.length;
+        }
+    </script>
+</body>
+</html>

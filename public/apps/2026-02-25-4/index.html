@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Glossolith</title>
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  body {
+    background: #0a0a0a;
+    font-family: 'Courier New', monospace;
+    overflow: hidden;
+    color: #8fa;
+  }
+  
+  #canvas {
+    display: block;
+    background: #0f0f14;
+  }
+  
+  #ui {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 15px;
+    background: linear-gradient(to bottom, rgba(10,10,10,0.9), transparent);
+    pointer-events: none;
+  }
+  
+  #stats {
+    display: flex;
+    gap: 30px;
+    font-size: 12px;
+    margin-bottom: 10px;
+  }
+  
+  .stat {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  
+  .stat-label {
+    opacity: 0.6;
+    font-size: 10px;
+  }
+  
+  .stat-value {
+    font-size: 14px;
+    font-weight: bold;
+  }
+  
+  #log {
+    position: absolute;
+    bottom: 15px;
+    left: 15px;
+    right: 15px;
+    max-height: 120px;
+    overflow-y: auto;
+    font-size: 11px;
+    line-height: 1.6;
+    opacity: 0.8;
+    pointer-events: none;
+  }
+  
+  .log-entry {
+    margin-bottom: 5px;
+    padding: 3px 6px;
+    background: rgba(20,20,30,0.6);
+    border-left: 2px solid #8fa;
+  }
+  
+  .log-warning {
+    border-left-color: #fa8;
+  }
+  
+  .log-critical {
+    border-left-color: #f44;
+  }
+  
+  #toolbar {
+    position: absolute;
+    top: 80px;
+    left: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: all;
+  }
+  
+  .tool {
+    padding: 10px 15px;
+    background: rgba(30,30,40,0.8);
+    border: 1px solid #8fa;
+    color: #8fa;
+    cursor: pointer;
+    font-size: 11px;
+    transition: all 0.2s;
+    text-align: left;
+  }
+  
+  .tool:hover {
+    background: rgba(50,50,70,0.9);
+    border-color: #afc;
+  }
+  
+  .tool.active {
+    background: rgba(136,255,170,0.2);
+    border-color: #afc;
+    box-shadow: 0 0 10px rgba(136,255,170,0.3);
+  }
+  
+  .tool-key {
+    display: inline-block;
+    padding: 2px 5px;
+    background: rgba(136,255,170,0.2);
+    border-radius: 3px;
+    margin-right: 8px;
+    font-size: 10px;
+  }
+  
+  #hypothesis {
+    position: absolute;
+    top: 80px;
+    right: 15px;
+    width: 250px;
+    background: rgba(20,20,30,0.9);
+    border: 1px solid #8fa;
+    padding: 12px;
+    pointer-events: all;
+    font-size: 11px;
+  }
+  
+  #hypothesis h3 {
+    margin-bottom: 8px;
+    font-size: 12px;
+    color: #afc;
+  }
+  
+  .pattern {
+    margin-bottom: 10px;
+    padding: 8px;
+    background: rgba(30,30,40,0.5);
+    border-left: 2px solid #8fa;
+  }
+  
+  .pattern-name {
+    font-weight: bold;
+    margin-bottom: 4px;
+  }
+  
+  .pattern-desc {
+    font-size: 10px;
+    opacity: 0.7;
+    line-height: 1.4;
+  }
+</style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+
+<div id="ui">
+  <div id="stats">
+    <div class="stat">
+      <div class="stat-label">POPULATION</div>
+      <div class="stat-value" id="pop">0</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">DIALECTS</div>
+      <div class="stat-value" id="dialects">1</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">COMPLEXITY</div>
+      <div class="stat-value" id="complexity">0</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">HARMONY</div>
+      <div class="stat-value" id="harmony">100%</div>
+    </div>
+  </div>
+</div>
+
+<div id="toolbar">
+  <div class="tool active" data-tool="observe"><span class="tool-key">1</span>OBSERVE</div>
+  <div class="tool" data-tool="resource"><span class="tool-key">2</span>PLACE RESOURCE</div>
+  <div class="tool" data-tool="terrain"><span class="tool-key">3</span>TERRAIN</div>
+  <div class="tool" data-tool="glyph"><span class="tool-key">4</span>NEW GLYPH</div>
+</div>
+
+<div id="hypothesis">
+  <h3>OBSERVED PATTERNS</h3>
+  <div id="patterns"></div>
+</div>
+
+<div id="log"></div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+let currentTool = 'observe';
+let glyphs = [];
+let resources = [];
+let terrains = [];
+let signals = [];
+let patterns = [];
+let time = 0;
+let dialectCount = 1;
+let complexity = 0;
+
+// Glyph class
+class Glyph {
+  constructor(x, y, dialect = 0) {
+    this.x = x;
+    this.y = y;
+    this.vx = (Math.random() - 0.5) * 0.3;
+    this.vy = (Math.random() - 0.5) * 0.3;
+    this.dialect = dialect;
+    this.energy = 100;
+    this.age = 0;
+    this.pulsePhase = Math.random() * Math.PI * 2;
+    this.color = this.getDialectColor();
+    this.signalTimer = Math.random() * 100;
+    this.needs = {
+      food: Math.random(),
+      safety: Math.random(),
+      connection: Math.random()
+    };
+    this.shape = Math.floor(Math.random() * 4); // Different glyph shapes
+  }
+  
+  getDialectColor() {
+    const hue = (this.dialect * 137.5) % 360;
+    return `hsl(${hue}, 70%, 60%)`;
+  }
+  
+  update() {
+    this.age++;
+    this.energy -= 0.05;
+    
+    // Movement influenced by needs
+    const nearestResource = this.findNearest(resources);
+    if (nearestResource && this.needs.food > 0.6) {
+      const dx = nearestResource.x - this.x;
+      const dy = nearestResource.y - this.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist > 0) {
+        this.vx += (dx / dist) * 0.05;
+        this.vy += (dy / dist) * 0.05;
+      }
+    }
+    
+    // Cluster with same dialect if needs connection
+    if (this.needs.connection > 0.7) {
+      const sameDialect = glyphs.filter(g => g !== this && g.dialect === this.dialect);
+      if (sameDialect.length > 0) {
+        const target = sameDialect[Math.floor(Math.random() * sameDialect.length)];
+        const dx = target.x - this.x;
+        const dy = target.y - this.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist > 50 && dist < 300) {
+          this.vx += (dx / dist) * 0.03;
+          this.vy += (dy / dist) * 0.03;
+        }
+      }
+    }
+    
+    // Avoid terrain if needs safety
+    if (this.needs.safety > 0.5) {
+      for (let t of terrains) {
+        const dx = this.x - t.x;
+        const dy = this.y - t.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < t.radius + 30) {
+          this.vx += (dx / dist) * 0.1;
+          this.vy += (dy / dist) * 0.1;
+        }
+      }
+    }
+    
+    this.vx *= 0.98;
+    this.vy *= 0.98;
+    this.x += this.vx;
+    this.y += this.vy;
+    
+    // Bounds
+    if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
+    if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+    this.x = Math.max(0, Math.min(canvas.width, this.x));
+    this.y = Math.max(0, Math.min(canvas.height, this.y));
+    
+    // Consume resources
+    if (nearestResource) {
+      const dx = nearestResource.x - this.x;
+      const dy = nearestResource.y - this.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < 20) {
+        this.energy = Math.min(100, this.energy + 30);
+        this.needs.food = Math.max(0, this.needs.food - 0.3);
+        resources.splice(resources.indexOf(nearestResource), 1);
+        logEvent(`Glyph consumed resource (dialect ${this.dialect})`);
+      }
+    }
+    
+    // Signal to others
+    this.signalTimer--;
+    if (this.signalTimer <= 0) {
+      this.signal();
+      this.signalTimer = 60 + Math.random() * 100;
+    }
+    
+    // Update needs randomly
+    this.needs.food = Math.min(1, this.needs.food + 0.001);
+    this.needs.safety += (Math.random() - 0.5) * 0.01;
+    this.needs.connection += (Math.random() - 0.5) * 0.01;
+    
+    this.pulsePhase += 0.05;
+  }
+  
+  signal() {
+    // Signal encodes needs through rhythm and color
+    const intensity = Math.max(this.needs.food, this.needs.safety, this.needs.connection);
+    signals.push({
+      x: this.x,
+      y: this.y,
+      radius: 0,
+      maxRadius: 50 + intensity * 50,
+      color: this.color,
+      dialect: this.dialect,
+      type: this.getPrimaryNeed(),
+      life: 60
+    });
+  }
+  
+  getPrimaryNeed() {
+    const needs = this.needs;
+    if (needs.food > needs.safety && needs.food > needs.connection) return 'food';
+    if (needs.safety > needs.connection) return 'safety';
+    return 'connection';
+  }
+  
+  findNearest(arr) {
+    let nearest = null;
+    let minDist = Infinity;
+    for (let item of arr) {
+      const dx = item.x - this.x;
+      const dy = item.y - this.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < minDist) {
+        minDist = dist;
+        nearest = item;
+      }
+    }
+    return nearest;
+  }
+  
+  draw() {
+    const pulse = Math.sin(this.pulsePhase) * 0.3 + 1;
+    const size = 6 * pulse;
+    
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = this.color;
+    ctx.fillStyle = this.color;
+    
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    ctx.rotate(this.age * 0.01);
+    
+    // Different shapes for different dialects
+    ctx.beginPath();
+    switch(this.shape) {
+      case 0: // Circle
+        ctx.arc(0, 0, size, 0, Math.PI * 2);
+        break;
+      case 1: // Square
+        ctx.rect(-size, -size, size * 2, size * 2);
+        break;
+      case 2: // Triangle
+        ctx.moveTo(0, -size);
+        ctx.lineTo(size, size);
+        ctx.lineTo(-size, size);
+        ctx.closePath();
+        break;
+      case 3: // Diamond
+        ctx.moveTo(0, -size);
+        ctx.lineTo(size, 0);
+        ctx.lineTo(0, size);
+        ctx.lineTo(-size, 0);
+        ctx.closePath();
+        break;
+    }
+    ctx.fill();
+    
+    ctx.restore();
+    ctx.shadowBlur = 0;
+  }
+}
+
+// Initialize with some glyphs
+for (let i = 0; i < 12; i++) {
+  glyphs.push(new Glyph(
+    Math.random() * canvas.width,
+    Math.random() * canvas.height,
+    0
+  ));
+}
+
+// Tool selection
+document.querySelectorAll('.tool').forEach(tool => {
+  tool.addEventListener('click', () => {
+    document.querySelectorAll('.tool').forEach(t => t.classList.remove('active'));
+    tool.classList.add('active');
+    currentTool = tool.dataset.tool;
+  });
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+  if (e.key >= '1' && e.key <= '4') {
+    const tools = ['observe', 'resource', 'terrain', 'glyph'];
+    const index = parseInt(e.key) - 1;
+    currentTool = tools[index];
+    document.querySelectorAll('.tool').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tool')[index].classList.add('active');
+  }
+});
+
+// Canvas interaction
+canvas.addEventListener('click', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  
+  switch(currentTool) {
+    case 'resource':
+      resources.push({ x, y, type: 'food' });
+      logEvent('Resource placed');
+      break;
+    case 'terrain':
+      terrains.push({ x, y, radius: 40 + Math.random() * 40 });
+      logEvent('Terrain obstacle created');
+      break;
+    case 'glyph':
+      const newDialect = dialectCount;
+      glyphs.push(new Glyph(x, y, newDialect));
+      dialectCount++;
+      logEvent(`New glyph introduced (dialect ${newDialect})`, 'warning');
+      break;
+  }
+});
+
+// Logging
+const logEl = document.getElementById('log');
+function logEvent(msg, type = 'normal') {
+  const entry = document.createElement('div');
+  entry.className = 'log-entry';
+  if (type === 'warning') entry.classList.add('log-warning');
+  if (type === 'critical') entry.classList.add('log-critical');
+  entry.textContent = `[${Math.floor(time / 60)}s] ${msg}`;
+  logEl.insertBefore(entry, logEl.firstChild);
+  
+  // Keep only last 10 entries
+  while (logEl.children.length > 10) {
+    logEl.removeChild(logEl.lastChild);
+  }
+}
+
+// Pattern detection
+function detectPatterns() {
+  patterns = [];
+  
+  // Detect clustering
+  const dialectGroups = {};
+  glyphs.forEach(g => {
+    if (!dialectGroups[g.dialect]) dialectGroups[g.dialect] = [];
+    dialectGroups[g.dialect].push(g);
+  });
+  
+  for (let dialect in dialectGroups) {
+    const group = dialectGroups[dialect];
+    if (group.length >= 3) {
+      // Calculate average position
+      let avgX = 0, avgY = 0;
+      group.forEach(g => { avgX += g.x; avgY += g.y; });
+      avgX /= group.length;
+      avgY /= group.length;
+      
+      // Calculate spread
+      let spread = 0;
+      group.forEach(g => {
+        const dx = g.x - avgX;
+        const dy = g.y - avgY;
+        spread += Math.sqrt(dx * dx + dy * dy);
+      });
+      spread /= group.length;
+      
+      if (spread < 150) {
+        patterns.push({
+          name: `Clustering (D${dialect})`,
+          desc: `${group.length} glyphs forming tight formation. Likely signaling connection needs.`
+        });
+      }
+    }
+  }
+  
+  // Detect signal frequency
+  const recentSignals = signals.filter(s => s.life > 30);
+  if (recentSignals.length > 8) {
+    patterns.push({
+      name: 'High Signal Activity',
+      desc: 'Frequent communication bursts. Population may be stressed or coordinating.'
+    });
+  }
+  
+  // Detect low energy
+  const lowEnergy = glyphs.filter(g => g.energy < 30).length;
+  if (lowEnergy > glyphs.length * 0.4) {
+    patterns.push({
+      name: 'Energy Crisis',
+      desc: 'Many glyphs show low energy. Food signals likely increasing.'
+    });
+  }
+  
+  // Detect dialect diversity
+  const uniqueDialects = new Set(glyphs.map(g => g.dialect)).size;
+  if (uniqueDialects > 3) {
+    patterns.push({
+      name: 'Dialect Fragmentation',
+      desc: `${uniqueDialects} distinct dialects detected. Communication barriers forming.`
+    });
+  }
+}
+
+// Update pattern display
+function updatePatternDisplay() {
+  const patternsEl = document.getElementById('patterns');
+  patternsEl.innerHTML = '';
+  
+  patterns.forEach(p => {
+    const el = document.createElement('div');
+    el.className = 'pattern';
+    el.innerHTML = `
+      <div class="pattern-name">${p.name}</div>
+      <div class="pattern-desc">${p.desc}</div>
+    `;
+    patternsEl.appendChild(el);
+  });
+  
+  if (patterns.length === 0) {
+    patternsEl.innerHTML = '<div class="pattern-desc">No clear patterns yet...</div>';
+  }
+}
+
+// Main loop
+function animate() {
+  time++;
+  
+  // Clear with fade
+  ctx.fillStyle = 'rgba(15, 15, 20, 0.15)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Update and draw signals
+  signals = signals.filter(s => {
+    s.radius += 2;
+    s.life--;
+    
+    if (s.life > 0) {
+      ctx.strokeStyle = s.color;
+      ctx.globalAlpha = s.life / 60;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+      return true;
+    }
+    return false;
+  });
+  
+  // Draw terrains
+  terrains.forEach(t => {
+    ctx.fillStyle = 'rgba(100, 50, 50, 0.3)';
+    ctx.beginPath();
+    ctx.arc(t.x, t.y, t.radius, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.strokeStyle = 'rgba(150, 70, 70, 0.5)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  });
+  
+  // Draw resources
+  resources.forEach(r => {
+    ctx.fillStyle = '#6f6';
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = '#6f6';
+    ctx.beginPath();
+    ctx.arc(r.x, r.y, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  });
+  
+  // Update and draw glyphs
+  glyphs = glyphs.filter(g => {
+    g.update();
+    g.draw();
+    
+    // Death
+    if (g.energy <= 0 || g.age > 3000) {
+      logEvent(`Glyph expired (dialect ${g.dialect})`, 'critical');
+      return false;
+    }
+    return true;
+  });
+  
+  // Reproduction
+  if (time % 200 === 0 && glyphs.length > 0 && glyphs.length < 40) {
+    const parent = glyphs[Math.floor(Math.random() * glyphs.length)];
+    if (parent.energy > 60) {
+      const child = new Glyph(
+        parent.x + (Math.random() - 0.5) * 20,
+        parent.y + (Math.random() - 0.5) * 20,
+        parent.dialect
+      );
+      // Small chance of dialect mutation
+      if (Math.random() < 0.1) {
+        child.dialect = dialectCount++;
+        child.color = child.getDialectColor();
+        logEvent(`Dialect mutation: new variant ${child.dialect}`, 'warning');
+      }
+      glyphs.push(child);
+      parent.energy -= 30;
+    }
+  }
+  
+  // Update stats
+  document.getElementById('pop').textContent = glyphs.length;
+  const uniqueDialects = new Set(glyphs.map(g => g.dialect)).size;
+  document.getElementById('dialects').textContent = uniqueDialects;
+  
+  complexity = Math.min(100, patterns.length * 10 + uniqueDialects * 5);
+  document.getElementById('complexity').textContent = complexity;
+  
+  const avgEnergy = glyphs.reduce((sum, g) => sum + g.energy, 0) / Math.max(1, glyphs.length);
+  document.getElementById('harmony').textContent = Math.floor(avgEnergy) + '%';
+  
+  // Detect patterns periodically
+  if (time % 120 === 0) {
+    detectPatterns();
+    updatePatternDisplay();
+  }
+  
+  requestAnimationFrame(animate);
+}
+
+animate();
+
+// Resize handler
+window.addEventListener('resize', () => {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+});
+</script>
+</body>
+</html>

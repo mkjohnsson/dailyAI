@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Maskdrift</title>
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Courier New', monospace;
+  background: #0a0a0a;
+  color: #fff;
+  overflow: hidden;
+  user-select: none;
+}
+
+#game-container {
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+#hud {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 15px;
+  background: rgba(0,0,0,0.7);
+  z-index: 100;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+#stats {
+  display: flex;
+  gap: 20px;
+}
+
+.stat {
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+#current-mask {
+  font-size: 12px;
+  opacity: 0.7;
+  max-width: 300px;
+}
+
+#canvas {
+  flex: 1;
+  background: #0a0a0a;
+}
+
+#message {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0,0,0,0.9);
+  padding: 30px;
+  border: 2px solid #fff;
+  text-align: center;
+  display: none;
+  z-index: 200;
+  max-width: 500px;
+}
+
+#message h2 {
+  margin-bottom: 15px;
+  font-size: 24px;
+}
+
+#message p {
+  margin: 10px 0;
+  line-height: 1.6;
+}
+
+#message button {
+  margin-top: 20px;
+  padding: 10px 30px;
+  background: #fff;
+  color: #000;
+  border: none;
+  cursor: pointer;
+  font-family: 'Courier New', monospace;
+  font-size: 16px;
+}
+
+#message button:hover {
+  background: #ccc;
+}
+
+.creature {
+  position: absolute;
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+
+.creature:hover {
+  transform: scale(1.1);
+}
+
+#player {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  pointer-events: none;
+  z-index: 50;
+}
+
+.chimera-layer {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0.6;
+}
+
+#threat-indicator {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 10px 20px;
+  background: rgba(255,0,0,0.3);
+  border-radius: 5px;
+  font-size: 12px;
+  display: none;
+  z-index: 90;
+}
+
+#biome-info {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  padding: 10px;
+  background: rgba(0,0,0,0.7);
+  font-size: 12px;
+  z-index: 90;
+  border-left: 3px solid;
+}
+</style>
+</head>
+<body>
+<div id="game-container">
+  <div id="hud">
+    <div id="stats">
+      <div class="stat">TIME: <span id="time">0</span>s</div>
+      <div class="stat">MASKS: <span id="mask-count">0</span></div>
+      <div class="stat">UNIQUENESS: <span id="uniqueness">0</span>%</div>
+    </div>
+    <div id="current-mask">No mask active</div>
+  </div>
+
+  <canvas id="canvas"></canvas>
+  
+  <div id="player"></div>
+  
+  <div id="threat-indicator">⚠ DETECTED</div>
+  
+  <div id="biome-info"></div>
+
+  <div id="message">
+    <h2 id="msg-title"></h2>
+    <p id="msg-text"></p>
+    <button id="msg-btn">START</button>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const player = document.getElementById('player');
+const message = document.getElementById('message');
+const threatIndicator = document.getElementById('threat-indicator');
+const biomeInfo = document.getElementById('biome-info');
+
+let gameState = 'intro';
+let time = 0;
+let playerX = 0;
+let playerY = 0;
+let playerVX = 0;
+let playerVY = 0;
+let creatures = [];
+let masks = [];
+let currentMask = null;
+let uniqueness = 0;
+let detectedBy = new Set();
+let currentBiome = null;
+
+const biomes = [
+  { name: 'Ash Flats', color: '#2a2a2a', bg: '#1a1a1a' },
+  { name: 'Crimson Thicket', color: '#4a1a1a', bg: '#2a0a0a' },
+  { name: 'Azure Drift', color: '#1a2a4a', bg: '#0a1a2a' },
+  { name: 'Jade Hollow', color: '#1a3a1a', bg: '#0a1a0a' },
+  { name: 'Void Gardens', color: '#000000', bg: '#050505' }
+];
+
+const speciesTypes = [
+  { name: 'Stalker', shape: 'triangle', color: '#ff4444', speed: 1.2, size: 25 },
+  { name: 'Drifter', shape: 'circle', color: '#4444ff', speed: 0.8, size: 20 },
+  { name: 'Pulse', shape: 'square', color: '#44ff44', speed: 1.5, size: 22 },
+  { name: 'Weaver', shape: 'hexagon', color: '#ffaa44', speed: 1.0, size: 28 },
+  { name: 'Whisper', shape: 'star', color: '#aa44ff', speed: 1.3, size: 24 }
+];
+
+function resize() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+
+function showMessage(title, text, btnText = 'CONTINUE') {
+  document.getElementById('msg-title').textContent = title;
+  document.getElementById('msg-text').textContent = text;
+  document.getElementById('msg-btn').textContent = btnText;
+  message.style.display = 'block';
+}
+
+function hideMessage() {
+  message.style.display = 'none';
+}
+
+function initGame() {
+  resize();
+  playerX = canvas.width / 2;
+  playerY = canvas.height / 2;
+  time = 0;
+  masks = [];
+  uniqueness = 0;
+  currentMask = null;
+  detectedBy.clear();
+  
+  changeBiome(0);
+  spawnCreatures();
+  
+  showMessage('MASKDRIFT', 'You are a fragile spark. Tap creatures to steal their mask. Each mask hides you from that species, but makes you prey to others. Survive and find where you belong.', 'BEGIN');
+}
+
+function changeBiome(index) {
+  currentBiome = biomes[index % biomes.length];
+  canvas.style.background = currentBiome.bg;
+  biomeInfo.style.borderColor = currentBiome.color;
+  biomeInfo.textContent = currentBiome.name;
+}
+
+function spawnCreatures() {
+  creatures = [];
+  const biomeFactor = Math.min(Math.floor(time / 30), 4);
+  changeBiome(biomeFactor);
+  
+  for (let i = 0; i < 8 + biomeFactor * 2; i++) {
+    const species = speciesTypes[Math.floor(Math.random() * Math.min(speciesTypes.length, 2 + biomeFactor))];
+    creatures.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      vx: (Math.random() - 0.5) * species.speed,
+      vy: (Math.random() - 0.5) * species.speed,
+      species: species,
+      pulse: Math.random() * Math.PI * 2,
+      id: Math.random()
+    });
+  }
+}
+
+function drawShape(x, y, shape, size, color, alpha = 1) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = color;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  
+  switch(shape) {
+    case 'circle':
+      ctx.beginPath();
+      ctx.arc(x, y, size/2, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    case 'square':
+      ctx.fillRect(x - size/2, y - size/2, size, size);
+      break;
+    case 'triangle':
+      ctx.beginPath();
+      ctx.moveTo(x, y - size/2);
+      ctx.lineTo(x + size/2, y + size/2);
+      ctx.lineTo(x - size/2, y + size/2);
+      ctx.closePath();
+      ctx.fill();
+      break;
+    case 'hexagon':
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const angle = (Math.PI / 3) * i;
+        const px = x + Math.cos(angle) * size/2;
+        const py = y + Math.sin(angle) * size/2;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      ctx.fill();
+      break;
+    case 'star':
+      ctx.beginPath();
+      for (let i = 0; i < 10; i++) {
+        const angle = (Math.PI / 5) * i - Math.PI / 2;
+        const radius = i % 2 === 0 ? size/2 : size/4;
+        const px = x + Math.cos(angle) * radius;
+        const py = y + Math.sin(angle) * radius;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      ctx.fill();
+      break;
+  }
+  ctx.restore();
+}
+
+function updateCreatures(dt) {
+  creatures.forEach(c => {
+    c.x += c.vx;
+    c.y += c.vy;
+    c.pulse += dt * 2;
+    
+    if (c.x < 0 || c.x > canvas.width) c.vx *= -1;
+    if (c.y < 0 || c.y > canvas.height) c.vy *= -1;
+    
+    c.x = Math.max(0, Math.min(canvas.width, c.x));
+    c.y = Math.max(0, Math.min(canvas.height, c.y));
+  });
+}
+
+function checkDetection() {
+  detectedBy.clear();
+  
+  creatures.forEach(c => {
+    const dx = c.x - playerX;
+    const dy = c.y - playerY;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    
+    if (dist < 100) {
+      const hasMask = masks.some(m => m.name === c.species.name);
+      
+      if (currentMask && currentMask.name === c.species.name) {
+        const maskEffectiveness = Math.max(0, 1 - uniqueness / 100);
+        if (Math.random() > maskEffectiveness) {
+          detectedBy.add(c.species.name);
+        }
+      } else if (!hasMask) {
+        // Species you've never masked as are neutral
+      } else {
+        detectedBy.add(c.species.name);
+      }
+    }
+  });
+  
+  if (detectedBy.size > 0) {
+    threatIndicator.style.display = 'block';
+    threatIndicator.textContent = `⚠ DETECTED BY ${Array.from(detectedBy).join(', ')}`;
+    return true;
+  } else {
+    threatIndicator.style.display = 'none';
+    return false;
+  }
+}
+
+function drawPlayer() {
+  player.style.left = playerX + 'px';
+  player.style.top = playerY + 'px';
+  
+  player.innerHTML = '';
+  
+  masks.forEach((mask, i) => {
+    const layer = document.createElement('div');
+    layer.className = 'chimera-layer';
+    layer.style.opacity = 0.3 + (i / masks.length) * 0.4;
+    
+    const size = 20 + i * 3;
+    const canvas = document.createElement('canvas');
+    canvas.width = size * 2;
+    canvas.height = size * 2;
+    const ctx = canvas.getContext('2d');
+    drawShape(size, size, mask.shape, size, mask.color, 1);
+    layer.appendChild(canvas);
+    player.appendChild(layer);
+  });
+  
+  const core = document.createElement('div');
+  core.className = 'chimera-layer';
+  core.style.opacity = 1;
+  const coreCanvas = document.createElement('canvas');
+  coreCanvas.width = 40;
+  coreCanvas.height = 40;
+  const coreCtx = coreCanvas.getContext('2d');
+  coreCtx.fillStyle = '#ffffff';
+  coreCtx.beginPath();
+  coreCtx.arc(20, 20, 6, 0, Math.PI * 2);
+  coreCtx.fill();
+  core.appendChild(coreCanvas);
+  player.appendChild(core);
+}
+
+function drawCreatures() {
+  creatures.forEach(c => {
+    const pulseSize = c.species.size + Math.sin(c.pulse) * 3;
+    drawShape(c.x, c.y, c.species.shape, pulseSize, c.species.color);
+  });
+}
+
+function updateUI() {
+  document.getElementById('time').textContent = Math.floor(time);
+  document.getElementById('mask-count').textContent = masks.length;
+  document.getElementById('uniqueness').textContent = Math.floor(uniqueness);
+  
+  if (currentMask) {
+    const effectiveness = Math.max(0, 100 - uniqueness);
+    document.getElementById('current-mask').textContent = 
+      `Wearing ${currentMask.name} mask (${Math.floor(effectiveness)}% effective)`;
+  } else {
+    document.getElementById('current-mask').textContent = 'No mask active';
+  }
+}
+
+function stealMask(creature) {
+  const species = creature.species;
+  
+  if (!masks.some(m => m.name === species.name)) {
+    masks.push({
+      name: species.name,
+      shape: species.shape,
+      color: species.color
+    });
+    
+    uniqueness = Math.min(100, masks.length * 15 + Math.random() * 10);
+    
+    if (masks.length >= 5) {
+      gameState = 'endgame';
+      setTimeout(() => {
+        showMessage(
+          'UNRECOGNIZABLE',
+          `You've become too unique. You are a chimera of ${masks.length} species. The predators see through every disguise. Find the Void Gardens — the only biome that accepts what you've become.`,
+          'CONTINUE'
+        );
+      }, 500);
+    }
+  }
+  
+  currentMask = { ...species };
+}
+
+function checkWinCondition() {
+  if (masks.length >= 5 && currentBiome.name === 'Void Gardens') {
+    gameState = 'won';
+    showMessage(
+      'ACCEPTANCE',
+      `After ${Math.floor(time)} seconds and ${masks.length} masks, you found the one place that sees beauty in what you've become. You are home.`,
+      'RESTART'
+    );
+  }
+}
+
+let lastTime = Date.now();
+function gameLoop() {
+  const now = Date.now();
+  const dt = Math.min((now - lastTime) / 1000, 0.1);
+  lastTime = now;
+  
+  if (gameState === 'playing' || gameState === 'endgame') {
+    time += dt;
+    
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    updateCreatures(dt);
+    drawCreatures();
+    
+    playerX += playerVX * 200 * dt;
+    playerY += playerVY * 200 * dt;
+    playerX = Math.max(20, Math.min(canvas.width - 20, playerX));
+    playerY = Math.max(20, Math.min(canvas.height - 20, playerY));
+    
+    playerVX *= 0.9;
+    playerVY *= 0.9;
+    
+    drawPlayer();
+    
+    const isDetected = checkDetection();
+    
+    if (isDetected && detectedBy.size >= 2) {
+      gameState = 'dead';
+      showMessage(
+        'CONSUMED',
+        `Your chimeric form attracted too many hunters. You survived ${Math.floor(time)} seconds with ${masks.length} masks.`,
+        'RESTART'
+      );
+    }
+    
+    if (gameState === 'endgame') {
+      checkWinCondition();
+    }
+    
+    if (Math.floor(time) % 30 === 0 && Math.floor(time) > 0 && time - Math.floor(time) < dt) {
+      spawnCreatures();
+    }
+    
+    updateUI();
+  }
+  
+  requestAnimationFrame(gameLoop);
+}
+
+// Input
+const keys = {};
+window.addEventListener('keydown', e => keys[e.key] = true);
+window.addEventListener('keyup', e => keys[e.key] = false);
+
+function updateInput() {
+  playerVX = 0;
+  playerVY = 0;
+  
+  if (keys['ArrowLeft'] || keys['a']) playerVX = -1;
+  if (keys['ArrowRight'] || keys['d']) playerVX = 1;
+  if (keys['ArrowUp'] || keys['w']) playerVY = -1;
+  if (keys['ArrowDown'] || keys['s']) playerVY = 1;
+  
+  const mag = Math.sqrt(playerVX*playerVX + playerVY*playerVY);
+  if (mag > 0) {
+    playerVX /= mag;
+    playerVY /= mag;
+  }
+}
+
+setInterval(updateInput, 16);
+
+canvas.addEventListener('click', e => {
+  if (gameState !== 'playing' && gameState !== 'endgame') return;
+  
+  const rect = canvas.getBoundingClientRect();
+  const clickX = e.clientX - rect.left;
+  const clickY = e.clientY - rect.top;
+  
+  creatures.forEach(c => {
+    const dx = c.x - clickX;
+    const dy = c.y - clickY;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    
+    if (dist < c.species.size) {
+      stealMask(c);
+    }
+  });
+});
+
+document.getElementById('msg-btn').addEventListener('click', () => {
+  if (gameState === 'intro') {
+    gameState = 'playing';
+    hideMessage();
+  } else if (gameState === 'dead' || gameState === 'won') {
+    initGame();
+    gameState = 'playing';
+    hideMessage();
+  } else {
+    hideMessage();
+  }
+});
+
+window.addEventListener('resize', resize);
+
+initGame();
+gameLoop();
+</script>
+</body>
+</html>

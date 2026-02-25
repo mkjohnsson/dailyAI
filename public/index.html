@@ -26,28 +26,18 @@
       border-bottom: 4px solid #1A1A1A;
       background: #FFFBF0;
     }
-
-    /* Ray burst background */
     .hero::before {
       content: '';
       position: absolute;
       inset: -50%;
-      background: repeating-conic-gradient(
-        rgba(255, 229, 0, 0.18) 0deg 9deg,
-        transparent 9deg 18deg
-      );
+      background: repeating-conic-gradient(rgba(255,229,0,0.18) 0deg 9deg, transparent 9deg 18deg);
       animation: slowspin 60s linear infinite;
       z-index: 0;
     }
     @keyframes slowspin { to { transform: rotate(360deg); } }
-
     .hero > * { position: relative; z-index: 1; }
 
-    /* Logo */
-    .logo-wrap {
-      display: inline-block;
-      margin-bottom: 0.5rem;
-    }
+    .logo-wrap { display: inline-block; margin-bottom: 0.5rem; }
     .logo {
       font-family: 'Bebas Neue', sans-serif;
       font-size: clamp(5rem, 14vw, 10rem);
@@ -69,8 +59,6 @@
       border: 3px solid #1A1A1A;
       margin-top: 0.4rem;
     }
-
-    /* About box */
     .about {
       display: inline-block;
       max-width: 540px;
@@ -88,17 +76,74 @@
     }
     .about strong { color: #FF2D78; font-weight: 800; }
 
-    /* ── GRID ── */
-    .grid-wrap {
+    /* ── TODAY ── */
+    .today-section {
       max-width: 1200px;
-      margin: 3rem auto;
+      margin: 3rem auto 0;
       padding: 0 1.5rem;
     }
-
-    .grid {
+    .today-header {
+      display: flex;
+      align-items: baseline;
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+      border-bottom: 4px solid #1A1A1A;
+      padding-bottom: 0.75rem;
+    }
+    .today-label {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2.5rem;
+      color: #FF2D78;
+      -webkit-text-stroke: 2px #1A1A1A;
+      paint-order: stroke fill;
+      line-height: 1;
+    }
+    .today-date {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #999;
+      letter-spacing: 0.06em;
+    }
+    .today-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
       gap: 1.25rem;
+    }
+
+    /* ── ARCHIVE ── */
+    .archive-section {
+      max-width: 1200px;
+      margin: 3rem auto 4rem;
+      padding: 0 1.5rem;
+    }
+    .archive-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.5rem;
+      letter-spacing: 0.15em;
+      color: #aaa;
+      margin-bottom: 2rem;
+      border-bottom: 2px solid #E8E8E8;
+      padding-bottom: 0.5rem;
+    }
+    .archive-day {
+      display: grid;
+      grid-template-columns: 100px 1fr;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      align-items: start;
+    }
+    .archive-day-label {
+      font-size: 0.68rem;
+      font-weight: 800;
+      color: #bbb;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding-top: 1rem;
+    }
+    .archive-day-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 0.75rem;
     }
 
     /* ── CARDS ── */
@@ -115,32 +160,14 @@
       box-shadow: 5px 5px 0 #1A1A1A;
       transition: transform 0.1s, box-shadow 0.1s;
     }
-    .card:hover {
-      transform: translate(-3px, -3px);
-      box-shadow: 8px 8px 0 #1A1A1A;
-    }
+    .card:hover { transform: translate(-3px, -3px); box-shadow: 8px 8px 0 #1A1A1A; }
+    .card--compact { padding: 1rem; box-shadow: 3px 3px 0 #1A1A1A; }
+    .card--compact:hover { box-shadow: 6px 6px 0 #1A1A1A; }
 
-    .card-emoji {
-      font-size: 2.4rem;
-      display: block;
-      margin-bottom: 0.75rem;
-    }
+    .card-emoji { font-size: 2.4rem; display: block; margin-bottom: 0.75rem; }
+    .card--compact .card-emoji { font-size: 1.5rem; margin-bottom: 0.5rem; }
 
-    .card-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 0.5rem;
-      gap: 0.5rem;
-    }
-
-    .date {
-      font-size: 0.68rem;
-      font-weight: 600;
-      color: #999;
-      letter-spacing: 0.06em;
-    }
-
+    .card-top { display: flex; justify-content: flex-end; margin-bottom: 0.5rem; }
     .category {
       font-size: 0.6rem;
       font-weight: 800;
@@ -153,21 +180,13 @@
       white-space: nowrap;
     }
 
-    .name {
-      font-size: 1.05rem;
-      font-weight: 800;
-      margin-bottom: 0.4rem;
-      color: #1A1A1A;
-      line-height: 1.25;
-    }
+    .name { font-size: 1.05rem; font-weight: 800; margin-bottom: 0.4rem; line-height: 1.25; }
+    .card--compact .name { font-size: 0.88rem; }
 
-    .desc {
-      font-size: 0.82rem;
-      color: #555;
-      line-height: 1.55;
-      flex: 1;
-      margin-bottom: 0.75rem;
-    }
+    .desc { font-size: 0.82rem; color: #555; line-height: 1.55; flex: 1; margin-bottom: 0.75rem; }
+    .card--compact .desc { font-size: 0.74rem; margin-bottom: 0.4rem; }
+
+    .api-tag { font-size: 0.62rem; font-weight: 700; color: #00BCD4; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
 
     .inspiration {
       border-top: 2px solid #F0F0F0;
@@ -177,24 +196,33 @@
       flex-direction: column;
       gap: 0.25rem;
     }
-    .insp-fact {
-      font-size: 0.72rem;
-      font-weight: 600;
-      color: var(--accent, #FF2D78);
+    .insp-fact { font-size: 0.72rem; font-weight: 600; color: var(--accent, #FF2D78); line-height: 1.4; }
+    .insp-leap { font-size: 0.7rem; font-style: italic; color: #aaa; line-height: 1.4; }
+
+    .insp-compact {
+      font-size: 0.68rem;
+      color: #bbb;
       line-height: 1.4;
-    }
-    .insp-leap {
-      font-size: 0.7rem;
-      font-style: italic;
-      color: #aaa;
-      line-height: 1.4;
+      margin-top: auto;
+      padding-top: 0.5rem;
+      border-top: 1px solid #F0F0F0;
     }
 
-    .empty {
-      text-align: center;
-      color: #ccc;
-      padding: 6rem 0;
-      font-size: 1.1rem;
+    .source-link {
+      display: inline-block;
+      margin-top: 0.35rem;
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: var(--accent, #FF2D78);
+      text-decoration: none;
+      letter-spacing: 0.04em;
+      opacity: 0.7;
+    }
+    .source-link:hover { opacity: 1; text-decoration: underline; }
+
+    @media (max-width: 600px) {
+      .archive-day { grid-template-columns: 1fr; }
+      .archive-day-label { padding-top: 0; }
     }
   </style>
 </head>
@@ -205,129 +233,180 @@
       <span class="logo-sub">A NEW APP EVERY DAY</span>
     </div>
     <div class="about">
-      Every day at 6 AM, <strong>Claude</strong> searches the web for something interesting happening in the world,
-      uses it as creative inspiration, and builds an interactive web app — completely on its own.<br>
+      Every day at 9 AM, <strong>Claude</strong> searches the web for something interesting,
+      uses it as creative inspiration, and builds three interactive web apps — completely on its own.<br>
       Each app is a single HTML file that runs entirely in your browser.
     </div>
   </div>
-  <div class="grid-wrap">
-    <div class="grid">
-      
-    <a href="/apps/2026-02-25/" class="card" style="--accent:#FF6D00">
-      <span class="card-emoji">💥</span>
-      <div class="card-top">
-        <span class="date">2026-02-25</span>
-        <span class="category">Simulation</span>
-      </div>
-      <div class="name">Shuntburg</div>
-      <div class="desc">A hex-grid city-building simulation where overpressured districts violently erupt outward, spawning unstable settlements you must frantically connect with infrastructure before cascade failures shatter your civilization.</div>
-      <div class="inspiration">
-           <span class="insp-fact">↳ The Metric Wall at ratio 1/√3 that prevents infinities by halting compression and shunting energy orthogonally, freezing quantum states into classical reality.</span>
-           <span class="insp-leap">The idea of a pressure floor that redirects force sideways instead of letting things collapse inspired a city-building sim where overpopulated zones don't crash—they rupture outward, spawning chaotic frontier settlements you must tame.</span>
-         </div>
-    </a>
-    <a href="/apps/2026-02-24/" class="card" style="--accent:#00BCD4">
-      <span class="card-emoji">🌀</span>
-      <div class="card-top">
-        <span class="date">2026-02-24</span>
-        <span class="category">Toy</span>
-      </div>
-      <div class="name">Splitwhirl</div>
-      <div class="desc">A digital spinning top toy where you spin up a glowing top and swipe to split it into smaller careening fragments that leave temperature-colored trails and create ripple interference patterns on a glassy surface.</div>
-      <div class="inspiration">
-           <span class="insp-fact">↳ The stratospheric warming event splits the polar vortex into two separate cores, which then destabilize and release chaos downward.</span>
-           <span class="insp-leap">A spinning top that can split into two smaller tops, each wobbling independently and creating unpredictable chain reactions — warmth above creates cold below, stability breaks into beautiful chaos.</span>
-         </div>
-    </a>
-    <a href="/apps/2026-02-23-4/" class="card" style="--accent:#AA00FF">
-      <span class="card-emoji">📯</span>
-      <div class="card-top">
-        <span class="date">2026-02-23</span>
-        <span class="category">Weird/absurd</span>
-      </div>
-      <div class="name">Dreadhorn</div>
-      <div class="desc">A surreal sound-painting game where you finger-paint waveforms inside a giant brass mouth, then blast your audio abominations at increasingly indifferent cosmic beings to disturb them.</div>
-      <div class="inspiration">
-           <span class="insp-fact">↳ The Norfolk Carnyx, a 2,000-year-old war trumpet topped with a snarling boar's head, produced eerie otherworldly blasts in battle.</span>
-           <span class="insp-leap">The idea of an ancient instrument that makes horrifying sounds to terrify enemies sparked a game where you sculpt the ugliest, most ear-splitting noises possible to scare away increasingly unfazed creatures.</span>
-         </div>
-    </a>
-    <a href="/apps/2026-02-23-3/" class="card" style="--accent:#FF2D78">
-      <span class="card-emoji">🌿</span>
-      <div class="card-top">
-        <span class="date">2026-02-23</span>
-        <span class="category">Simulation</span>
-      </div>
-      <div class="name">Rootspan</div>
-      <div class="desc">A living canyon ecosystem simulator where you redirect rivers, angle mirrors, and seed spores to cultivate strange organisms that gradually self-architect into an inhabitable bio-city across shifting seasons.</div>
-      <div class="inspiration">
-           <span class="insp-fact">↳ Firms like Ballistic Architecture Machine flip urban design by making landscape—not buildings—the central icon, treating nature as an evolving idea.</span>
-           <span class="insp-leap">What if you simulated an ecosystem that literally builds its own architecture—roots becoming bridges, canopies becoming roofs—and the player's role is to nudge growth rather than construct anything directly?</span>
-         </div>
-    </a>
-    <a href="/apps/2026-02-23-2/" class="card" style="--accent:#FF2D78">
-      <span class="card-emoji">🦠</span>
-      <div class="card-top">
-        <span class="date">2026-02-23</span>
-        <span class="category">Simulation</span>
-      </div>
-      <div class="name">Turncoat</div>
-      <div class="desc">A dark ecosystem simulation where keeper cells patrol and consume anomalies, gradually becoming corrupted and turning against their own kind, forcing you to make tough sacrifices to maintain balance.</div>
-      <div class="inspiration">
-           <span class="insp-fact">↳ Cancer cells steal proteins from immune macrophages, coating their surface and converting defenders into unwitting allies.</span>
-           <span class="insp-leap">The idea of identity corruption spreading through contact — where consuming something dangerous transforms your role — inspired a simulation where helpful agents become compromised through the very act of trying to help.</span>
-         </div>
-    </a>
-    <a href="/apps/2026-02-23/" class="card" style="--accent:#FF2D78">
-      <span class="card-emoji">🧫</span>
-      <div class="card-top">
-        <span class="date">2026-02-23</span>
-        <span class="category">Simulation</span>
-      </div>
-      <div class="name">Impostor Colony</div>
-      <div class="desc">A petri dish teeming with pulsing organisms where you must spot and tag shape-shifting predators that mimic their prey's appearance while exhibiting subtle behavioral tells.</div>
-      <div class="inspiration">
-           <span class="insp-fact">↳ Cancer cells steal 'don't eat me' signals from immune cells, disguising threats as allies.</span>
-           <span class="insp-leap">What if a living ecosystem had entities that could camouflage themselves by absorbing the visual identity of things they consume, forcing you to watch behavior — not appearance — to find the threat?</span>
-         </div>
-    </a>
-    <a href="/apps/2026-02-22-3/" class="card" style="--accent:#FF2D78">
-      <span class="card-emoji">🦢</span>
-      <div class="card-top">
-        <span class="date">2026-02-22</span>
-        <span class="category">Data/visual</span>
-      </div>
-      <div class="name">Foldline</div>
-      <div class="desc">A personal life-metrics dashboard that transforms daily sleep, mood, movement, focus, and social data into unique procedurally-generated origami fold glyphs, creating a visual grid where weeks of living become readable paper-crane-like patterns.</div>
-      <div class="inspiration">
-           <span class="insp-fact">↳ DNA in brain cells folds dynamically like origami, with each unique fold acting as a 'key' that controls neuron identity and connections.</span>
-           <span class="insp-leap">The idea of a shape that folds differently to reveal different meanings inspired a calendar where each day's data folds into a unique origami-like glyph you learn to read at a glance.</span>
-         </div>
-    </a>
-    <a href="/apps/2026-02-22-2/" class="card" style="--accent:#FF2D78">
-      <span class="card-emoji">🦠</span>
-      <div class="card-top">
-        <span class="date">2026-02-22</span>
-        <span class="category">Data/visual</span>
-      </div>
-      <div class="name">Turncoat</div>
-      <div class="desc">A habit dashboard where good habits visually corrupt and darken when linked bad habits erode them, showing at a glance which strengths are healthy, under siege, or fully compromised.</div>
-      <div class="inspiration">
-           <span class="insp-fact">↳ Macrophages eating cancer cells become hijacked, accumulating foreign proteins until they switch from defenders to promoters of the thing they were fighting.</span>
-           <span class="insp-leap">I imagined a personal habit tracker where your good habits visually 'consume' bad ones, but if you relapse, the good-habit icons slowly corrupt and turn against you — a betrayal dashboard.</span>
-         </div>
-    </a>
-    <a href="/apps/2026-02-22/" class="card" style="--accent:#FF2D78">
-      <span class="card-emoji">💫</span>
-      <div class="card-top">
-        <span class="date">2026-02-22</span>
-        
-      </div>
-      <div class="name">Orbital Valentine</div>
-      <div class="desc">A gravitational love letter generator where hearts orbit, collide, and birth new celestial bodies in a cosmic dance of attraction and color.</div>
-      <div class="inspiration"><span class="insp-leap">February 22, 2026 falls just after Valentine's season, so I'm creating a cosmic gravity simulator where hearts and celestial bodies attract each other. You click to spawn hearts that orbit and merge, creating increasingly complex and beautiful gravitational systems with trailing paths that paint the canvas like a love letter written in starlight.</span></div>
-    </a>
+
+  
+  <section class="today-section">
+    <div class="today-header">
+      <span class="today-label">TODAY</span>
+      <span class="today-date">Feb 25, 2026</span>
     </div>
-  </div>
+    <div class="today-grid">
+      
+  <a href="/apps/2026-02-25-4/" class="card" style="--accent:#7C4DFF">
+    <span class="card-emoji">🔣</span>
+    <div class="card-top">
+      <span class="category">AI-inspired</span>
+    </div>
+    <div class="name">Glossolith</div>
+    <div class="desc">A language emergence simulator where you decode and shape an evolving glyph civilization through observation, hypothesis testing, and environmental intervention.</div>
+    
+    <div class="inspiration">
+         <span class="insp-fact">↳ Moltbook launched as a social network exclusively for AI agents to post, debate, and interact autonomously, sparking emergent 'civilization' behaviors.</span>
+         <span class="insp-leap">The idea of autonomous entities forming their own culture and language when left to interact freely inspired a game where you cultivate a tiny ecosystem of abstract glyphs that develop their own emergent communication system you must learn to read.</span>
+         <a class="source-link" href="https://www.marketingprofs.com/opinions/2026/54257/ai-update-february-6-2026-ai-news-and-views-from-the-past-week" target="_blank" rel="noopener" onclick="event.stopPropagation()">↗ source</a>
+       </div>
+  </a>
+  <a href="/apps/2026-02-25-3/" class="card" style="--accent:#00BCD4">
+    <span class="card-emoji">🌱</span>
+    <div class="card-top">
+      <span class="category">API tool</span>
+    </div>
+    <div class="name">Soilwise</div>
+    <div class="desc">A smart garden assistant that fetches real weather and soil data for your location, then tells you exactly when to water, plant, or protect your crops based on soil moisture, temperature at root depth, and frost risk.</div>
+    <span class="api-tag">Open-Meteo</span>
+    <div class="inspiration">
+         <span class="insp-fact">↳ Gardeners and small-scale farmers affected by climate volatility (like the drought challenges that inspired CRISPR root research) need to know exactly when to water, plant, or protect crops — but generic weather apps don't translate forecasts into actionable garden decisions.</span>
+         <span class="insp-leap">Open-Meteo provides hourly soil temperature, soil moisture at multiple depths, precipitation, frost risk, and evapotranspiration data — the exact variables that determine plant watering and planting decisions.</span>
+         <a class="source-link" href="https://www.cas.org/resources/cas-insights/scientific-breakthroughs-2026-emerging-trends-watch" target="_blank" rel="noopener" onclick="event.stopPropagation()">↗ source</a>
+       </div>
+  </a>
+  <a href="/apps/2026-02-25-2/" class="card" style="--accent:#FF2D78">
+    <span class="card-emoji">🎭</span>
+    <div class="card-top">
+      <span class="category">Game</span>
+    </div>
+    <div class="name">Maskdrift</div>
+    <div class="desc">A stealth survival game where disguising yourself as predators eventually makes you too unique to hide, forcing you to find the one biome that accepts your chimeric form.</div>
+    
+    <div class="inspiration">
+         <span class="insp-fact">↳ Pathogens hijack the body's 'don't eat me' signals to hide from immune cells like macrophages.</span>
+         <span class="insp-leap">What if you WERE the signal — a tiny disguise artist in a world of hungry giants, stealing and wearing the identities of things around you to survive, but each stolen mask slowly changes who you are underneath?</span>
+         <a class="source-link" href="https://www.ucsf.edu/news/2026/01/431411/two-new-breakthroughs-advance-neurological-disorders-and-cancer-research" target="_blank" rel="noopener" onclick="event.stopPropagation()">↗ source</a>
+       </div>
+  </a>
+  <a href="/apps/2026-02-25/" class="card" style="--accent:#FF6D00">
+    <span class="card-emoji">💥</span>
+    <div class="card-top">
+      <span class="category">Simulation</span>
+    </div>
+    <div class="name">Shuntburg</div>
+    <div class="desc">A hex-grid city-building simulation where overpressured districts violently erupt outward, spawning unstable settlements you must frantically connect with infrastructure before cascade failures shatter your civilization.</div>
+    
+    <div class="inspiration">
+         <span class="insp-fact">↳ The Metric Wall at ratio 1/√3 that prevents infinities by halting compression and shunting energy orthogonally, freezing quantum states into classical reality.</span>
+         <span class="insp-leap">The idea of a pressure floor that redirects force sideways instead of letting things collapse inspired a city-building sim where overpopulated zones don't crash—they rupture outward, spawning chaotic frontier settlements you must tame.</span>
+         
+       </div>
+  </a>
+    </div>
+  </section>
+  
+  <section class="archive-section">
+    <h2 class="archive-title">ARCHIVE</h2>
+    
+    <div class="archive-day">
+      <div class="archive-day-label">Feb 24, 2026</div>
+      <div class="archive-day-grid">
+        
+  <a href="/apps/2026-02-24/" class="card card--compact" style="--accent:#FF2D78">
+    <span class="card-emoji">🌀</span>
+    <div class="card-top">
+      <span class="category">Toy</span>
+    </div>
+    <div class="name">Splitwhirl</div>
+    <div class="desc">A digital spinning top toy where you spin up a glowing top and swipe to split it into smaller careening fragments that leave temperature-colored trails and create ripple interference patterns on a glassy surface.</div>
+    
+    <div class="insp-compact">The stratospheric warming event splits the polar vortex into two separate cores, which then destabilize and release chaos downward. </div>
+  </a>
+      </div>
+    </div>
+    <div class="archive-day">
+      <div class="archive-day-label">Feb 23, 2026</div>
+      <div class="archive-day-grid">
+        
+  <a href="/apps/2026-02-23-4/" class="card card--compact" style="--accent:#AA00FF">
+    <span class="card-emoji">📯</span>
+    <div class="card-top">
+      <span class="category">Weird/absurd</span>
+    </div>
+    <div class="name">Dreadhorn</div>
+    <div class="desc">A surreal sound-painting game where you finger-paint waveforms inside a giant brass mouth, then blast your audio abominations at increasingly indifferent cosmic beings to disturb them.</div>
+    
+    <div class="insp-compact">The Norfolk Carnyx, a 2,000-year-old war trumpet topped with a snarling boar's head, produced eerie otherworldly blasts in battle. </div>
+  </a>
+  <a href="/apps/2026-02-23-3/" class="card card--compact" style="--accent:#FF6D00">
+    <span class="card-emoji">🌿</span>
+    <div class="card-top">
+      <span class="category">Simulation</span>
+    </div>
+    <div class="name">Rootspan</div>
+    <div class="desc">A living canyon ecosystem simulator where you redirect rivers, angle mirrors, and seed spores to cultivate strange organisms that gradually self-architect into an inhabitable bio-city across shifting seasons.</div>
+    
+    <div class="insp-compact">Firms like Ballistic Architecture Machine flip urban design by making landscape—not buildings—the central icon, treating nature as an evolving idea. </div>
+  </a>
+  <a href="/apps/2026-02-23-2/" class="card card--compact" style="--accent:#FF6D00">
+    <span class="card-emoji">🦠</span>
+    <div class="card-top">
+      <span class="category">Simulation</span>
+    </div>
+    <div class="name">Turncoat</div>
+    <div class="desc">A dark ecosystem simulation where keeper cells patrol and consume anomalies, gradually becoming corrupted and turning against their own kind, forcing you to make tough sacrifices to maintain balance.</div>
+    
+    <div class="insp-compact">Cancer cells steal proteins from immune macrophages, coating their surface and converting defenders into unwitting allies. </div>
+  </a>
+  <a href="/apps/2026-02-23/" class="card card--compact" style="--accent:#FF6D00">
+    <span class="card-emoji">🧫</span>
+    <div class="card-top">
+      <span class="category">Simulation</span>
+    </div>
+    <div class="name">Impostor Colony</div>
+    <div class="desc">A petri dish teeming with pulsing organisms where you must spot and tag shape-shifting predators that mimic their prey's appearance while exhibiting subtle behavioral tells.</div>
+    
+    <div class="insp-compact">Cancer cells steal 'don't eat me' signals from immune cells, disguising threats as allies. </div>
+  </a>
+      </div>
+    </div>
+    <div class="archive-day">
+      <div class="archive-day-label">Feb 22, 2026</div>
+      <div class="archive-day-grid">
+        
+  <a href="/apps/2026-02-22-3/" class="card card--compact" style="--accent:#0066FF">
+    <span class="card-emoji">🦢</span>
+    <div class="card-top">
+      <span class="category">Data/visual</span>
+    </div>
+    <div class="name">Foldline</div>
+    <div class="desc">A personal life-metrics dashboard that transforms daily sleep, mood, movement, focus, and social data into unique procedurally-generated origami fold glyphs, creating a visual grid where weeks of living become readable paper-crane-like patterns.</div>
+    
+    <div class="insp-compact">DNA in brain cells folds dynamically like origami, with each unique fold acting as a 'key' that controls neuron identity and connections. </div>
+  </a>
+  <a href="/apps/2026-02-22-2/" class="card card--compact" style="--accent:#0066FF">
+    <span class="card-emoji">🦠</span>
+    <div class="card-top">
+      <span class="category">Data/visual</span>
+    </div>
+    <div class="name">Turncoat</div>
+    <div class="desc">A habit dashboard where good habits visually corrupt and darken when linked bad habits erode them, showing at a glance which strengths are healthy, under siege, or fully compromised.</div>
+    
+    <div class="insp-compact">Macrophages eating cancer cells become hijacked, accumulating foreign proteins until they switch from defenders to promoters of the thing they were fighting. </div>
+  </a>
+  <a href="/apps/2026-02-22/" class="card card--compact" style="--accent:#FF2D78">
+    <span class="card-emoji">💫</span>
+    <div class="card-top">
+      
+    </div>
+    <div class="name">Orbital Valentine</div>
+    <div class="desc">A gravitational love letter generator where hearts orbit, collide, and birth new celestial bodies in a cosmic dance of attraction and color.</div>
+    
+    
+  </a>
+      </div>
+    </div>
+  </section>
 </body>
 </html>

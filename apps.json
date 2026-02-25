@@ -1,6 +1,40 @@
 [
   {
     "date": "2026-02-25",
+    "id": "2026-02-25-4",
+    "name": "Glossolith",
+    "description": "A language emergence simulator where you decode and shape an evolving glyph civilization through observation, hypothesis testing, and environmental intervention.",
+    "inspiration": "Moltbook launched as a social network exclusively for AI agents to post, debate, and interact autonomously, sparking emergent 'civilization' behaviors.",
+    "connection": "The idea of autonomous entities forming their own culture and language when left to interact freely inspired a game where you cultivate a tiny ecosystem of abstract glyphs that develop their own emergent communication system you must learn to read.",
+    "source_url": "https://www.marketingprofs.com/opinions/2026/54257/ai-update-february-6-2026-ai-news-and-views-from-the-past-week",
+    "emoji": "🔣",
+    "category": "AI-inspired"
+  },
+  {
+    "date": "2026-02-25",
+    "id": "2026-02-25-3",
+    "name": "Soilwise",
+    "description": "A smart garden assistant that fetches real weather and soil data for your location, then tells you exactly when to water, plant, or protect your crops based on soil moisture, temperature at root depth, and frost risk.",
+    "inspiration": "Gardeners and small-scale farmers affected by climate volatility (like the drought challenges that inspired CRISPR root research) need to know exactly when to water, plant, or protect crops — but generic weather apps don't translate forecasts into actionable garden decisions.",
+    "connection": "Open-Meteo provides hourly soil temperature, soil moisture at multiple depths, precipitation, frost risk, and evapotranspiration data — the exact variables that determine plant watering and planting decisions.",
+    "source_url": "https://www.cas.org/resources/cas-insights/scientific-breakthroughs-2026-emerging-trends-watch",
+    "emoji": "🌱",
+    "category": "API tool",
+    "api": "Open-Meteo"
+  },
+  {
+    "date": "2026-02-25",
+    "id": "2026-02-25-2",
+    "name": "Maskdrift",
+    "description": "A stealth survival game where disguising yourself as predators eventually makes you too unique to hide, forcing you to find the one biome that accepts your chimeric form.",
+    "inspiration": "Pathogens hijack the body's 'don't eat me' signals to hide from immune cells like macrophages.",
+    "connection": "What if you WERE the signal — a tiny disguise artist in a world of hungry giants, stealing and wearing the identities of things around you to survive, but each stolen mask slowly changes who you are underneath?",
+    "source_url": "https://www.ucsf.edu/news/2026/01/431411/two-new-breakthroughs-advance-neurological-disorders-and-cancer-research",
+    "emoji": "🎭",
+    "category": "Game"
+  },
+  {
+    "date": "2026-02-25",
     "id": "2026-02-25",
     "name": "Shuntburg",
     "description": "A hex-grid city-building simulation where overpressured districts violently erupt outward, spawning unstable settlements you must frantically connect with infrastructure before cascade failures shatter your civilization.",
