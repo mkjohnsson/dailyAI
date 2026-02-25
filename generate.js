@@ -425,15 +425,12 @@ async function generate() {
 
 function renderTodaySlot(app) {
   const catColor = CATEGORY_COLORS[app.category] || '#FF2D78';
-  const sourceHtml = app.source_url
-    ? `<a class="source-link" href="${app.source_url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">↗ source</a>`
-    : '';
   const apiTag = app.api ? `<span class="api-tag">${app.api}</span>` : '';
   const inspirationHtml = app.inspiration
-    ? `<div class="inspiration">
+    ? `<div class="card-inspiration">
          <span class="insp-fact">↳ ${app.inspiration}</span>
          <span class="insp-leap">${app.connection || ''}</span>
-         ${sourceHtml}
+         ${app.source_url ? `<a class="source-link" href="${app.source_url}" target="_blank" rel="noopener">↗ source</a>` : ''}
        </div>`
     : '';
 
@@ -445,8 +442,8 @@ function renderTodaySlot(app) {
       <div class="name">${app.name}</div>
       <div class="desc">${app.description}</div>
       ${apiTag}
-      ${inspirationHtml}
     </a>
+    ${inspirationHtml}
   </div>`;
 }
 
@@ -623,6 +620,16 @@ function generateGallery(manifest) {
     }
     .today-slot { display: flex; flex-direction: column; }
     .today-slot .card { flex: 1; }
+    .card-inspiration {
+      border: 3px solid #1A1A1A;
+      border-top: none;
+      background: white;
+      padding: 0.75rem 1.4rem 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      box-shadow: 5px 5px 0 #1A1A1A;
+    }
     .slot-category {
       font-family: 'Bebas Neue', sans-serif;
       font-size: 1.1rem;
