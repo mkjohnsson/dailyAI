@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=true, user-scalable=no">
+<title>Skinlift</title>
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+body {
+  font-family: 'Courier New', monospace;
+  background: #1a1a1a;
+  color: #e0e0e0;
+  overflow: hidden;
+  touch-action: none;
+}
+
+#container {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+#toolbar {
+  background: #2a2a2a;
+  padding: 12px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  border-bottom: 2px solid #3a3a3a;
+}
+
+.btn {
+  background: #3a3a3a;
+  border: 1px solid #4a4a4a;
+  color: #e0e0e0;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  transition: all 0.2s;
+}
+
+.btn:hover {
+  background: #4a4a4a;
+}
+
+.btn.active {
+  background: #5a5a5a;
+  border-color: #6a6a6a;
+}
+
+#fileInput {
+  display: none;
+}
+
+.label-btn {
+  background: #3a3a3a;
+  border: 1px solid #4a4a4a;
+  color: #e0e0e0;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  display: inline-block;
+}
+
+.label-btn:hover {
+  background: #4a4a4a;
+}
+
+#canvasContainer {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+#drawCanvas {
+  z-index: 2;
+  cursor: crosshair;
+}
+
+#textureCanvas {
+  z-index: 1;
+}
+
+#sourceImg {
+  display: none;
+}
+
+.info {
+  font-size: 11px;
+  color: #888;
+  margin-left: auto;
+}
+
+#brushSize {
+  width: 80px;
+}
+
+</style>
+</head>
+<body>
+
+<div id="container">
+  <div id="toolbar">
+    <button class="btn active" id="drawBtn">Draw Shape</button>
+    <button class="btn" id="liftBtn">Lift Skin</button>
+    <label class="label-btn" for="fileInput">Load Photo</label>
+    <input type="file" id="fileInput" accept="image/*">
+    <button class="btn" id="clearBtn">Clear All</button>
+    <label style="font-size: 12px; margin-left: 10px;">
+      Brush: <input type="range" id="brushSize" min="20" max="100" value="50">
+    </label>
+    <span class="info" id="infoText">Draw silhouettes, then load a photo and lift skins</span>
+  </div>
+  
+  <div id="canvasContainer">
+    <canvas id="textureCanvas"></canvas>
+    <canvas id="drawCanvas"></canvas>
+  </div>
+</div>
+
+<img id="sourceImg" />
+
+<script>
+const drawCanvas = document.getElementById('drawCanvas');
+const textureCanvas = document.getElementById('textureCanvas');
+const drawCtx = drawCanvas.getContext('2d');
+const texCtx = textureCanvas.getContext('2d');
+const sourceImg = document.getElementById('sourceImg');
+const fileInput = document.getElementById('fileInput');
+const drawBtn = document.getElementById('drawBtn');
+const liftBtn = document.getElementById('liftBtn');
+const clearBtn = document.getElementById('clearBtn');
+const brushSize = document.getElementById('brushSize');
+const infoText = document.getElementById('infoText');
+
+let mode = 'draw'; // 'draw' or 'lift'
+let drawing = false;
+let currentPath = [];
+let shapes = []; // {path: [[x,y],...], closed: bool}
+let textures = []; // {shapeIndex, patches: [{x,y,imageData},...], blendOffset}
+let sourceImageData = null;
+let animationFrame;
+
+// Resize canvases
+function resize() {
+  const container = document.getElementById('canvasContainer');
+  const w = container.clientWidth;
+  const h = container.clientHeight;
+  
+  drawCanvas.width = w;
+  drawCanvas.height = h;
+  textureCanvas.width = w;
+  textureCanvas.height = h;
+  
+  redraw();
+}
+
+window.addEventListener('resize', resize);
+resize();
+
+// Mode switching
+drawBtn.addEventListener('click', () => {
+  mode = 'draw';
+  drawBtn.classList.add('active');
+  liftBtn.classList.remove('active');
+  drawCanvas.style.cursor = 'crosshair';
+  infoText.textContent = 'Draw silhouettes by dragging';
+});
+
+liftBtn.addEventListener('click', () => {
+  if (!sourceImageData) {
+    infoText.textContent = 'Load a photo first!';
+    return;
+  }
+  mode = 'lift';
+  liftBtn.classList.add('active');
+  drawBtn.classList.remove('active');
+  drawCanvas.style.cursor = 'grab';
+  infoText.textContent = 'Drag across photo to lift skin patches';
+});
+
+clearBtn.addEventListener('click', () => {
+  shapes = [];
+  textures = [];
+  currentPath = [];
+  redraw();
+});
+
+// File input
+fileInput.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  
+  const reader = new FileReader();
+  reader.onload = (event) => {
+    sourceImg.onload = () => {
+      const tempCanvas = document.createElement('canvas');
+      const tempCtx = tempCanvas.getContext('2d');
+      
+      // Scale image to fit canvas
+      const scale = Math.min(drawCanvas.width / sourceImg.width, drawCanvas.height / sourceImg.height);
+      tempCanvas.width = sourceImg.width * scale;
+      tempCanvas.height = sourceImg.height * scale;
+      
+      tempCtx.drawImage(sourceImg, 0, 0, tempCanvas.width, tempCanvas.height);
+      sourceImageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+      
+      infoText.textContent = 'Photo loaded! Switch to Lift Skin mode';
+    };
+    sourceImg.src = event.target.result;
+  };
+  reader.readAsDataURL(file);
+});
+
+// Drawing functions
+function getPos(e) {
+  const rect = drawCanvas.getBoundingClientRect();
+  const touch = e.touches ? e.touches[0] : e;
+  return {
+    x: touch.clientX - rect.left,
+    y: touch.clientY - rect.top
+  };
+}
+
+function startDrawing(e) {
+  e.preventDefault();
+  drawing = true;
+  const pos = getPos(e);
+  currentPath = [pos];
+  
+  if (mode === 'draw') {
+    drawCanvas.style.cursor = 'crosshair';
+  } else {
+    drawCanvas.style.cursor = 'grabbing';
+  }
+}
+
+function continueDrawing(e) {
+  if (!drawing) return;
+  e.preventDefault();
+  
+  const pos = getPos(e);
+  currentPath.push(pos);
+  
+  if (mode === 'draw') {
+    redraw();
+    // Draw current path
+    drawCtx.strokeStyle = '#fff';
+    drawCtx.lineWidth = 2;
+    drawCtx.lineCap = 'round';
+    drawCtx.lineJoin = 'round';
+    drawCtx.beginPath();
+    currentPath.forEach((p, i) => {
+      if (i === 0) drawCtx.moveTo(p.x, p.y);
+      else drawCtx.lineTo(p.x, p.y);
+    });
+    drawCtx.stroke();
+  }
+}
+
+function endDrawing(e) {
+  if (!drawing) return;
+  e.preventDefault();
+  drawing = false;
+  
+  if (mode === 'draw' && currentPath.length > 3) {
+    shapes.push({path: [...currentPath], closed: true});
+    textures.push({
+      shapeIndex: shapes.length - 1,
+      patches: [],
+      blendOffset: Math.random() * 100
+    });
+  } else if (mode === 'lift' && currentPath.length > 1 && sourceImageData) {
+    liftSkin(currentPath);
+  }
+  
+  currentPath = [];
+  redraw();
+  
+  if (mode === 'draw') {
+    drawCanvas.style.cursor = 'crosshair';
+  } else {
+    drawCanvas.style.cursor = 'grab';
+  }
+}
+
+// Lift skin from source image along path
+function liftSkin(path) {
+  const brushRad = parseInt(brushSize.value);
+  
+  // Find which shape we're dragging over
+  let targetShapeIndex = -1;
+  for (let i = shapes.length - 1; i >= 0; i--) {
+    if (pointInPolygon(path[0], shapes[i].path)) {
+      targetShapeIndex = i;
+      break;
+    }
+  }
+  
+  if (targetShapeIndex === -1) return;
+  
+  // Sample along path
+  for (let i = 0; i < path.length; i += 3) {
+    const pt = path[i];
+    
+    // Random offset in source image
+    const srcX = Math.random() * sourceImageData.width;
+    const srcY = Math.random() * sourceImageData.height;
+    
+    // Extract circular patch
+    const patchSize = brushRad * 2;
+    const patchCanvas = document.createElement('canvas');
+    patchCanvas.width = patchSize;
+    patchCanvas.height = patchSize;
+    const patchCtx = patchCanvas.getContext('2d');
+    
+    // Create circular mask
+    patchCtx.beginPath();
+    patchCtx.arc(brushRad, brushRad, brushRad, 0, Math.PI * 2);
+    patchCtx.clip();
+    
+    // Draw source image patch
+    patchCtx.drawImage(
+      createImageFromData(sourceImageData),
+      srcX - brushRad, srcY - brushRad, patchSize, patchSize,
+      0, 0, patchSize, patchSize
+    );
+    
+    textures[targetShapeIndex].patches.push({
+      x: pt.x - brushRad,
+      y: pt.y - brushRad,
+      size: patchSize,
+      imageData: patchCtx.getImageData(0, 0, patchSize, patchSize),
+      life: 1.0,
+      vx: (Math.random() - 0.5) * 0.2,
+      vy: (Math.random() - 0.5) * 0.2
+    });
+  }
+}
+
+function createImageFromData(imageData) {
+  const canvas = document.createElement('canvas');
+  canvas.width = imageData.width;
+  canvas.height = imageData.height;
+  canvas.getContext('2d').putImageData(imageData, 0, 0);
+  const img = new Image();
+  img.src = canvas.toDataURL();
+  return canvas;
+}
+
+// Point in polygon test
+function pointInPolygon(point, polygon) {
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const xi = polygon[i].x, yi = polygon[i].y;
+    const xj = polygon[j].x, yj = polygon[j].y;
+    const intersect = ((yi > point.y) !== (yj > point.y))
+        && (point.x < (xj - xi) * (point.y - yi) / (yj - yi) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+// Redraw everything
+function redraw() {
+  // Clear
+  drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+  texCtx.clearRect(0, 0, textureCanvas.width, textureCanvas.height);
+  
+  // Draw shapes as outlines
+  shapes.forEach((shape, idx) => {
+    drawCtx.strokeStyle = 'rgba(255,255,255,0.3)';
+    drawCtx.lineWidth = 1;
+    drawCtx.beginPath();
+    shape.path.forEach((p, i) => {
+      if (i === 0) drawCtx.moveTo(p.x, p.y);
+      else drawCtx.lineTo(p.x, p.y);
+    });
+    if (shape.closed) drawCtx.closePath();
+    drawCtx.stroke();
+  });
+  
+  // Draw textures
+  textures.forEach((tex, idx) => {
+    if (tex.patches.length === 0) return;
+    
+    const shape = shapes[tex.shapeIndex];
+    
+    // Create mask for this shape
+    texCtx.save();
+    texCtx.beginPath();
+    shape.path.forEach((p, i) => {
+      if (i === 0) texCtx.moveTo(p.x, p.y);
+      else texCtx.lineTo(p.x, p.y);
+    });
+    texCtx.closePath();
+    texCtx.clip();
+    
+    // Draw each patch
+    tex.patches.forEach(patch => {
+      texCtx.globalAlpha = patch.life * 0.9;
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = patch.size;
+      tempCanvas.height = patch.size;
+      tempCanvas.getContext('2d').putImageData(patch.imageData, 0, 0);
+      texCtx.drawImage(tempCanvas, patch.x, patch.y);
+    });
+    
+    texCtx.restore();
+  });
+}
+
+// Animation loop - subtle evolution
+function animate() {
+  let needsRedraw = false;
+  
+  textures.forEach((tex, idx) => {
+    tex.blendOffset += 0.3;
+    
+    tex.patches.forEach((patch, pidx) => {
+      // Subtle movement
+      patch.x += patch.vx;
+      patch.y += patch.vy;
+      
+      // Color shift over time
+      const data = patch.imageData.data;
+      const shift = Math.sin(tex.blendOffset * 0.01 + pidx) * 2;
+      
+      for (let i = 0; i < data.length; i += 4) {
+        data[i] = Math.max(0, Math.min(255, data[i] + shift)); // R
+        data[i+1] = Math.max(0, Math.min(255, data[i+1] + shift * 0.5)); // G
+        data[i+2] = Math.max(0, Math.min(255, data[i+2] - shift * 0.5)); // B
+      }
+      
+      // Blend with neighbors
+      if (pidx > 0 && Math.random() < 0.1) {
+        const neighbor = tex.patches[pidx - 1];
+        const dist = Math.hypot(patch.x - neighbor.x, patch.y - neighbor.y);
+        if (dist < patch.size) {
+          // Blend colors
+          for (let i = 0; i < data.length; i += 4) {
+            const nr = neighbor.imageData.data[i];
+            const ng = neighbor.imageData.data[i+1];
+            const nb = neighbor.imageData.data[i+2];
+            data[i] = data[i] * 0.95 + nr * 0.05;
+            data[i+1] = data[i+1] * 0.95 + ng * 0.05;
+            data[i+2] = data[i+2] * 0.95 + nb * 0.05;
+          }
+        }
+      }
+      
+      needsRedraw = true;
+    });
+  });
+  
+  if (needsRedraw) {
+    redraw();
+  }
+  
+  animationFrame = requestAnimationFrame(animate);
+}
+
+// Event listeners
+drawCanvas.addEventListener('mousedown', startDrawing);
+drawCanvas.addEventListener('mousemove', continueDrawing);
+drawCanvas.addEventListener('mouseup', endDrawing);
+drawCanvas.addEventListener('touchstart', startDrawing);
+drawCanvas.addEventListener('touchmove', continueDrawing);
+drawCanvas.addEventListener('touchend', endDrawing);
+
+// Start animation
+animate();
+</script>
+
+</body>
+</html>

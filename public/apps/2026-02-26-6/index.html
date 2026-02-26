@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tellglow</title>
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  body {
+    font-family: 'Courier New', monospace;
+    background: #0a0a0a;
+    overflow: hidden;
+    color: #fff;
+  }
+  
+  #canvas {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+  }
+  
+  #ui {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 100;
+    background: rgba(0,0,0,0.7);
+    padding: 15px;
+    border-radius: 8px;
+    font-size: 13px;
+    max-width: 300px;
+  }
+  
+  .stat {
+    margin: 5px 0;
+  }
+  
+  .meter {
+    height: 8px;
+    background: #222;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 3px;
+  }
+  
+  .meter-fill {
+    height: 100%;
+    transition: width 0.3s, background 0.5s;
+  }
+  
+  #buttons {
+    position: fixed;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100;
+    display: flex;
+    gap: 20px;
+  }
+  
+  button {
+    padding: 15px 30px;
+    font-size: 16px;
+    font-family: 'Courier New', monospace;
+    border: 2px solid;
+    background: rgba(0,0,0,0.8);
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.2s;
+    font-weight: bold;
+  }
+  
+  #sanctuary {
+    border-color: #4a9eff;
+    color: #4a9eff;
+  }
+  
+  #quarantine {
+    border-color: #ff6b6b;
+    color: #ff6b6b;
+  }
+  
+  button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px currentColor;
+  }
+  
+  button:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+  
+  #message {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 24px;
+    text-align: center;
+    opacity: 0;
+    transition: opacity 0.3s;
+    z-index: 99;
+    background: rgba(0,0,0,0.9);
+    padding: 30px 50px;
+    border-radius: 12px;
+    pointer-events: none;
+  }
+  
+  #intro {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.95);
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 40px;
+    text-align: center;
+  }
+  
+  #intro h1 {
+    font-size: 48px;
+    margin-bottom: 30px;
+    letter-spacing: 4px;
+  }
+  
+  #intro p {
+    max-width: 600px;
+    line-height: 1.8;
+    margin-bottom: 20px;
+    font-size: 16px;
+  }
+  
+  #startBtn {
+    margin-top: 30px;
+    padding: 20px 40px;
+    font-size: 18px;
+    border-color: #fff;
+    color: #fff;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+
+<div id="intro">
+  <h1>TELLGLOW</h1>
+  <p>Luminous creatures drift toward you, each performing displays of color, movement, and sound.</p>
+  <p>But look deeper: does a subtle counter-rhythm, a micro-flicker, or tonal shadow match their show? Or does it contradict?</p>
+  <p><strong>SINCERE</strong> creatures belong in the <span style="color:#4a9eff">SANCTUARY</span>.<br>
+  <strong>PERFORMERS</strong> (fakers) go to <span style="color:#ff6b6b">QUARANTINE</span>.</p>
+  <p style="font-size:14px; margin-top:20px; opacity:0.7;">Your mistakes will corrupt your perception and reshape the world...</p>
+  <button id="startBtn">BEGIN</button>
+</div>
+
+<div id="ui">
+  <div class="stat">Perception Clarity</div>
+  <div class="meter">
+    <div class="meter-fill" id="clarity" style="width:100%; background:#4a9eff;"></div>
+  </div>
+  
+  <div class="stat" style="margin-top:15px">World Aesthetic</div>
+  <div style="font-size:11px; margin-top:5px;">
+    <span id="aesthetic">NEUTRAL</span>
+  </div>
+  
+  <div class="stat" style="margin-top:15px">Judged: <span id="count">0</span></div>
+</div>
+
+<div id="buttons">
+  <button id="sanctuary">SANCTUARY</button>
+  <button id="quarantine">QUARANTINE</button>
+</div>
+
+<div id="message"></div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+// Audio context
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+// Game state
+let clarity = 100; // 0-100, affects signal visibility
+let aesthetic = 0; // -100 to +100: negative = raw/authentic, positive = artificial/glossy
+let judgedCount = 0;
+let currentCreature = null;
+let judging = false;
+
+// Creature class
+class Creature {
+  constructor() {
+    this.x = canvas.width / 2;
+    this.y = canvas.height + 100;
+    this.targetY = canvas.height * 0.4;
+    this.size = 60 + Math.random() * 40;
+    
+    // Determine if sincere or faker
+    this.sincere = Math.random() > 0.5;
+    
+    // Visual display parameters
+    this.hue = Math.random() * 360;
+    this.pulseSpeed = 0.02 + Math.random() * 0.03;
+    this.pulsePhase = Math.random() * Math.PI * 2;
+    
+    // Dance pattern
+    this.danceType = Math.floor(Math.random() * 3); // 0: circle, 1: figure-8, 2: spiral
+    this.danceSpeed = 0.01 + Math.random() * 0.02;
+    this.dancePhase = 0;
+    
+    // Hidden signal - contradicts or confirms based on sincerity
+    if (this.sincere) {
+      // Signal matches display
+      this.signalSpeed = this.pulseSpeed * (0.95 + Math.random() * 0.1);
+      this.signalHue = this.hue + (Math.random() * 20 - 10);
+    } else {
+      // Signal contradicts
+      this.signalSpeed = this.pulseSpeed * (1.3 + Math.random() * 0.4);
+      this.signalHue = (this.hue + 120 + Math.random() * 120) % 360;
+    }
+    
+    this.time = 0;
+    this.arriving = true;
+    
+    // Tone
+    this.initSound();
+  }
+  
+  initSound() {
+    this.mainOsc = audioCtx.createOscillator();
+    this.mainGain = audioCtx.createGain();
+    this.mainOsc.connect(this.mainGain);
+    this.mainGain.connect(audioCtx.destination);
+    
+    // Main frequency
+    this.mainFreq = 200 + Math.random() * 200;
+    this.mainOsc.frequency.value = this.mainFreq;
+    this.mainOsc.type = 'sine';
+    this.mainGain.gain.value = 0;
+    this.mainOsc.start();
+    
+    // Hidden signal oscillator
+    this.signalOsc = audioCtx.createOscillator();
+    this.signalGain = audioCtx.createGain();
+    this.signalOsc.connect(this.signalGain);
+    this.signalGain.connect(audioCtx.destination);
+    
+    if (this.sincere) {
+      // Harmonic - matches main tone
+      this.signalOsc.frequency.value = this.mainFreq * 2;
+    } else {
+      // Dissonant - slightly off
+      this.signalOsc.frequency.value = this.mainFreq * 1.5 + 7;
+    }
+    
+    this.signalOsc.type = 'triangle';
+    this.signalGain.gain.value = 0;
+    this.signalOsc.start();
+  }
+  
+  update() {
+    this.time += 0.016;
+    
+    // Move toward target
+    if (this.arriving) {
+      this.y += (this.targetY - this.y) * 0.02;
+      if (Math.abs(this.y - this.targetY) < 1) {
+        this.arriving = false;
+      }
+    }
+    
+    // Dance movement
+    this.dancePhase += this.danceSpeed;
+    
+    // Update sound
+    const pulse = Math.sin(this.time * this.pulseSpeed * 50 + this.pulsePhase);
+    this.mainGain.gain.value = 0.05 + pulse * 0.02;
+    
+    // Signal volume based on clarity (harder to hear when clarity is low)
+    const signalVisibility = clarity / 100;
+    const signalPulse = Math.sin(this.time * this.signalSpeed * 50);
+    this.signalGain.gain.value = 0.01 * signalVisibility + signalPulse * 0.008 * signalVisibility;
+  }
+  
+  draw() {
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    
+    // Apply dance offset
+    let danceX = 0, danceY = 0;
+    switch(this.danceType) {
+      case 0: // circle
+        danceX = Math.cos(this.dancePhase) * 80;
+        danceY = Math.sin(this.dancePhase) * 80;
+        break;
+      case 1: // figure-8
+        danceX = Math.sin(this.dancePhase) * 100;
+        danceY = Math.sin(this.dancePhase * 2) * 60;
+        break;
+      case 2: // spiral
+        const radius = 50 + Math.sin(this.dancePhase * 0.5) * 30;
+        danceX = Math.cos(this.dancePhase) * radius;
+        danceY = Math.sin(this.dancePhase) * radius;
+        break;
+    }
+    
+    ctx.translate(danceX, danceY);
+    
+    // Main pulsing glow
+    const pulse = Math.sin(this.time * this.pulseSpeed * 50 + this.pulsePhase);
+    const glowSize = this.size * (1 + pulse * 0.3);
+    
+    // Background aesthetic affects rendering
+    const aestheticInfluence = aesthetic / 100;
+    
+    if (aestheticInfluence > 0.3) {
+      // Artificial: sharp, geometric, oversaturated
+      ctx.shadowBlur = 40;
+      ctx.shadowColor = `hsl(${this.hue}, 100%, 60%)`;
+      ctx.fillStyle = `hsl(${this.hue}, 100%, ${50 + pulse * 20}%)`;
+      
+      ctx.beginPath();
+      const sides = 6;
+      for (let i = 0; i < sides; i++) {
+        const angle = (i / sides) * Math.PI * 2;
+        const x = Math.cos(angle) * glowSize;
+        const y = Math.sin(angle) * glowSize;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+      ctx.fill();
+      
+    } else if (aestheticInfluence < -0.3) {
+      // Raw: organic, muted, textured
+      ctx.shadowBlur = 20;
+      ctx.shadowColor = `hsl(${this.hue}, 40%, 30%)`;
+      
+      const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, glowSize);
+      gradient.addColorStop(0, `hsl(${this.hue}, 60%, ${40 + pulse * 10}%)`);
+      gradient.addColorStop(0.7, `hsl(${this.hue}, 50%, ${20 + pulse * 5}%)`);
+      gradient.addColorStop(1, `hsla(${this.hue}, 40%, 10%, 0)`);
+      ctx.fillStyle = gradient;
+      
+      ctx.beginPath();
+      ctx.arc(0, 0, glowSize, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Add texture
+      for (let i = 0; i < 5; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const dist = Math.random() * glowSize * 0.5;
+        ctx.fillStyle = `hsla(${this.hue}, 50%, 50%, 0.1)`;
+        ctx.beginPath();
+        ctx.arc(Math.cos(angle) * dist, Math.sin(angle) * dist, 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      
+    } else {
+      // Neutral
+      const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, glowSize);
+      gradient.addColorStop(0, `hsl(${this.hue}, 80%, ${60 + pulse * 15}%)`);
+      gradient.addColorStop(0.6, `hsl(${this.hue}, 70%, ${40 + pulse * 10}%)`);
+      gradient.addColorStop(1, `hsla(${this.hue}, 60%, 20%, 0)`);
+      ctx.fillStyle = gradient;
+      
+      ctx.beginPath();
+      ctx.arc(0, 0, glowSize, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    
+    // Hidden signal - only visible based on clarity
+    const signalVisibility = (clarity / 100) * 0.6;
+    if (signalVisibility > 0.1) {
+      const signalPulse = Math.sin(this.time * this.signalSpeed * 50);
+      const signalSize = this.size * 0.3 * (1 + signalPulse * 0.5);
+      
+      ctx.globalAlpha = signalVisibility;
+      ctx.fillStyle = `hsl(${this.signalHue}, 70%, 50%)`;
+      ctx.beginPath();
+      ctx.arc(0, 0, signalSize, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      
+      // Flicker pattern
+      if (Math.random() < 0.05) {
+        ctx.globalAlpha = signalVisibility * 0.5;
+        ctx.strokeStyle = `hsl(${this.signalHue}, 80%, 60%)`;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, 0, signalSize * 1.5, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+    }
+    
+    ctx.restore();
+  }
+  
+  cleanup() {
+    this.mainOsc.stop();
+    this.signalOsc.stop();
+  }
+}
+
+function spawnCreature() {
+  if (currentCreature) {
+    currentCreature.cleanup();
+  }
+  currentCreature = new Creature();
+  judging = false;
+  document.getElementById('sanctuary').disabled = false;
+  document.getElementById('quarantine').disabled = false;
+}
+
+function judge(choice) {
+  if (!currentCreature || judging) return;
+  
+  judging = true;
+  document.getElementById('sanctuary').disabled = true;
+  document.getElementById('quarantine').disabled = true;
+  
+  const correct = (choice === 'sanctuary' && currentCreature.sincere) || 
+                  (choice === 'quarantine' && !currentCreature.sincere);
+  
+  let message = '';
+  let clarityChange = 0;
+  let aestheticChange = 0;
+  
+  if (correct) {
+    message = currentCreature.sincere ? 'Sincere — sanctuary granted' : 'Faker — quarantined';
+    clarityChange = 2;
+  } else {
+    // Misjudged
+    if (choice === 'sanctuary' && !currentCreature.sincere) {
+      // Merciful to faker
+      message = 'You sheltered a performer';
+      clarityChange = -8;
+      aestheticChange = 5; // World becomes more artificial
+    } else {
+      // Harsh to sincere
+      message = 'You rejected the genuine';
+      clarityChange = -8;
+      aestheticChange = -5; // World becomes more raw
+    }
+  }
+  
+  clarity = Math.max(0, Math.min(100, clarity + clarityChange));
+  aesthetic = Math.max(-100, Math.min(100, aesthetic + aestheticChange));
+  judgedCount++;
+  
+  updateUI();
+  showMessage(message);
+  
+  setTimeout(() => {
+    currentCreature.cleanup();
+    currentCreature = null;
+    spawnCreature();
+  }, 2000);
+}
+
+function showMessage(text) {
+  const msg = document.getElementById('message');
+  msg.textContent = text;
+  msg.style.opacity = 1;
+  setTimeout(() => {
+    msg.style.opacity = 0;
+  }, 1800);
+}
+
+function updateUI() {
+  const clarityBar = document.getElementById('clarity');
+  clarityBar.style.width = clarity + '%';
+  
+  if (clarity > 70) {
+    clarityBar.style.background = '#4a9eff';
+  } else if (clarity > 30) {
+    clarityBar.style.background = '#ffaa00';
+  } else {
+    clarityBar.style.background = '#ff4444';
+  }
+  
+  let aestheticLabel = 'NEUTRAL';
+  if (aesthetic > 50) aestheticLabel = 'SYNTHETIC';
+  else if (aesthetic > 20) aestheticLabel = 'GLOSSY';
+  else if (aesthetic < -50) aestheticLabel = 'VISCERAL';
+  else if (aesthetic < -20) aestheticLabel = 'RAW';
+  
+  document.getElementById('aesthetic').textContent = aestheticLabel;
+  document.getElementById('aesthetic').style.color = 
+    aesthetic > 20 ? '#ff6bff' : aesthetic < -20 ? '#ff8844' : '#aaa';
+  
+  document.getElementById('count').textContent = judgedCount;
+}
+
+function animate() {
+  // Background color shifts with aesthetic
+  const aestheticInfluence = aesthetic / 100;
+  let bgColor;
+  
+  if (aestheticInfluence > 0.3) {
+    // Artificial: deep purple-blue
+    bgColor = `rgb(${10 + aestheticInfluence * 30}, ${10}, ${20 + aestheticInfluence * 40})`;
+  } else if (aestheticInfluence < -0.3) {
+    // Raw: warm dark brown
+    bgColor = `rgb(${15 - aestheticInfluence * 15}, ${10 - aestheticInfluence * 10}, ${5})`;
+  } else {
+    bgColor = '#0a0a0a';
+  }
+  
+  ctx.fillStyle = bgColor;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  if (currentCreature) {
+    currentCreature.update();
+    currentCreature.draw();
+  }
+  
+  requestAnimationFrame(animate);
+}
+
+// Event listeners
+document.getElementById('sanctuary').addEventListener('click', () => judge('sanctuary'));
+document.getElementById('quarantine').addEventListener('click', () => judge('quarantine'));
+
+document.getElementById('startBtn').addEventListener('click', () => {
+  document.getElementById('intro').style.display = 'none';
+  spawnCreature();
+  animate();
+});
+
+window.addEventListener('resize', () => {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+});
+
+updateUI();
+</script>
+
+</body>
+</html>
