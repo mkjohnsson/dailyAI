@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Foldprint</title>
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Courier New', monospace;
+  background: #0a0a0a;
+  color: #fff;
+  overflow: hidden;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+#container {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+#canvas-area {
+  flex: 1;
+  position: relative;
+  background: radial-gradient(circle at 50% 50%, #1a1a1a, #0a0a0a);
+}
+
+canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+}
+
+canvas:active {
+  cursor: grabbing;
+}
+
+#sidebar {
+  width: 320px;
+  background: #111;
+  border-left: 1px solid #333;
+  padding: 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+h1 {
+  font-size: 24px;
+  margin-bottom: 10px;
+  letter-spacing: 2px;
+  background: linear-gradient(45deg, #fff, #888);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.section {
+  background: #1a1a1a;
+  padding: 15px;
+  border-radius: 4px;
+  border: 1px solid #333;
+}
+
+.section h2 {
+  font-size: 14px;
+  margin-bottom: 10px;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.control-group {
+  margin-bottom: 15px;
+}
+
+label {
+  display: block;
+  font-size: 11px;
+  color: #999;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+}
+
+button {
+  width: 100%;
+  padding: 10px;
+  background: #222;
+  border: 1px solid #444;
+  color: #fff;
+  cursor: pointer;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  transition: all 0.2s;
+}
+
+button:hover {
+  background: #333;
+  border-color: #666;
+}
+
+button:active {
+  background: #111;
+}
+
+#barcode-container {
+  background: #000;
+  padding: 15px;
+  border-radius: 4px;
+  min-height: 100px;
+  border: 1px solid #333;
+}
+
+#barcode {
+  display: flex;
+  height: 40px;
+  margin-bottom: 10px;
+  border: 1px solid #222;
+}
+
+.barcode-segment {
+  flex: 1;
+  position: relative;
+}
+
+.symbol-row {
+  display: flex;
+  justify-content: space-around;
+  font-size: 18px;
+  margin-bottom: 10px;
+  color: #fff;
+}
+
+#haiku {
+  font-size: 11px;
+  line-height: 1.6;
+  color: #aaa;
+  font-style: italic;
+  text-align: center;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #222;
+}
+
+.instructions {
+  font-size: 10px;
+  color: #666;
+  line-height: 1.4;
+}
+
+#fold-count {
+  font-size: 20px;
+  color: #fff;
+  text-align: center;
+  margin: 10px 0;
+}
+
+.grid-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+@media (max-width: 768px) {
+  #container {
+    flex-direction: column;
+  }
+  #sidebar {
+    width: 100%;
+    max-height: 50vh;
+  }
+}
+</style>
+</head>
+<body>
+
+<div id="container">
+  <div id="canvas-area">
+    <canvas id="canvas"></canvas>
+  </div>
+  
+  <div id="sidebar">
+    <div>
+      <h1>FOLDPRINT</h1>
+      <p class="instructions">Click and drag on the sheet to create fold lines. Each crease changes your unique barcode.</p>
+    </div>
+    
+    <div class="section">
+      <h2>Fold Controls</h2>
+      <div id="fold-count">0 folds</div>
+      <div class="grid-row">
+        <button id="valley-fold">Valley Fold</button>
+        <button id="mountain-fold">Mountain Fold</button>
+      </div>
+      <button id="unfold">Unfold All</button>
+      <button id="reset">New Sheet</button>
+    </div>
+    
+    <div class="section">
+      <h2>Your Foldprint</h2>
+      <div id="barcode-container">
+        <div id="barcode"></div>
+        <div class="symbol-row" id="symbols"></div>
+        <div id="haiku"></div>
+      </div>
+    </div>
+    
+    <div class="section">
+      <h2>3D View</h2>
+      <div class="grid-row">
+        <button id="rotate-left">← Rotate</button>
+        <button id="rotate-right">Rotate →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// Three.js setup
+const canvas = document.getElementById('canvas');
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(50, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+renderer.setClearColor(0x0a0a0a, 1);
+
+camera.position.set(0, 2, 5);
+camera.lookAt(0, 0, 0);
+
+// Lights
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+scene.add(ambientLight);
+const pointLight1 = new THREE.PointLight(0x88ccff, 0.8);
+pointLight1.position.set(5, 5, 5);
+scene.add(pointLight1);
+const pointLight2 = new THREE.PointLight(0xffaa88, 0.5);
+pointLight2.position.set(-5, 3, -5);
+scene.add(pointLight2);
+
+// Paper state
+let folds = [];
+let geometry;
+let mesh;
+let rotationY = 0;
+let foldMode = 'valley'; // 'valley' or 'mountain'
+
+// Create initial flat sheet
+function createSheet() {
+  folds = [];
+  
+  const segments = 20;
+  geometry = new THREE.PlaneGeometry(3, 3, segments, segments);
+  
+  const material = new THREE.MeshPhongMaterial({
+    color: 0xffffff,
+    emissive: 0x334455,
+    emissiveIntensity: 0.3,
+    side: THREE.DoubleSide,
+    shininess: 30
+  });
+  
+  if (mesh) scene.remove(mesh);
+  mesh = new THREE.Mesh(geometry, material);
+  scene.add(mesh);
+  
+  updateBarcode();
+}
+
+// Apply folds to geometry
+function applyFolds() {
+  const positions = geometry.attributes.position;
+  const segments = 20;
+  
+  // Reset to flat
+  for (let i = 0; i < positions.count; i++) {
+    const x = positions.getX(i);
+    const y = positions.getY(i);
+    positions.setZ(i, 0);
+  }
+  
+  // Apply each fold
+  folds.forEach(fold => {
+    for (let i = 0; i < positions.count; i++) {
+      const x = positions.getX(i);
+      const y = positions.getY(i);
+      
+      // Calculate distance from fold line
+      const dx = x - fold.x;
+      const dy = y - fold.y;
+      const distance = dx * Math.cos(fold.angle) + dy * Math.sin(fold.angle);
+      
+      if (distance > 0) {
+        const foldAmount = Math.min(distance * fold.strength, 1.5);
+        const currentZ = positions.getZ(i);
+        const multiplier = fold.type === 'mountain' ? 1 : -1;
+        positions.setZ(i, currentZ + foldAmount * multiplier);
+      }
+    }
+  });
+  
+  positions.needsUpdate = true;
+  geometry.computeVertexNormals();
+}
+
+// Hash function for barcode generation
+function hashCode(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash) + str.charCodeAt(i);
+    hash = hash & hash;
+  }
+  return Math.abs(hash);
+}
+
+// Generate barcode from fold data
+function updateBarcode() {
+  const foldCount = document.getElementById('fold-count');
+  foldCount.textContent = `${folds.length} fold${folds.length !== 1 ? 's' : ''}`;
+  
+  // Create unique fingerprint from folds
+  const fingerprint = folds.map(f => 
+    `${f.x.toFixed(3)},${f.y.toFixed(3)},${f.angle.toFixed(3)},${f.strength.toFixed(3)},${f.type}`
+  ).join('|');
+  
+  const hash = hashCode(fingerprint + folds.length);
+  
+  // Generate color barcode
+  const barcodeEl = document.getElementById('barcode');
+  barcodeEl.innerHTML = '';
+  
+  const numSegments = 12;
+  for (let i = 0; i < numSegments; i++) {
+    const segment = document.createElement('div');
+    segment.className = 'barcode-segment';
+    
+    const hue = (hash + i * 137.5 + folds.length * 23) % 360;
+    const sat = 40 + (hash % 60);
+    const light = 30 + ((hash * (i + 1)) % 40);
+    
+    segment.style.background = `hsl(${hue}, ${sat}%, ${light}%)`;
+    barcodeEl.appendChild(segment);
+  }
+  
+  // Generate symbols
+  const symbols = ['◐', '◑', '◒', '◓', '◔', '◕', '●', '○', '◈', '◇', '◆', '▲', '△', '▼', '▽', '■', '□'];
+  const symbolsEl = document.getElementById('symbols');
+  symbolsEl.innerHTML = '';
+  
+  for (let i = 0; i < 6; i++) {
+    const idx = (hash + i * folds.length * 7) % symbols.length;
+    const span = document.createElement('span');
+    span.textContent = symbols[idx];
+    symbolsEl.appendChild(span);
+  }
+  
+  // Generate haiku
+  generateHaiku(hash);
+}
+
+// Procedural haiku generation
+function generateHaiku(hash) {
+  const line1 = [
+    ['paper', 'folded', 'creased', 'bent', 'shaped'],
+    ['whispers', 'memories', 'shadows', 'patterns', 'echoes'],
+    ['of light', 'emerge', 'unfold', 'take form', 'arise']
+  ];
+  
+  const line2 = [
+    ['each crease', 'every fold', 'soft edges', 'sharp lines', 'gentle curves'],
+    ['holds secrets', 'tells stories', 'forms worlds', 'makes meaning', 'builds space'],
+    ['within itself', 'beyond sight', 'in silence', 'through time', 'from nothing']
+  ];
+  
+  const line3 = [
+    ['unique', 'singular', 'fleeting', 'eternal', 'precious'],
+    ['geometry', 'pattern', 'structure', 'vision', 'moment'],
+    ['blooms', 'exists', 'persists', 'remains', 'glows']
+  ];
+  
+  const i1 = hash % line1[0].length;
+  const i2 = Math.floor(hash / 7) % line1[1].length;
+  const i3 = Math.floor(hash / 23) % line1[2].length;
+  
+  const i4 = Math.floor(hash / 37) % line2[0].length;
+  const i5 = Math.floor(hash / 53) % line2[1].length;
+  const i6 = Math.floor(hash / 71) % line2[2].length;
+  
+  const i7 = Math.floor(hash / 89) % line3[0].length;
+  const i8 = Math.floor(hash / 107) % line3[1].length;
+  const i9 = Math.floor(hash / 131) % line3[2].length;
+  
+  const haiku = `${line1[0][i1]} ${line1[1][i2]} ${line1[2][i3]}\n${line2[0][i4]} ${line2[1][i5]} ${line2[2][i6]}\n${line3[0][i7]} ${line3[1][i8]} ${line3[2][i9]}`;
+  
+  document.getElementById('haiku').textContent = haiku;
+}
+
+// Mouse interaction
+let isDragging = false;
+let startPos = new THREE.Vector2();
+
+canvas.addEventListener('mousedown', (e) => {
+  isDragging = true;
+  const rect = canvas.getBoundingClientRect();
+  startPos.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+  startPos.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+});
+
+canvas.addEventListener('mousemove', (e) => {
+  if (!isDragging) return;
+  
+  const rect = canvas.getBoundingClientRect();
+  const endX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+  const endY = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+  
+  // Visual feedback of drag line could go here
+});
+
+canvas.addEventListener('mouseup', (e) => {
+  if (!isDragging) return;
+  isDragging = false;
+  
+  const rect = canvas.getBoundingClientRect();
+  const endX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+  const endY = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+  
+  const dx = endX - startPos.x;
+  const dy = endY - startPos.y;
+  const distance = Math.sqrt(dx * dx + dy * dy);
+  
+  if (distance > 0.1) {
+    // Convert to 3D space
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(startPos, camera);
+    const intersects = raycaster.intersectObject(mesh);
+    
+    if (intersects.length > 0) {
+      const point = intersects[0].point;
+      const angle = Math.atan2(dy, dx);
+      
+      folds.push({
+        x: point.x,
+        y: point.y,
+        angle: angle,
+        strength: Math.min(distance * 2, 2),
+        type: foldMode
+      });
+      
+      applyFolds();
+      updateBarcode();
+    }
+  }
+});
+
+// Touch support
+canvas.addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  const touch = e.touches[0];
+  const rect = canvas.getBoundingClientRect();
+  startPos.x = ((touch.clientX - rect.left) / rect.width) * 2 - 1;
+  startPos.y = -((touch.clientY - rect.top) / rect.height) * 2 + 1;
+  isDragging = true;
+});
+
+canvas.addEventListener('touchmove', (e) => {
+  e.preventDefault();
+});
+
+canvas.addEventListener('touchend', (e) => {
+  e.preventDefault();
+  if (!isDragging) return;
+  isDragging = false;
+  
+  const touch = e.changedTouches[0];
+  const rect = canvas.getBoundingClientRect();
+  const endX = ((touch.clientX - rect.left) / rect.width) * 2 - 1;
+  const endY = -((touch.clientY - rect.top) / rect.height) * 2 + 1;
+  
+  const dx = endX - startPos.x;
+  const dy = endY - startPos.y;
+  const distance = Math.sqrt(dx * dx + dy * dy);
+  
+  if (distance > 0.1) {
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(startPos, camera);
+    const intersects = raycaster.intersectObject(mesh);
+    
+    if (intersects.length > 0) {
+      const point = intersects[0].point;
+      const angle = Math.atan2(dy, dx);
+      
+      folds.push({
+        x: point.x,
+        y: point.y,
+        angle: angle,
+        strength: Math.min(distance * 2, 2),
+        type: foldMode
+      });
+      
+      applyFolds();
+      updateBarcode();
+    }
+  }
+});
+
+// UI controls
+document.getElementById('valley-fold').addEventListener('click', () => {
+  foldMode = 'valley';
+  document.getElementById('valley-fold').style.background = '#444';
+  document.getElementById('mountain-fold').style.background = '#222';
+});
+
+document.getElementById('mountain-fold').addEventListener('click', () => {
+  foldMode = 'mountain';
+  document.getElementById('mountain-fold').style.background = '#444';
+  document.getElementById('valley-fold').style.background = '#222';
+});
+
+document.getElementById('unfold').addEventListener('click', () => {
+  folds = [];
+  applyFolds();
+  updateBarcode();
+});
+
+document.getElementById('reset').addEventListener('click', () => {
+  createSheet();
+});
+
+document.getElementById('rotate-left').addEventListener('click', () => {
+  rotationY -= 0.3;
+});
+
+document.getElementById('rotate-right').addEventListener('click', () => {
+  rotationY += 0.3;
+});
+
+// Animation loop
+function animate() {
+  requestAnimationFrame(animate);
+  
+  if (mesh) {
+    mesh.rotation.y += (rotationY - mesh.rotation.y) * 0.1;
+    mesh.rotation.x = Math.sin(Date.now() * 0.0003) * 0.1;
+  }
+  
+  renderer.render(scene, camera);
+}
+
+// Handle resize
+window.addEventListener('resize', () => {
+  camera.aspect = canvas.clientWidth / canvas.clientHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+});
+
+// Initialize
+createSheet();
+document.getElementById('valley-fold').style.background = '#444';
+animate();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Infloria</title>
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  body {
+    font-family: 'Courier New', monospace;
+    background: #0a0e1a;
+    color: #e0e0e0;
+    overflow: hidden;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  #header {
+    padding: 20px;
+    background: #141824;
+    border-bottom: 2px solid #2a3f5f;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  #title {
+    font-size: 24px;
+    font-weight: bold;
+    color: #6fb3d2;
+  }
+  
+  #score {
+    font-size: 18px;
+    color: #9ac99f;
+  }
+  
+  #canvas-container {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  
+  #controls {
+    padding: 20px;
+    background: #141824;
+    border-top: 2px solid #2a3f5f;
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  
+  .organism-btn {
+    padding: 10px 20px;
+    background: #1e2838;
+    border: 2px solid #3a5070;
+    color: #e0e0e0;
+    cursor: pointer;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    transition: all 0.2s;
+  }
+  
+  .organism-btn:hover {
+    background: #2a3f5f;
+    transform: translateY(-2px);
+  }
+  
+  .organism-btn.selected {
+    background: #3a5070;
+    border-color: #6fb3d2;
+    box-shadow: 0 0 10px rgba(111, 179, 210, 0.3);
+  }
+  
+  #action-btn {
+    padding: 12px 30px;
+    background: #2d5a3d;
+    border: 2px solid #4a8a5f;
+    color: #9ac99f;
+    cursor: pointer;
+    font-family: 'Courier New', monospace;
+    font-size: 16px;
+    font-weight: bold;
+    margin-left: auto;
+    transition: all 0.2s;
+  }
+  
+  #action-btn:hover {
+    background: #3a6f4d;
+    transform: scale(1.05);
+  }
+  
+  #action-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+  
+  #info {
+    font-size: 12px;
+    color: #7a8a9a;
+    padding: 5px 0;
+    width: 100%;
+  }
+  
+  #replay-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(10, 14, 26, 0.95);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    z-index: 1000;
+  }
+  
+  #replay-overlay.show {
+    display: flex;
+  }
+  
+  #replay-message {
+    font-size: 32px;
+    margin-bottom: 20px;
+    color: #6fb3d2;
+  }
+  
+  #replay-score {
+    font-size: 48px;
+    margin-bottom: 30px;
+    color: #9ac99f;
+    font-weight: bold;
+  }
+  
+  #close-replay {
+    padding: 15px 40px;
+    background: #2a3f5f;
+    border: 2px solid #6fb3d2;
+    color: #e0e0e0;
+    cursor: pointer;
+    font-family: 'Courier New', monospace;
+    font-size: 18px;
+  }
+</style>
+</head>
+<body>
+  <div id="header">
+    <div id="title">INFLORIA</div>
+    <div id="score">Harmony: <span id="score-val">0</span></div>
+  </div>
+  
+  <div id="canvas-container">
+    <canvas id="canvas"></canvas>
+  </div>
+  
+  <div id="controls">
+    <button class="organism-btn selected" data-type="moss">Moss (λ=1.2)</button>
+    <button class="organism-btn" data-type="crystal">Crystal (λ=1.5)</button>
+    <button class="organism-btn" data-type="bloom">Bloom (λ=1.8)</button>
+    <button class="organism-btn" data-type="pulse">Pulse (λ=2.1)</button>
+    <div id="info">Click on the graph to plant. Orchestrate overlapping exponential blooms for maximum harmony.</div>
+    <button id="action-btn">IGNITE CASCADE</button>
+  </div>
+  
+  <div id="replay-overlay">
+    <div id="replay-message">CASCADE COMPLETE</div>
+    <div id="replay-score">0</div>
+    <button id="close-replay">Continue</button>
+  </div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const scoreVal = document.getElementById('score-val');
+const actionBtn = document.getElementById('action-btn');
+const replayOverlay = document.getElementById('replay-overlay');
+const replayScore = document.getElementById('replay-score');
+const closeReplay = document.getElementById('close-replay');
+
+let width, height;
+let selectedType = 'moss';
+let organisms = [];
+let isPlaying = false;
+let playTime = 0;
+let maxPlayTime = 10; // seconds
+let harmonyScore = 0;
+
+// Organism types with different growth rates
+const types = {
+  moss: { lambda: 1.2, color: '#5a9a6a', delay: Math.random() * 3 },
+  crystal: { lambda: 1.5, color: '#6fb3d2', delay: Math.random() * 4 },
+  bloom: { lambda: 1.8, color: '#d27fb3', delay: Math.random() * 5 },
+  pulse: { lambda: 2.1, color: '#f0a05c', delay: Math.random() * 6 }
+};
+
+function resize() {
+  width = canvas.width = canvas.offsetWidth;
+  height = canvas.height = canvas.offsetHeight;
+}
+
+resize();
+window.addEventListener('resize', resize);
+
+// Select organism type
+document.querySelectorAll('.organism-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.organism-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    selectedType = btn.dataset.type;
+  });
+});
+
+// Plant organism
+canvas.addEventListener('click', (e) => {
+  if (isPlaying) return;
+  
+  const rect = canvas.getBoundingClientRect();
+  const x = (e.clientX - rect.left) / width;
+  const y = (e.clientY - rect.top) / height;
+  
+  const type = types[selectedType];
+  organisms.push({
+    x,
+    y,
+    type: selectedType,
+    lambda: type.lambda,
+    color: type.color,
+    delay: Math.random() * (maxPlayTime * 0.4), // Random delay
+    baseSize: 3 + Math.random() * 3
+  });
+});
+
+// Draw the curved graph plane
+function drawGraph() {
+  ctx.strokeStyle = '#1a2535';
+  ctx.lineWidth = 1;
+  
+  // Vertical lines
+  for (let i = 0; i <= 20; i++) {
+    const x = (width / 20) * i;
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, height);
+    ctx.stroke();
+  }
+  
+  // Horizontal curves
+  for (let i = 0; i <= 20; i++) {
+    const baseY = (height / 20) * i;
+    ctx.beginPath();
+    for (let x = 0; x <= width; x += 5) {
+      const curve = Math.sin((x / width) * Math.PI * 2) * 15;
+      const y = baseY + curve;
+      if (x === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+}
+
+// Calculate exponential growth
+function getSize(organism, time) {
+  const t = time - organism.delay;
+  if (t <= 0) return organism.baseSize;
+  
+  // Exponential growth: size = baseSize * e^(lambda * t)
+  const growth = Math.exp(organism.lambda * t);
+  return organism.baseSize * growth;
+}
+
+// Draw organisms
+function drawOrganisms(time) {
+  organisms.forEach(org => {
+    const size = getSize(org, time);
+    const x = org.x * width;
+    const y = org.y * height + Math.sin((org.x * 2 + time) * Math.PI) * 10;
+    
+    // Glow effect
+    const gradient = ctx.createRadialGradient(x, y, 0, x, y, size);
+    gradient.addColorStop(0, org.color);
+    gradient.addColorStop(0.5, org.color + '80');
+    gradient.addColorStop(1, org.color + '00');
+    
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(x, y, size, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Core
+    ctx.fillStyle = org.color;
+    ctx.beginPath();
+    ctx.arc(x, y, size * 0.3, 0, Math.PI * 2);
+    ctx.fill();
+  });
+}
+
+// Calculate harmony score based on synchronization
+function calculateHarmony() {
+  if (organisms.length < 2) return 0;
+  
+  let maxOverlap = 0;
+  const samples = 100;
+  
+  // Sample the timeline to find peak overlaps
+  for (let i = 0; i < samples; i++) {
+    const t = (maxPlayTime / samples) * i;
+    let activeGrowth = 0;
+    
+    organisms.forEach(org => {
+      const size = getSize(org, t);
+      const growthRate = size / (org.baseSize + 1);
+      
+      // Count organisms in rapid growth phase
+      if (growthRate > 10 && growthRate < 1000) {
+        activeGrowth++;
+      }
+    });
+    
+    // Reward synchronized blooms
+    if (activeGrowth >= 2) {
+      const overlap = Math.pow(activeGrowth, 2);
+      maxOverlap = Math.max(maxOverlap, overlap);
+    }
+  }
+  
+  // Bonus for having multiple organism types
+  const uniqueTypes = new Set(organisms.map(o => o.type)).size;
+  const diversityBonus = uniqueTypes * 10;
+  
+  return Math.floor(maxOverlap * 100 + diversityBonus);
+}
+
+// Animation loop
+function animate() {
+  ctx.fillStyle = '#0a0e1a';
+  ctx.fillRect(0, 0, width, height);
+  
+  drawGraph();
+  
+  if (isPlaying) {
+    playTime += 0.016; // ~60fps
+    
+    if (playTime >= maxPlayTime) {
+      isPlaying = false;
+      playTime = 0;
+      
+      // Calculate final harmony
+      harmonyScore = calculateHarmony();
+      scoreVal.textContent = harmonyScore;
+      replayScore.textContent = harmonyScore;
+      
+      // Show replay overlay
+      setTimeout(() => {
+        replayOverlay.classList.add('show');
+      }, 500);
+      
+      actionBtn.textContent = 'IGNITE CASCADE';
+      actionBtn.disabled = false;
+    }
+  }
+  
+  drawOrganisms(playTime);
+  
+  requestAnimationFrame(animate);
+}
+
+// Start cascade
+actionBtn.addEventListener('click', () => {
+  if (organisms.length === 0) return;
+  
+  if (!isPlaying) {
+    isPlaying = true;
+    playTime = 0;
+    actionBtn.textContent = 'CASCADING...';
+    actionBtn.disabled = true;
+  }
+});
+
+// Close replay and reset
+closeReplay.addEventListener('click', () => {
+  replayOverlay.classList.remove('show');
+  organisms = [];
+  harmonyScore = 0;
+  scoreVal.textContent = '0';
+});
+
+animate();
+</script>
+</body>
+</html>

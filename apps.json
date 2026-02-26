@@ -1,5 +1,39 @@
 [
   {
+    "date": "2026-02-26",
+    "id": "2026-02-26-3",
+    "name": "Infloria",
+    "description": "A strategy puzzle where you plant exponentially-growing organisms on a curved timeline, orchestrating their hidden bloom cycles into a single synchronized cascade of visual harmony.",
+    "inspiration": "METR's graph shows AI software development capabilities doubling every seven months, with experts comparing the deceptive exponential speed to the COVID pandemic's early curve.",
+    "connection": "The terrifying beauty of exponential curves that feel flat until they suddenly aren't inspired a game where you cultivate something that grows deceptively slowly then catastrophically — and your job is to ride the inflection point rather than prevent it.",
+    "source_url": "https://news.sky.com/story/ai-is-developing-so-fast-it-is-becoming-hard-to-measure-experts-say-13512068",
+    "emoji": "🌿",
+    "category": "AI-inspired"
+  },
+  {
+    "date": "2026-02-26",
+    "id": "2026-02-26-2",
+    "name": "Barograph",
+    "description": "A symptom-weather tracker that correlates your daily health metrics with real barometric pressure data, revealing personalized weather triggers and forecasting risky days ahead.",
+    "inspiration": "People with chronic conditions like migraines, arthritis, MS, or fibromyalgia often suspect weather triggers but have no structured way to correlate their symptom flare-ups with actual atmospheric data — barometric pressure drops, humidity spikes, temperature swings, or wind changes.",
+    "connection": "Open-Meteo provides free hourly historical and forecast weather data including barometric pressure, humidity, wind, and temperature for any location, which is exactly what's needed to build a personal symptom-weather correlation engine.",
+    "source_url": "",
+    "emoji": "🌡️",
+    "category": "API tool",
+    "api": "Open-Meteo"
+  },
+  {
+    "date": "2026-02-26",
+    "id": "2026-02-26",
+    "name": "Foldprint",
+    "description": "Fold a luminous digital sheet into 3D origami and watch your unique crease pattern generate an unrepeatable visual barcode and haiku.",
+    "inspiration": "DNA in brain neurons folds like origami into unique shapes, generating billions of distinct barcodes despite identical genomes.",
+    "connection": "The idea that identical raw material can fold into billions of unique identities inspired a creative tool where you fold a single shared sheet into unrepeatable sculptural poems — your folds are your fingerprint.",
+    "source_url": "https://www.ucsf.edu/news/2026/01/431411/two-new-breakthroughs-advance-neurological-disorders-and-cancer-research",
+    "emoji": "🦢",
+    "category": "Creative/art"
+  },
+  {
     "date": "2026-02-25",
     "id": "2026-02-25-4",
     "name": "Glossolith",
