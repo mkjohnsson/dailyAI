@@ -513,7 +513,7 @@ function generateGallery(manifest) {
       <span class="today-date">${formatDate(todayGroup.date)}</span>
     </div>
     <div class="today-grid">
-      ${todayGroup.apps.map(a => renderTodaySlot(a)).join('')}
+      ${todayGroup.apps.slice(0, 3).map(a => renderTodaySlot(a)).join('')}
     </div>
   </section>` : '';
 
