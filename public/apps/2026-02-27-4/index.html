@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Skinthief</title>
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  body {
+    font-family: 'Courier New', monospace;
+    background: #1a1a1a;
+    color: #fff;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+  }
+  #game-container {
+    position: relative;
+    width: 800px;
+    height: 600px;
+    background: #0a0a0a;
+    border: 2px solid #333;
+  }
+  #canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  #ui {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    pointer-events: none;
+  }
+  #stats {
+    background: rgba(0,0,0,0.8);
+    padding: 10px 15px;
+    border: 1px solid #444;
+  }
+  #trait-display {
+    background: rgba(0,0,0,0.8);
+    padding: 10px 15px;
+    border: 1px solid #444;
+    max-width: 300px;
+  }
+  .trait-item {
+    margin: 3px 0;
+    font-size: 11px;
+  }
+  .safe { color: #4f4; }
+  .danger { color: #f44; }
+  .warning { color: #fa0; }
+  #message {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0,0,0,0.95);
+    padding: 30px 50px;
+    border: 2px solid #666;
+    text-align: center;
+    pointer-events: all;
+  }
+  #message h1 {
+    font-size: 32px;
+    margin-bottom: 15px;
+  }
+  #message p {
+    margin: 10px 0;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  button {
+    background: #333;
+    color: #fff;
+    border: 1px solid #666;
+    padding: 10px 25px;
+    margin: 15px 5px 0;
+    cursor: pointer;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+  }
+  button:hover {
+    background: #444;
+  }
+  .hidden { display: none; }
+  #hunter-warning {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 48px;
+    color: #f33;
+    text-shadow: 0 0 20px #f33;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+</style>
+</head>
+<body>
+<div id="game-container">
+  <canvas id="canvas" width="800" height="600"></canvas>
+  <div id="ui">
+    <div id="stats">
+      <div>HUNTER SCAN: <span id="scan-timer">10.0</span>s</div>
+      <div>MATCH SCORE: <span id="match-score" class="danger">0%</span></div>
+      <div>VICTIMS: <span id="victim-count">0</span></div>
+    </div>
+    <div id="trait-display">
+      <div style="margin-bottom:5px;font-weight:bold;">YOUR TRAITS:</div>
+      <div class="trait-item">Color: <span id="trait-color" class="danger">RED</span></div>
+      <div class="trait-item">Shape: <span id="trait-shape" class="danger">STAR</span></div>
+      <div class="trait-item">Pattern: <span id="trait-pattern" class="danger">SOLID</span></div>
+      <div class="trait-item">Size: <span id="trait-size" class="danger">LARGE</span></div>
+    </div>
+  </div>
+  <div id="hunter-warning">⚠ SCANNING ⚠</div>
+  <div id="message">
+    <h1>SKINTHIEF</h1>
+    <p>You're a rogue cell. Everyone else looks the same.</p>
+    <p>Move with WASD or Arrow keys. Bump into NPCs to steal ONE trait.</p>
+    <p>Every 10 seconds, the HUNTER scans for outliers.</p>
+    <p>Match all 4 traits to survive. Strip too many victims and chaos reveals you.</p>
+    <button id="start-btn">START GAME</button>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+// Game state
+let gameState = 'menu'; // menu, playing, won, lost
+let player, hunter, npcs = [];
+let scanTimer = 10;
+let victimCount = 0;
+let scanInterval = null;
+let gameLoop = null;
+
+// Trait definitions
+const TRAITS = {
+  colors: ['#4466ff', '#4466ff', '#4466ff', '#4466ff'], // All NPCs are blue
+  shapes: ['circle', 'circle', 'circle', 'circle'], // All NPCs are circles
+  patterns: ['dots', 'dots', 'dots', 'dots'], // All NPCs have dots
+  sizes: [20, 20, 20, 20] // All NPCs are size 20
+};
+
+const normColor = '#4466ff';
+const normShape = 'circle';
+const normPattern = 'dots';
+const normSize = 20;
+
+class Entity {
+  constructor(x, y, color, shape, pattern, size) {
+    this.x = x;
+    this.y = y;
+    this.color = color;
+    this.shape = shape;
+    this.pattern = pattern;
+    this.size = size;
+    this.vx = 0;
+    this.vy = 0;
+    this.stripped = 0; // How many traits stolen from this NPC
+  }
+
+  draw() {
+    ctx.save();
+    ctx.translate(this.x, this.y);
+
+    // Draw based on shape
+    if (this.shape === 'circle') {
+      this.drawCircle();
+    } else if (this.shape === 'square') {
+      this.drawSquare();
+    } else if (this.shape === 'star') {
+      this.drawStar();
+    } else if (this.shape === 'triangle') {
+      this.drawTriangle();
+    }
+
+    ctx.restore();
+  }
+
+  drawCircle() {
+    ctx.fillStyle = this.color;
+    ctx.beginPath();
+    ctx.arc(0, 0, this.size, 0, Math.PI * 2);
+    ctx.fill();
+    this.applyPattern();
+  }
+
+  drawSquare() {
+    ctx.fillStyle = this.color;
+    ctx.fillRect(-this.size, -this.size, this.size * 2, this.size * 2);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(-this.size, -this.size, this.size * 2, this.size * 2);
+    ctx.clip();
+    this.applyPattern();
+    ctx.restore();
+  }
+
+  drawStar() {
+    ctx.fillStyle = this.color;
+    ctx.beginPath();
+    for (let i = 0; i < 5; i++) {
+      const angle = (i * 4 * Math.PI) / 5 - Math.PI / 2;
+      const radius = i % 2 === 0 ? this.size : this.size / 2;
+      const x = Math.cos(angle) * radius;
+      const y = Math.sin(angle) * radius;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.fill();
+    this.applyPattern();
+  }
+
+  drawTriangle() {
+    ctx.fillStyle = this.color;
+    ctx.beginPath();
+    ctx.moveTo(0, -this.size);
+    ctx.lineTo(this.size, this.size);
+    ctx.lineTo(-this.size, this.size);
+    ctx.closePath();
+    ctx.fill();
+    this.applyPattern();
+  }
+
+  applyPattern() {
+    if (this.pattern === 'dots') {
+      ctx.fillStyle = 'rgba(255,255,255,0.4)';
+      for (let i = 0; i < 5; i++) {
+        const angle = (i * Math.PI * 2) / 5;
+        const px = Math.cos(angle) * (this.size / 2);
+        const py = Math.sin(angle) * (this.size / 2);
+        ctx.beginPath();
+        ctx.arc(px, py, 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    } else if (this.pattern === 'stripes') {
+      ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+      ctx.lineWidth = 2;
+      for (let i = -this.size; i < this.size; i += 5) {
+        ctx.beginPath();
+        ctx.moveTo(i, -this.size);
+        ctx.lineTo(i, this.size);
+        ctx.stroke();
+      }
+    } else if (this.pattern === 'cross') {
+      ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(-this.size/2, 0);
+      ctx.lineTo(this.size/2, 0);
+      ctx.moveTo(0, -this.size/2);
+      ctx.lineTo(0, this.size/2);
+      ctx.stroke();
+    }
+  }
+}
+
+function initGame() {
+  // Create player with wrong traits
+  player = new Entity(
+    canvas.width / 2,
+    canvas.height / 2,
+    '#ff4444', // Red instead of blue
+    'star', // Star instead of circle
+    'solid', // Solid instead of dots
+    28 // Larger than 20
+  );
+
+  // Create NPCs with normal traits, wandering
+  npcs = [];
+  for (let i = 0; i < 30; i++) {
+    const npc = new Entity(
+      Math.random() * (canvas.width - 100) + 50,
+      Math.random() * (canvas.height - 100) + 50,
+      normColor,
+      normShape,
+      normPattern,
+      normSize
+    );
+    npc.vx = (Math.random() - 0.5) * 1;
+    npc.vy = (Math.random() - 0.5) * 1;
+    npcs.push(npc);
+  }
+
+  // Create hunter
+  hunter = {
+    x: canvas.width / 2,
+    y: 50,
+    size: 30,
+    scanning: false
+  };
+
+  scanTimer = 10;
+  victimCount = 0;
+  updateUI();
+}
+
+// Input handling
+const keys = {};
+window.addEventListener('keydown', e => keys[e.key] = true);
+window.addEventListener('keyup', e => keys[e.key] = false);
+
+function updatePlayer() {
+  const speed = 3;
+  if (keys['w'] || keys['ArrowUp']) player.vy = -speed;
+  else if (keys['s'] || keys['ArrowDown']) player.vy = speed;
+  else player.vy = 0;
+
+  if (keys['a'] || keys['ArrowLeft']) player.vx = -speed;
+  else if (keys['d'] || keys['ArrowRight']) player.vx = speed;
+  else player.vx = 0;
+
+  player.x += player.vx;
+  player.y += player.vy;
+
+  // Bounds
+  player.x = Math.max(player.size, Math.min(canvas.width - player.size, player.x));
+  player.y = Math.max(player.size, Math.min(canvas.height - player.size, player.y));
+
+  // Check collision with NPCs
+  npcs.forEach(npc => {
+    const dx = player.x - npc.x;
+    const dy = player.y - npc.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist < player.size + npc.size) {
+      stealTrait(npc);
+    }
+  });
+}
+
+function stealTrait(npc) {
+  if (npc.stolen) return; // Already stolen from this NPC recently
+  npc.stolen = true;
+  setTimeout(() => npc.stolen = false, 500);
+
+  // Find a trait the player doesn't match
+  const possibleSteals = [];
+  if (player.color !== normColor && npc.color === normColor) possibleSteals.push('color');
+  if (player.shape !== normShape && npc.shape === normShape) possibleSteals.push('shape');
+  if (player.pattern !== normPattern && npc.pattern === normPattern) possibleSteals.push('pattern');
+  if (player.size !== normSize && npc.size === normSize) possibleSteals.push('size');
+
+  if (possibleSteals.length === 0) return; // Already matching or NPC has nothing to steal
+
+  const trait = possibleSteals[Math.floor(Math.random() * possibleSteals.length)];
+
+  // Steal the trait
+  if (trait === 'color') {
+    const temp = player.color;
+    player.color = npc.color;
+    npc.color = temp;
+  } else if (trait === 'shape') {
+    const temp = player.shape;
+    player.shape = npc.shape;
+    npc.shape = temp;
+  } else if (trait === 'pattern') {
+    const temp = player.pattern;
+    player.pattern = npc.pattern;
+    npc.pattern = temp;
+  } else if (trait === 'size') {
+    const temp = player.size;
+    player.size = npc.size;
+    npc.size = temp;
+  }
+
+  npc.stripped++;
+  victimCount++;
+  updateUI();
+}
+
+function updateNPCs() {
+  npcs.forEach(npc => {
+    npc.x += npc.vx;
+    npc.y += npc.vy;
+
+    // Bounce off walls
+    if (npc.x < npc.size || npc.x > canvas.width - npc.size) npc.vx *= -1;
+    if (npc.y < npc.size || npc.y > canvas.height - npc.size) npc.vy *= -1;
+
+    // Keep in bounds
+    npc.x = Math.max(npc.size, Math.min(canvas.width - npc.size, npc.x));
+    npc.y = Math.max(npc.size, Math.min(canvas.height - npc.size, npc.y));
+  });
+}
+
+function updateUI() {
+  document.getElementById('scan-timer').textContent = scanTimer.toFixed(1);
+  document.getElementById('victim-count').textContent = victimCount;
+
+  let matchCount = 0;
+  if (player.color === normColor) matchCount++;
+  if (player.shape === normShape) matchCount++;
+  if (player.pattern === normPattern) matchCount++;
+  if (player.size === normSize) matchCount++;
+
+  const matchPercent = (matchCount / 4) * 100;
+  const scoreEl = document.getElementById('match-score');
+  scoreEl.textContent = matchPercent.toFixed(0) + '%';
+  scoreEl.className = matchPercent === 100 ? 'safe' : matchPercent >= 50 ? 'warning' : 'danger';
+
+  // Update trait display
+  document.getElementById('trait-color').textContent = player.color === normColor ? 'BLUE' : 'RED';
+  document.getElementById('trait-color').className = player.color === normColor ? 'trait-item safe' : 'trait-item danger';
+
+  document.getElementById('trait-shape').textContent = player.shape.toUpperCase();
+  document.getElementById('trait-shape').className = player.shape === normShape ? 'trait-item safe' : 'trait-item danger';
+
+  document.getElementById('trait-pattern').textContent = player.pattern.toUpperCase();
+  document.getElementById('trait-pattern').className = player.pattern === normPattern ? 'trait-item safe' : 'trait-item danger';
+
+  document.getElementById('trait-size').textContent = player.size === normSize ? 'NORMAL' : 'LARGE';
+  document.getElementById('trait-size').className = player.size === normSize ? 'trait-item safe' : 'trait-item danger';
+}
+
+function drawHunter() {
+  ctx.save();
+  ctx.translate(hunter.x, hunter.y);
+
+  // Eye
+  ctx.fillStyle = '#f33';
+  ctx.beginPath();
+  ctx.arc(0, 0, hunter.size, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Pupil
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.arc(0, 0, 15, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#000';
+  ctx.beginPath();
+  ctx.arc(0, 0, 8, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
+
+  // Scan beam
+  if (hunter.scanning) {
+    ctx.strokeStyle = 'rgba(255,50,50,0.3)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(hunter.x, hunter.y);
+    ctx.lineTo(hunter.x, canvas.height);
+    ctx.stroke();
+  }
+}
+
+function performScan() {
+  hunter.scanning = true;
+  document.getElementById('hunter-warning').style.opacity = '1';
+
+  setTimeout(() => {
+    hunter.scanning = false;
+    document.getElementById('hunter-warning').style.opacity = '0';
+
+    // Check if player matches perfectly
+    if (player.color === normColor && player.shape === normShape &&
+        player.pattern === normPattern && player.size === normSize) {
+      // WIN
+      endGame(true);
+      return;
+    }
+
+    // Calculate outlier score
+    let playerDiff = 0;
+    if (player.color !== normColor) playerDiff++;
+    if (player.shape !== normShape) playerDiff++;
+    if (player.pattern !== normPattern) playerDiff++;
+    if (player.size !== normSize) playerDiff++;
+
+    // Find most stripped NPC
+    let maxStripped = 0;
+    npcs.forEach(npc => {
+      if (npc.stripped > maxStripped) maxStripped = npc.stripped;
+    });
+
+    // If chaos is high and player still different, LOSE
+    if (maxStripped >= 2 && playerDiff >= 2) {
+      endGame(false);
+      return;
+    }
+
+    // If player still very different, LOSE
+    if (playerDiff >= 3) {
+      endGame(false);
+      return;
+    }
+
+    scanTimer = 10;
+  }, 1000);
+}
+
+function endGame(won) {
+  gameState = won ? 'won' : 'lost';
+  clearInterval(scanInterval);
+  cancelAnimationFrame(gameLoop);
+
+  const msgDiv = document.getElementById('message');
+  msgDiv.classList.remove('hidden');
+  
+  if (won) {
+    msgDiv.innerHTML = `
+      <h1>PERFECT CAMOUFLAGE</h1>
+      <p>You blended in completely.</p>
+      <p>Victims left behind: ${victimCount}</p>
+      <button id="restart-btn">PLAY AGAIN</button>
+    `;
+  } else {
+    msgDiv.innerHTML = `
+      <h1>EXPOSED</h1>
+      <p>The hunter found you in the chaos.</p>
+      <p>Victims stripped: ${victimCount}</p>
+      <button id="restart-btn">TRY AGAIN</button>
+    `;
+  }
+
+  document.getElementById('restart-btn').addEventListener('click', startGame);
+}
+
+function draw() {
+  ctx.fillStyle = '#0a0a0a';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  npcs.forEach(npc => npc.draw());
+  player.draw();
+  drawHunter();
+}
+
+function update() {
+  if (gameState !== 'playing') return;
+
+  updatePlayer();
+  updateNPCs();
+  draw();
+
+  gameLoop = requestAnimationFrame(update);
+}
+
+function startGame() {
+  document.getElementById('message').classList.add('hidden');
+  gameState = 'playing';
+  initGame();
+
+  // Start scan countdown
+  clearInterval(scanInterval);
+  scanInterval = setInterval(() => {
+    scanTimer -= 0.1;
+    updateUI();
+    if (scanTimer <= 0) {
+      performScan();
+    }
+  }, 100);
+
+  update();
+}
+
+document.getElementById('start-btn').addEventListener('click', startGame);
+</script>
+</body>
+</html>

@@ -1,6 +1,40 @@
 [
   {
     "date": "2026-02-27",
+    "id": "2026-02-27-6",
+    "name": "Strainplay",
+    "description": "You conduct an evolving musical infection across a node network, patching harmful mutations and grafting strains to guide chaos toward harmony before entropy wins.",
+    "inspiration": "The IBM X-Force report highlights how leaked tools and AI lower barriers, causing a 49% surge in ransomware groups — creating a proliferating ecosystem of copycat threats that remix and recombine each other's tactics.",
+    "connection": "The image of threat actors stealing and remixing leaked toolkits to spawn new variants inspired a creative ecosystem game where musical fragments leak, mutate, and propagate through a living network — you nurture or contain their spread.",
+    "source_url": "https://newsroom.ibm.com/2026-02-25-ibm-2026-x-force-threat-index-ai-driven-attacks-are-escalating-as-basic-security-gaps-leave-enterprises-exposed",
+    "emoji": "🧬",
+    "category": "AI-inspired"
+  },
+  {
+    "date": "2026-02-27",
+    "id": "2026-02-27-5",
+    "name": "Weatherpain",
+    "description": "Track your symptoms alongside real weather data to discover which atmospheric changes trigger your pain, then see forecasted risk windows to plan ahead.",
+    "inspiration": "People managing chronic conditions like migraines, arthritis, asthma, or MS often suspect weather triggers but lack the data to prove or act on them. Doctors ask 'does weather affect you?' but patients can only guess. A tool that systematically correlates personal symptom logs with granular historical weather data would turn vague suspicion into actionable, personalized forecasts.",
+    "connection": "Open-Meteo provides free hourly historical weather data (pressure, humidity, temperature, wind, precipitation) for any location and date range, which is exactly what's needed to retroactively match symptom entries against atmospheric conditions and build a personal trigger profile.",
+    "source_url": "",
+    "emoji": "🌡️",
+    "category": "API tool",
+    "api": "Open-Meteo"
+  },
+  {
+    "date": "2026-02-27",
+    "id": "2026-02-27-4",
+    "name": "Skinthief",
+    "description": "You're a misfit cell sneaking through a crowd, stealing visual traits from others to blend in while the hunter scans for anyone who stands out.",
+    "inspiration": "Cancer cells steal surface proteins from immune macrophages, disguising themselves to avoid being consumed.",
+    "connection": "The idea of stealing another entity's identity markers to survive inspired a multiplayer stealth game where you pickpocket visual traits from other players to blend in and avoid being 'consumed' by a roaming hunter.",
+    "source_url": "https://www.ucsf.edu/news/2026/01/431411/two-new-breakthroughs-advance-neurological-disorders-and-cancer-research",
+    "emoji": "🧫",
+    "category": "Game"
+  },
+  {
+    "date": "2026-02-27",
     "id": "2026-02-27-3",
     "name": "Halflife",
     "description": "Enter your skills and watch them decay or fuse on a periodic table based on real AI automation research, discovering hybrid abilities that resist replacement.",

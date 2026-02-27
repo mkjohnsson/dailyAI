@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Weatherpain</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  padding: 20px;
+}
+.container {
+  max-width: 1000px;
+  margin: 0 auto;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  overflow: hidden;
+}
+.header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 30px;
+  text-align: center;
+}
+.header h1 { font-size: 2.5em; margin-bottom: 10px; }
+.header p { opacity: 0.9; }
+.content { padding: 30px; }
+.section { margin-bottom: 30px; }
+.section h2 {
+  color: #667eea;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #eee;
+}
+.input-group {
+  margin-bottom: 15px;
+}
+.input-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 600;
+  color: #333;
+}
+.input-group input, .input-group select, .input-group textarea {
+  width: 100%;
+  padding: 10px;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  font-size: 1em;
+  transition: border-color 0.3s;
+}
+.input-group input:focus, .input-group select:focus, .input-group textarea:focus {
+  outline: none;
+  border-color: #667eea;
+}
+.btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 12px 30px;
+  border-radius: 8px;
+  font-size: 1em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+.btn-secondary {
+  background: #6c757d;
+  margin-left: 10px;
+}
+.symptoms-list {
+  max-height: 300px;
+  overflow-y: auto;
+  border: 2px solid #eee;
+  border-radius: 8px;
+  padding: 15px;
+  margin-top: 15px;
+}
+.symptom-item {
+  background: #f8f9fa;
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.symptom-item:last-child { margin-bottom: 0; }
+.symptom-details {
+  flex: 1;
+}
+.symptom-date {
+  font-weight: 600;
+  color: #667eea;
+  margin-bottom: 5px;
+}
+.symptom-text {
+  color: #666;
+  font-size: 0.9em;
+}
+.delete-btn {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9em;
+}
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: #667eea;
+  font-size: 1.2em;
+}
+.spinner {
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #667eea;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin: 20px auto;
+}
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+.error {
+  background: #f8d7da;
+  color: #721c24;
+  padding: 15px;
+  border-radius: 8px;
+  margin: 15px 0;
+  border: 1px solid #f5c6cb;
+}
+.success {
+  background: #d4edda;
+  color: #155724;
+  padding: 15px;
+  border-radius: 8px;
+  margin: 15px 0;
+  border: 1px solid #c3e6cb;
+}
+.correlations {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 8px;
+  margin-top: 20px;
+}
+.correlation-item {
+  padding: 12px;
+  background: white;
+  border-left: 4px solid #667eea;
+  margin-bottom: 10px;
+  border-radius: 4px;
+}
+.correlation-strong { border-left-color: #dc3545; }
+.correlation-moderate { border-left-color: #ffc107; }
+.correlation-weak { border-left-color: #28a745; }
+.forecast-timeline {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 10px;
+  margin-top: 20px;
+}
+.forecast-day {
+  padding: 15px;
+  border-radius: 8px;
+  text-align: center;
+  color: white;
+  font-weight: 600;
+}
+.risk-low { background: #28a745; }
+.risk-moderate { background: #ffc107; color: #333; }
+.risk-high { background: #dc3545; }
+.forecast-date { font-size: 0.9em; opacity: 0.9; margin-bottom: 5px; }
+.forecast-risk { font-size: 1.2em; }
+.chart-container {
+  margin: 20px 0;
+  height: 300px;
+}
+.hidden { display: none; }
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>⛈️ Weatherpain</h1>
+    <p>Discover your weather triggers and predict pain days</p>
+  </div>
+  
+  <div class="content">
+    <!-- Step 1: Location -->
+    <div class="section" id="locationSection">
+      <h2>1. Set Your Location</h2>
+      <div class="input-group">
+        <label for="locationInput">City Name</label>
+        <input type="text" id="locationInput" placeholder="e.g., Stockholm, New York, Tokyo">
+      </div>
+      <button class="btn" onclick="setLocation()">Set Location</button>
+      <div id="locationStatus"></div>
+    </div>
+
+    <!-- Step 2: Log Symptoms -->
+    <div class="section hidden" id="symptomSection">
+      <h2>2. Log Your Symptoms</h2>
+      <div class="grid-2">
+        <div class="input-group">
+          <label for="symptomDate">Date & Time</label>
+          <input type="datetime-local" id="symptomDate">
+        </div>
+        <div class="input-group">
+          <label for="symptomType">Symptom Type</label>
+          <select id="symptomType">
+            <option value="migraine">Migraine</option>
+            <option value="headache">Headache</option>
+            <option value="joint_pain">Joint Pain</option>
+            <option value="sinus">Sinus Pressure</option>
+            <option value="fatigue">Fatigue</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="input-group">
+        <label for="severity">Severity (1-10): <span id="severityValue">5</span></label>
+        <input type="range" id="severity" min="1" max="10" value="5" oninput="document.getElementById('severityValue').textContent=this.value">
+      </div>
+      <div class="input-group">
+        <label for="notes">Notes (optional)</label>
+        <textarea id="notes" rows="2" placeholder="Additional details..."></textarea>
+      </div>
+      <button class="btn" onclick="logSymptom()">Log Symptom</button>
+      
+      <div class="symptoms-list" id="symptomsList"></div>
+      
+      <button class="btn" onclick="analyzeData()" id="analyzeBtn" style="margin-top: 20px;" disabled>
+        Analyze My Triggers (need 3+ symptoms)
+      </button>
+    </div>
+
+    <!-- Step 3: Analysis Results -->
+    <div class="section hidden" id="resultsSection">
+      <h2>3. Your Weather Triggers</h2>
+      <div id="analysisLoading" class="loading hidden">
+        <div class="spinner"></div>
+        Analyzing weather patterns...
+      </div>
+      <div id="correlations"></div>
+      <div class="chart-container">
+        <canvas id="correlationChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Step 4: Forecast -->
+    <div class="section hidden" id="forecastSection">
+      <h2>4. 7-Day Risk Forecast</h2>
+      <div id="forecastLoading" class="loading hidden">
+        <div class="spinner"></div>
+        Fetching forecast data...
+      </div>
+      <div class="forecast-timeline" id="forecastTimeline"></div>
+      <div class="chart-container">
+        <canvas id="forecastChart"></canvas>
+      </div>
+      <button class="btn" onclick="generatePDF()" style="margin-top: 20px;">📄 Generate PDF Report</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let appData = {
+  location: null,
+  symptoms: [],
+  weatherData: [],
+  correlations: {},
+  forecast: null
+};
+
+// Load data from localStorage
+function loadData() {
+  const saved = localStorage.getItem('weatherpainData');
+  if (saved) {
+    appData = JSON.parse(saved);
+    if (appData.location) {
+      document.getElementById('locationInput').value = appData.location.name;
+      document.getElementById('locationStatus').innerHTML = `<div class="success">Location set: ${appData.location.name}</div>`;
+      document.getElementById('symptomSection').classList.remove('hidden');
+    }
+    renderSymptoms();
+    updateAnalyzeButton();
+  }
+}
+
+function saveData() {
+  localStorage.setItem('weatherpainData', JSON.stringify(appData));
+}
+
+// Set current datetime
+document.getElementById('symptomDate').value = new Date().toISOString().slice(0, 16);
+
+async function setLocation() {
+  const city = document.getElementById('locationInput').value.trim();
+  if (!city) {
+    document.getElementById('locationStatus').innerHTML = '<div class="error">Please enter a city name</div>';
+    return;
+  }
+
+  document.getElementById('locationStatus').innerHTML = '<div class="loading"><div class="spinner"></div>Finding location...</div>';
+
+  try {
+    const response = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=en&format=json`);
+    const data = await response.json();
+
+    if (!data.results || data.results.length === 0) {
+      throw new Error('Location not found');
+    }
+
+    appData.location = {
+      name: data.results[0].name,
+      country: data.results[0].country,
+      lat: data.results[0].latitude,
+      lon: data.results[0].longitude
+    };
+
+    document.getElementById('locationStatus').innerHTML = `<div class="success">Location set: ${appData.location.name}, ${appData.location.country}</div>`;
+    document.getElementById('symptomSection').classList.remove('hidden');
+    saveData();
+  } catch (error) {
+    document.getElementById('locationStatus').innerHTML = `<div class="error">Error: ${error.message}</div>`;
+  }
+}
+
+function logSymptom() {
+  const dateTime = document.getElementById('symptomDate').value;
+  const type = document.getElementById('symptomType').value;
+  const severity = parseInt(document.getElementById('severity').value);
+  const notes = document.getElementById('notes').value;
+
+  if (!dateTime) {
+    alert('Please select date and time');
+    return;
+  }
+
+  appData.symptoms.push({
+    id: Date.now(),
+    dateTime,
+    type,
+    severity,
+    notes,
+    timestamp: new Date(dateTime).getTime()
+  });
+
+  appData.symptoms.sort((a, b) => b.timestamp - a.timestamp);
+  
+  document.getElementById('notes').value = '';
+  document.getElementById('severity').value = 5;
+  document.getElementById('severityValue').textContent = 5;
+  document.getElementById('symptomDate').value = new Date().toISOString().slice(0, 16);
+
+  renderSymptoms();
+  updateAnalyzeButton();
+  saveData();
+}
+
+function renderSymptoms() {
+  const list = document.getElementById('symptomsList');
+  if (appData.symptoms.length === 0) {
+    list.innerHTML = '<p style="color: #999; text-align: center;">No symptoms logged yet</p>';
+    return;
+  }
+
+  list.innerHTML = appData.symptoms.map(s => `
+    <div class="symptom-item">
+      <div class="symptom-details">
+        <div class="symptom-date">${new Date(s.dateTime).toLocaleString()}</div>
+        <div class="symptom-text">
+          <strong>${s.type.replace('_', ' ').toUpperCase()}</strong> - Severity: ${s.severity}/10
+          ${s.notes ? `<br>${s.notes}` : ''}
+        </div>
+      </div>
+      <button class="delete-btn" onclick="deleteSymptom(${s.id})">Delete</button>
+    </div>
+  `).join('');
+}
+
+function deleteSymptom(id) {
+  appData.symptoms = appData.symptoms.filter(s => s.id !== id);
+  renderSymptoms();
+  updateAnalyzeButton();
+  saveData();
+}
+
+function updateAnalyzeButton() {
+  const btn = document.getElementById('analyzeBtn');
+  if (appData.symptoms.length >= 3) {
+    btn.disabled = false;
+  } else {
+    btn.disabled = true;
+  }
+}
+
+async function analyzeData() {
+  document.getElementById('analysisLoading').classList.remove('hidden');
+  document.getElementById('resultsSection').classList.remove('hidden');
+  document.getElementById('correlations').innerHTML = '';
+
+  try {
+    // Get date range
+    const timestamps = appData.symptoms.map(s => s.timestamp);
+    const minDate = new Date(Math.min(...timestamps));
+    const maxDate = new Date(Math.max(...timestamps));
+
+    // Fetch historical weather data
+    const startDate = minDate.toISOString().split('T')[0];
+    const endDate = maxDate.toISOString().split('T')[0];
+
+    const weatherUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${appData.location.lat}&longitude=${appData.location.lon}&start_date=${startDate}&end_date=${endDate}&hourly=temperature_2m,relative_humidity_2m,surface_pressure,wind_speed_10m&timezone=auto`;
+
+    const response = await fetch(weatherUrl);
+    const weatherData = await response.json();
+
+    // Calculate pressure changes
+    const pressures = weatherData.hourly.surface_pressure;
+    const pressureChanges = [];
+    for (let i = 6; i < pressures.length; i++) {
+      pressureChanges.push(pressures[i] - pressures[i - 6]);
+    }
+
+    // Match symptoms to weather conditions
+    const matches = appData.symptoms.map(symptom => {
+      const symptomDate = new Date(symptom.dateTime);
+      const hourIndex = weatherData.hourly.time.findIndex(t => {
+        const weatherDate = new Date(t);
+        return Math.abs(weatherDate - symptomDate) < 3600000; // Within 1 hour
+      });
+
+      if (hourIndex === -1) return null;
+
+      return {
+        severity: symptom.severity,
+        pressure: pressures[hourIndex],
+        pressureChange: hourIndex >= 6 ? pressureChanges[hourIndex - 6] : 0,
+        humidity: weatherData.hourly.relative_humidity_2m[hourIndex],
+        temp: weatherData.hourly.temperature_2m[hourIndex],
+        windSpeed: weatherData.hourly.wind_speed_10m[hourIndex]
+      };
+    }).filter(m => m !== null);
+
+    // Calculate correlations
+    appData.correlations = {
+      pressureDrop: calculateCorrelation(matches.map(m => m.pressureChange < -3 ? 1 : 0), matches.map(m => m.severity)),
+      highHumidity: calculateCorrelation(matches.map(m => m.humidity > 70 ? 1 : 0), matches.map(m => m.severity)),
+      lowPressure: calculateCorrelation(matches.map(m => m.pressure < 1010 ? 1 : 0), matches.map(m => m.severity)),
+      highWind: calculateCorrelation(matches.map(m => m.windSpeed > 20 ? 1 : 0), matches.map(m => m.severity))
+    };
+
+    displayCorrelations();
+    displayCorrelationChart();
+    await fetchForecast();
+
+  } catch (error) {
+    document.getElementById('correlations').innerHTML = `<div class="error">Analysis error: ${error.message}</div>`;
+  } finally {
+    document.getElementById('analysisLoading').classList.add('hidden');
+  }
+}
+
+function calculateCorrelation(x, y) {
+  const n = x.length;
+  const sumX = x.reduce((a, b) => a + b, 0);
+  const sumY = y.reduce((a, b) => a + b, 0);
+  const sumXY = x.reduce((sum, xi, i) => sum + xi * y[i], 0);
+  const sumX2 = x.reduce((sum, xi) => sum + xi * xi, 0);
+  const sumY2 = y.reduce((sum, yi) => sum + yi * yi, 0);
+
+  const numerator = n * sumXY - sumX * sumY;
+  const denominator = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
+
+  return denominator === 0 ? 0 : numerator / denominator;
+}
+
+function displayCorrelations() {
+  const corr = appData.correlations;
+  const items = [
+    { name: 'Pressure Drop (>3 hPa/6h)', value: corr.pressureDrop },
+    { name: 'High Humidity (>70%)', value: corr.highHumidity },
+    { name: 'Low Pressure (<1010 hPa)', value: corr.lowPressure },
+    { name: 'High Wind (>20 km/h)', value: corr.highWind }
+  ].sort((a, b) => Math.abs(b.value) - Math.abs(a.value));
+
+  const html = items.map(item => {
+    const absValue = Math.abs(item.value);
+    let className = 'correlation-weak';
+    let strength = 'Weak';
+    if (absValue > 0.5) { className = 'correlation-strong'; strength = 'Strong'; }
+    else if (absValue > 0.3) { className = 'correlation-moderate'; strength = 'Moderate'; }
+
+    return `
+      <div class="correlation-item ${className}">
+        <strong>${item.name}</strong><br>
+        Correlation: ${item.value.toFixed(3)} (${strength} ${item.value > 0 ? 'positive' : 'negative'})
+      </div>
+    `;
+  }).join('');
+
+  document.getElementById('correlations').innerHTML = `
+    <h3>Weather Trigger Analysis</h3>
+    ${html}
+    <p style="margin-top: 15px; color: #666; font-size: 0.9em;">
+      Values closer to ±1 indicate stronger correlation. Positive values mean symptoms worsen with that condition.
+    </p>
+  `;
+}
+
+function displayCorrelationChart() {
+  const ctx = document.getElementById('correlationChart').getContext('2d');
+  const corr = appData.correlations;
+
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['Pressure Drop', 'High Humidity', 'Low Pressure', 'High Wind'],
+      datasets: [{
+        label: 'Correlation Strength',
+        data: [corr.pressureDrop, corr.highHumidity, corr.lowPressure, corr.highWind],
+        backgroundColor: [
+          'rgba(220, 53, 69, 0.8)',
+          'rgba(255, 193, 7, 0.8)',
+          'rgba(102, 126, 234, 0.8)',
+          'rgba(40, 167, 69, 0.8)'
+        ]
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true,
+          min: -1,
+          max: 1
+        }
+      }
+    }
+  });
+}
+
+async function fetchForecast() {
+  document.getElementById('forecastLoading').classList.remove('hidden');
+  document.getElementById('forecastSection').classList.remove('hidden');
+
+  try {
+    const forecastUrl = `https://api.open-meteo.com/v1/forecast?latitude=${appData.location.lat}&longitude=${appData.location.lon}&hourly=temperature_2m,relative_humidity_2m,surface_pressure,wind_speed_10m&forecast_days=7&timezone=auto`;
+
+    const response = await fetch(forecastUrl);
+    appData.forecast = await response.json();
+
+    displayForecast();
+  } catch (error) {
+    document.getElementById('forecastTimeline').innerHTML = `<div class="error">Forecast error: ${error.message}</div>`;
+  } finally {
+    document.getElementById('forecastLoading').classList.add('hidden');
+  }
+}
+
+function displayForecast() {
+  const forecast = appData.forecast;
+  const pressures = forecast.hourly.surface_pressure;
+  const humidity = forecast.hourly.relative_humidity_2m;
+  const wind = forecast.hourly.wind_speed_10m;
+
+  // Calculate daily risk scores
+  const dailyRisks = [];
+  for (let day = 0; day < 7; day++) {
+    const startIdx = day * 24;
+    const endIdx = startIdx + 24;
+    
+    let riskScore = 0;
+    for (let i = startIdx + 6; i < endIdx; i++) {
+      const pressureChange = pressures[i] - pressures[i - 6];
+      if (pressureChange < -3 && appData.correlations.pressureDrop > 0.3) riskScore += 2;
+      if (humidity[i] > 70 && appData.correlations.highHumidity > 0.3) riskScore += 1;
+      if (pressures[i] < 1010 && appData.correlations.lowPressure > 0.3) riskScore += 1;
+      if (wind[i] > 20 && appData.correlations.highWind > 0.3) riskScore += 1;
+    }
+    
+    dailyRisks.push(riskScore);
+  }
+
+  const maxRisk = Math.max(...dailyRisks);
+  const timeline = dailyRisks.map((risk, i) => {
+    const date = new Date();
+    date.setDate(date.getDate() + i);
+    
+    let riskClass = 'risk-low';
+    let riskLabel = 'Low';
+    if (maxRisk > 0) {
+      const normalized = risk / maxRisk;
+      if (normalized > 0.6) { riskClass = 'risk-high'; riskLabel = 'High'; }
+      else if (normalized > 0.3) { riskClass = 'risk-moderate'; riskLabel = 'Moderate'; }
+    }
+
+    return `
+      <div class="forecast-day ${riskClass}">
+        <div class="forecast-date">${date.toLocaleDateString('en', { weekday: 'short', month: 'short', day: 'numeric' })}</div>
+        <div class="forecast-risk">${riskLabel}</div>
+      </div>
+    `;
+  }).join('');
+
+  document.getElementById('forecastTimeline').innerHTML = timeline;
+  displayForecastChart(dailyRisks);
+}
+
+function displayForecastChart(risks) {
+  const ctx = document.getElementById('forecastChart').getContext('2d');
+  const labels = [];
+  for (let i = 0; i < 7; i++) {
+    const date = new Date();
+    date.setDate(date.getDate() + i);
+    labels.push(date.toLocaleDateString('en', { weekday: 'short' }));
+  }
+
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Risk Score',
+        data: risks,
+        borderColor: 'rgba(220, 53, 69, 1)',
+        backgroundColor: 'rgba(220, 53, 69, 0.2)',
+        tension: 0.3,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true
+        }
+      }
+    }
+  });
+}
+
+function generatePDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  doc.setFontSize(20);
+  doc.text('Weatherpain Analysis Report', 20, 20);
+  
+  doc.setFontSize(12);
+  doc.text(`Location: ${appData.location.name}, ${appData.location.country}`, 20, 35);
+  doc.text(`Generated: ${new Date().toLocaleDateString()}`, 20, 42);
+  doc.text(`Symptoms Analyzed: ${appData.symptoms.length}`, 20, 49);
+
+  doc.setFontSize(14);
+  doc.text('Top Weather Triggers:', 20, 65);
+
+  const corr = appData.correlations;
+  const triggers = [
+    { name: 'Pressure Drop', value: corr.pressureDrop },
+    { name: 'High Humidity', value: corr.highHumidity },
+    { name: 'Low Pressure', value: corr.lowPressure },
+    { name: 'High Wind', value: corr.highWind }
+  ].sort((a, b) => Math.abs(b.value) - Math.abs(a.value));
+
+  let y = 75;
+  triggers.forEach(t => {
+    doc.setFontSize(11);
+    doc.text(`${t.name}: ${t.value.toFixed(3)}`, 25, y);
+    y += 7;
+  });
+
+  doc.setFontSize(14);
+  doc.text('Recommendations:', 20, y + 10);
+  doc.setFontSize(11);
+  y += 20;
+
+  const topTrigger = triggers[0];
+  if (Math.abs(topTrigger.value) > 0.3) {
+    doc.text(`Your symptoms correlate most with ${topTrigger.name}.`, 25, y);
+    y += 7;
+    doc.text('Monitor forecast for these conditions and consider premedication.', 25, y);
+  } else {
+    doc.text('No strong weather correlations found yet.', 25, y);
+    y += 7;
+    doc.text('Continue logging symptoms for better analysis.', 25, y);
+  }
+
+  doc.save('weatherpain-report.pdf');
+}
+
+loadData();
+</script>
+</body>
+</html>

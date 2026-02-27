@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Strainplay</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Courier New', monospace;
+    background: #0a0a0a;
+    color: #00ff88;
+    overflow: hidden;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  #header {
+    padding: 15px 20px;
+    background: #111;
+    border-bottom: 2px solid #00ff88;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  #stats {
+    display: flex;
+    gap: 30px;
+    font-size: 14px;
+  }
+  .stat { display: flex; align-items: center; gap: 8px; }
+  .stat-bar {
+    width: 100px;
+    height: 8px;
+    background: #222;
+    border: 1px solid #00ff88;
+    position: relative;
+  }
+  .stat-fill {
+    height: 100%;
+    background: #00ff88;
+    transition: width 0.3s;
+  }
+  #controls {
+    display: flex;
+    gap: 10px;
+  }
+  button {
+    background: #001a0f;
+    color: #00ff88;
+    border: 1px solid #00ff88;
+    padding: 8px 16px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+    transition: all 0.2s;
+  }
+  button:hover { background: #00ff88; color: #000; }
+  button:disabled { opacity: 0.3; cursor: not-allowed; }
+  #canvas-container {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+  }
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  #tooltip {
+    position: absolute;
+    background: rgba(0, 0, 0, 0.9);
+    border: 1px solid #00ff88;
+    padding: 8px 12px;
+    font-size: 11px;
+    pointer-events: none;
+    display: none;
+    z-index: 100;
+    max-width: 200px;
+  }
+  .mutation-tag {
+    display: inline-block;
+    padding: 2px 6px;
+    margin: 2px;
+    background: #003322;
+    border: 1px solid #00ff88;
+    font-size: 10px;
+  }
+</style>
+</head>
+<body>
+<div id="header">
+  <div id="stats">
+    <div class="stat">
+      <span>HARMONY:</span>
+      <div class="stat-bar"><div class="stat-fill" id="harmony-fill"></div></div>
+      <span id="harmony-val">50%</span>
+    </div>
+    <div class="stat">
+      <span>ENTROPY:</span>
+      <div class="stat-bar"><div class="stat-fill" id="entropy-fill" style="background:#ff3366"></div></div>
+      <span id="entropy-val">0%</span>
+    </div>
+    <div class="stat">
+      <span>INFECTED:</span>
+      <span id="infected-count">1/20</span>
+    </div>
+  </div>
+  <div id="controls">
+    <button id="patch-btn" disabled>PATCH (P)</button>
+    <button id="graft-btn" disabled>GRAFT (G)</button>
+    <button id="amplify-btn" disabled>AMPLIFY (A)</button>
+    <button id="restart-btn">RESTART</button>
+  </div>
+</div>
+<div id="canvas-container">
+  <canvas id="canvas"></canvas>
+  <div id="tooltip"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const tooltip = document.getElementById('tooltip');
+
+let width, height;
+function resize() {
+  width = canvas.width = canvas.offsetWidth;
+  height = canvas.height = canvas.offsetHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+// Audio setup
+const synth = new Tone.PolySynth(Tone.Synth, {
+  envelope: { attack: 0.02, decay: 0.1, sustain: 0.3, release: 0.5 },
+  volume: -12
+}).toDestination();
+
+// Musical scale (C major pentatonic for harmony)
+const scale = ['C4', 'D4', 'E4', 'G4', 'A4', 'C5', 'D5', 'E5'];
+const mutations = ['TRANSPOSE', 'INVERT', 'STRETCH', 'REVERSE', 'FUSION'];
+
+// Game state
+let nodes = [];
+let edges = [];
+let selectedNodes = [];
+let mode = null; // 'patch', 'graft', 'amplify'
+let harmony = 50;
+let entropy = 0;
+let infectedCount = 1;
+let gameOver = false;
+
+class Node {
+  constructor(x, y, isOrigin = false) {
+    this.x = x;
+    this.y = y;
+    this.radius = 20;
+    this.infected = isOrigin;
+    this.strain = isOrigin ? this.generateSeed() : null;
+    this.mutation = null;
+    this.generation = isOrigin ? 0 : null;
+    this.patched = false;
+    this.amplified = false;
+    this.spreading = false;
+    this.spreadTimer = 0;
+    this.pulsePhase = Math.random() * Math.PI * 2;
+  }
+
+  generateSeed() {
+    const length = 4;
+    return Array(length).fill(0).map(() => 
+      scale[Math.floor(Math.random() * scale.length)]
+    );
+  }
+
+  mutate(parentStrain, mutation, fusionStrain = null) {
+    let newStrain = [...parentStrain];
+    
+    switch(mutation) {
+      case 'TRANSPOSE':
+        const shift = Math.random() > 0.5 ? 1 : -1;
+        newStrain = newStrain.map(note => {
+          const idx = scale.indexOf(note);
+          return scale[Math.max(0, Math.min(scale.length - 1, idx + shift))];
+        });
+        break;
+      
+      case 'INVERT':
+        newStrain = newStrain.reverse();
+        break;
+      
+      case 'STRETCH':
+        if (newStrain.length < 6) {
+          newStrain.splice(1, 0, newStrain[0]);
+        }
+        break;
+      
+      case 'REVERSE':
+        newStrain = newStrain.reverse();
+        break;
+      
+      case 'FUSION':
+        if (fusionStrain) {
+          newStrain = newStrain.slice(0, 2).concat(fusionStrain.slice(0, 2));
+        }
+        break;
+    }
+    
+    return newStrain;
+  }
+
+  calculateHarmony() {
+    if (!this.strain) return 0;
+    // Pentatonic notes = good, repeated patterns = good
+    let score = 0;
+    const uniqueNotes = new Set(this.strain);
+    score += uniqueNotes.size * 10;
+    if (this.strain.length >= 4 && this.strain.length <= 6) score += 20;
+    return Math.min(100, score);
+  }
+
+  play() {
+    if (!this.strain) return;
+    const now = Tone.now();
+    this.strain.forEach((note, i) => {
+      synth.triggerAttackRelease(note, '8n', now + i * 0.15);
+    });
+  }
+
+  update(dt) {
+    this.pulsePhase += dt * 2;
+    if (this.spreading) {
+      this.spreadTimer += dt;
+      if (this.spreadTimer > 0.5) {
+        this.spreading = false;
+        this.spreadTimer = 0;
+      }
+    }
+  }
+
+  draw() {
+    // Glow effect for infected nodes
+    if (this.infected) {
+      const pulse = Math.sin(this.pulsePhase) * 0.3 + 0.7;
+      const glowRadius = this.radius + 10 * pulse;
+      
+      const gradient = ctx.createRadialGradient(this.x, this.y, this.radius, this.x, this.y, glowRadius);
+      if (this.patched) {
+        gradient.addColorStop(0, 'rgba(100, 100, 255, 0.4)');
+        gradient.addColorStop(1, 'rgba(100, 100, 255, 0)');
+      } else if (this.amplified) {
+        gradient.addColorStop(0, 'rgba(255, 215, 0, 0.4)');
+        gradient.addColorStop(1, 'rgba(255, 215, 0, 0)');
+      } else {
+        gradient.addColorStop(0, 'rgba(0, 255, 136, 0.4)');
+        gradient.addColorStop(1, 'rgba(0, 255, 136, 0)');
+      }
+      
+      ctx.fillStyle = gradient;
+      ctx.fillRect(this.x - glowRadius, this.y - glowRadius, glowRadius * 2, glowRadius * 2);
+    }
+
+    // Node body
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+    
+    if (this.patched) {
+      ctx.fillStyle = '#0044ff';
+      ctx.strokeStyle = '#6688ff';
+    } else if (this.amplified) {
+      ctx.fillStyle = '#ffd700';
+      ctx.strokeStyle = '#ffed4e';
+    } else if (this.infected) {
+      ctx.fillStyle = '#003322';
+      ctx.strokeStyle = '#00ff88';
+    } else {
+      ctx.fillStyle = '#111';
+      ctx.strokeStyle = '#333';
+    }
+    
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Spreading animation
+    if (this.spreading) {
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.radius + 20 * (this.spreadTimer / 0.5), 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(0, 255, 136, ${1 - this.spreadTimer / 0.5})`;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    // Selection highlight
+    if (selectedNodes.includes(this)) {
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.radius + 5, 0, Math.PI * 2);
+      ctx.strokeStyle = '#ffff00';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+    }
+  }
+
+  contains(x, y) {
+    const dx = x - this.x;
+    const dy = y - this.y;
+    return dx * dx + dy * dy <= this.radius * this.radius;
+  }
+}
+
+// Initialize network
+function initNetwork() {
+  nodes = [];
+  edges = [];
+  selectedNodes = [];
+  mode = null;
+  harmony = 50;
+  entropy = 0;
+  infectedCount = 1;
+  gameOver = false;
+
+  // Create grid of nodes
+  const cols = 5;
+  const rows = 4;
+  const spacing = Math.min(width / (cols + 1), height / (rows + 1));
+  const offsetX = (width - spacing * (cols - 1)) / 2;
+  const offsetY = (height - spacing * (rows - 1)) / 2;
+
+  for (let i = 0; i < rows; i++) {
+    for (let j = 0; j < cols; j++) {
+      const x = offsetX + j * spacing;
+      const y = offsetY + i * spacing;
+      const isOrigin = i === 1 && j === 2;
+      nodes.push(new Node(x, y, isOrigin));
+    }
+  }
+
+  // Create edges (grid connections)
+  for (let i = 0; i < rows; i++) {
+    for (let j = 0; j < cols; j++) {
+      const idx = i * cols + j;
+      if (j < cols - 1) edges.push([idx, idx + 1]);
+      if (i < rows - 1) edges.push([idx, idx + cols]);
+    }
+  }
+
+  updateUI();
+}
+
+// Spread infection
+let lastSpread = 0;
+function spreadInfection(dt) {
+  lastSpread += dt;
+  if (lastSpread < 2) return; // Spread every 2 seconds
+  lastSpread = 0;
+
+  if (gameOver) return;
+
+  const infected = nodes.filter(n => n.infected && !n.patched);
+  if (infected.length === 0) return;
+
+  infected.forEach(node => {
+    const nodeIdx = nodes.indexOf(node);
+    const neighbors = edges
+      .filter(([a, b]) => a === nodeIdx || b === nodeIdx)
+      .map(([a, b]) => a === nodeIdx ? b : a)
+      .map(idx => nodes[idx])
+      .filter(n => !n.infected);
+
+    if (neighbors.length === 0) return;
+
+    const target = neighbors[Math.floor(Math.random() * neighbors.length)];
+    const mutation = mutations[Math.floor(Math.random() * mutations.length)];
+    
+    let fusionStrain = null;
+    if (mutation === 'FUSION') {
+      const otherInfected = infected.filter(n => n !== node);
+      if (otherInfected.length > 0) {
+        fusionStrain = otherInfected[Math.floor(Math.random() * otherInfected.length)].strain;
+      }
+    }
+
+    target.infected = true;
+    target.strain = node.mutate(node.strain, mutation, fusionStrain);
+    target.mutation = mutation;
+    target.generation = node.generation + 1;
+    
+    node.spreading = true;
+    node.spreadTimer = 0;
+    
+    infectedCount++;
+    
+    target.play();
+    
+    // Update harmony and entropy
+    const nodeHarmony = target.calculateHarmony();
+    harmony = (harmony + nodeHarmony) / 2;
+    entropy += (100 - nodeHarmony) / 10;
+    entropy = Math.min(100, entropy);
+
+    if (entropy >= 100) {
+      gameOver = true;
+      alert('ENTROPY OVERLOAD! The network has collapsed into noise.');
+    }
+  });
+
+  updateUI();
+}
+
+// UI updates
+function updateUI() {
+  document.getElementById('harmony-fill').style.width = harmony + '%';
+  document.getElementById('harmony-val').textContent = Math.round(harmony) + '%';
+  document.getElementById('entropy-fill').style.width = entropy + '%';
+  document.getElementById('entropy-val').textContent = Math.round(entropy) + '%';
+  document.getElementById('infected-count').textContent = infectedCount + '/' + nodes.length;
+
+  document.getElementById('patch-btn').disabled = mode !== 'patch' && selectedNodes.length === 0;
+  document.getElementById('graft-btn').disabled = mode !== 'graft' && selectedNodes.length < 2;
+  document.getElementById('amplify-btn').disabled = mode !== 'amplify' && selectedNodes.length === 0;
+}
+
+// Actions
+function patchNode(node) {
+  if (!node.infected || node.patched) return;
+  node.patched = true;
+  entropy = Math.max(0, entropy - 10);
+  selectedNodes = [];
+  mode = null;
+  updateUI();
+}
+
+function graftNodes(node1, node2) {
+  if (!node1.infected || !node2.infected) return;
+  const hybrid = node1.strain.slice(0, 2).concat(node2.strain.slice(0, 2));
+  node1.strain = hybrid;
+  node2.strain = hybrid;
+  harmony = Math.min(100, harmony + 15);
+  selectedNodes = [];
+  mode = null;
+  node1.play();
+  updateUI();
+}
+
+function amplifyNode(node) {
+  if (!node.infected || node.amplified) return;
+  node.amplified = true;
+  harmony = Math.min(100, harmony + 20);
+  selectedNodes = [];
+  mode = null;
+  node.play();
+  updateUI();
+}
+
+// Mouse interaction
+let mouseX = 0, mouseY = 0;
+canvas.addEventListener('mousemove', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  mouseX = e.clientX - rect.left;
+  mouseY = e.clientY - rect.top;
+
+  const hovered = nodes.find(n => n.contains(mouseX, mouseY));
+  if (hovered && hovered.infected) {
+    tooltip.style.display = 'block';
+    tooltip.style.left = e.clientX + 15 + 'px';
+    tooltip.style.top = e.clientY + 15 + 'px';
+    
+    let html = `<strong>Gen ${hovered.generation}</strong><br>`;
+    if (hovered.mutation) html += `<div class="mutation-tag">${hovered.mutation}</div>`;
+    html += `<br>Strain: ${hovered.strain.join(' ')}`;
+    if (hovered.patched) html += '<br><strong>PATCHED</strong>';
+    if (hovered.amplified) html += '<br><strong>AMPLIFIED</strong>';
+    
+    tooltip.innerHTML = html;
+  } else {
+    tooltip.style.display = 'none';
+  }
+});
+
+canvas.addEventListener('click', () => {
+  const clicked = nodes.find(n => n.contains(mouseX, mouseY));
+  if (!clicked) {
+    selectedNodes = [];
+    mode = null;
+    updateUI();
+    return;
+  }
+
+  if (mode === 'patch') {
+    patchNode(clicked);
+  } else if (mode === 'graft') {
+    if (!selectedNodes.includes(clicked)) {
+      selectedNodes.push(clicked);
+      if (selectedNodes.length === 2) {
+        graftNodes(selectedNodes[0], selectedNodes[1]);
+      }
+    }
+  } else if (mode === 'amplify') {
+    amplifyNode(clicked);
+  } else {
+    // Just select
+    if (selectedNodes.includes(clicked)) {
+      selectedNodes = selectedNodes.filter(n => n !== clicked);
+    } else {
+      selectedNodes.push(clicked);
+    }
+  }
+  updateUI();
+});
+
+// Button handlers
+document.getElementById('patch-btn').addEventListener('click', () => {
+  mode = 'patch';
+  selectedNodes = [];
+  updateUI();
+});
+
+document.getElementById('graft-btn').addEventListener('click', () => {
+  mode = 'graft';
+  selectedNodes = [];
+  updateUI();
+});
+
+document.getElementById('amplify-btn').addEventListener('click', () => {
+  mode = 'amplify';
+  selectedNodes = [];
+  updateUI();
+});
+
+document.getElementById('restart-btn').addEventListener('click', () => {
+  initNetwork();
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'p' || e.key === 'P') document.getElementById('patch-btn').click();
+  if (e.key === 'g' || e.key === 'G') document.getElementById('graft-btn').click();
+  if (e.key === 'a' || e.key === 'A') document.getElementById('amplify-btn').click();
+});
+
+// Animation loop
+let lastTime = 0;
+function animate(time) {
+  const dt = Math.min((time - lastTime) / 1000, 0.1);
+  lastTime = time;
+
+  ctx.fillStyle = '#0a0a0a';
+  ctx.fillRect(0, 0, width, height);
+
+  // Draw edges
+  ctx.strokeStyle = '#222';
+  ctx.lineWidth = 1;
+  edges.forEach(([a, b]) => {
+    const nodeA = nodes[a];
+    const nodeB = nodes[b];
+    
+    if (nodeA.infected && nodeB.infected) {
+      ctx.strokeStyle = '#00ff8844';
+    } else {
+      ctx.strokeStyle = '#222';
+    }
+    
+    ctx.beginPath();
+    ctx.moveTo(nodeA.x, nodeA.y);
+    ctx.lineTo(nodeB.x, nodeB.y);
+    ctx.stroke();
+  });
+
+  // Update and draw nodes
+  nodes.forEach(node => {
+    node.update(dt);
+    node.draw();
+  });
+
+  spreadInfection(dt);
+
+  requestAnimationFrame(animate);
+}
+
+// Start
+initNetwork();
+Tone.start();
+animate(0);
+</script>
+</body>
+</html>
