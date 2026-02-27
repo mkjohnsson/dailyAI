@@ -535,7 +535,7 @@ function renderTodaySlot(app) {
     <div class="card-top">
       ${app.category ? `<span class="category">${app.category}</span>` : ''}
     </div>
-    <span class="card-emoji">${app.emoji || '✨'}</span>
+    ${!app.image ? `<span class="card-emoji">${app.emoji || '✨'}</span>` : ''}
     <div class="name">${app.name}</div>
     <div class="desc">${app.description}</div>
     ${apiTag}
