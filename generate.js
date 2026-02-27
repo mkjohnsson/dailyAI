@@ -409,6 +409,16 @@ async function generate() {
       ...(category.id === 'api' && idea.api ? { api: idea.api } : {}),
     };
 
+    console.log(`  🎨 Generating image...`);
+    try {
+      const imgPrompt = await generateImagePrompt(idea.name, idea.concept, idea.inspiration, category.label);
+      await generateImage(imgPrompt, runId);
+      entry.image = true;
+      console.log(`  ✓ Image generated`);
+    } catch (err) {
+      console.warn(`  ⚠ Image generation failed: ${err.message}`);
+    }
+
     newEntries.push(entry);
     manifest.unshift(entry);
 
@@ -421,18 +431,74 @@ async function generate() {
   console.log(`\n✓ Done — ${newEntries.length} apps for ${today}`);
 }
 
+// ── Image generation ──────────────────────────────────────────────────────────
+
+async function generateImagePrompt(name, description, inspiration, category) {
+  const text = await callAPI(IDEATE_MODEL, [{
+    role: 'user',
+    content: `Create a short, vivid prompt for a photorealistic photograph that captures the essence of this app concept.
+
+App: ${name}
+Concept: ${description}
+Inspired by: ${inspiration || ''}
+Category: ${category}
+
+Requirements:
+- Photorealistic photography style (macro, aerial, studio, nature, science, etc.)
+- No people, no text, no UI elements
+- Square composition, dramatic lighting
+- Visually striking and evocative
+- 2-3 sentences max
+
+Respond with only the image prompt, nothing else.`,
+  }]);
+  return text.trim();
+}
+
+async function generateImage(prompt, runId) {
+  const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: 'google/gemini-3.1-flash-image-preview',
+      messages: [{ role: 'user', content: prompt }],
+      modalities: ['image'],
+    }),
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message);
+
+  const message = data.choices?.[0]?.message;
+  let imageUrl = null;
+  if (Array.isArray(message?.content)) {
+    const imgPart = message.content.find(p => p.type === 'image_url');
+    imageUrl = imgPart?.image_url?.url;
+  } else if (message?.images?.[0]?.image_url?.url) {
+    imageUrl = message.images[0].image_url.url;
+  }
+  if (!imageUrl) throw new Error('No image in response');
+
+  const base64 = imageUrl.replace(/^data:image\/\w+;base64,/, '');
+  const imgPath = path.join('public', 'apps', runId, 'og.jpg');
+  fs.writeFileSync(imgPath, Buffer.from(base64, 'base64'));
+}
+
 // ── Meta tag injection ────────────────────────────────────────────────────────
 
-function injectAppMeta(html, name, description, appId) {
+function injectAppMeta(html, name, description, appId, hasImage = false) {
   const canonicalUrl = `https://dailyaigen.com/apps/${appId}/`;
   const escapedDesc = (description || '').replace(/"/g, '&quot;').replace(/</g, '&lt;');
   const escapedName = (name || '').replace(/"/g, '&quot;');
+  const ogImage = hasImage ? `\n  <meta property="og:image" content="https://dailyaigen.com/apps/${appId}/og.jpg">` : '';
   const seoTags = `
   <meta name="description" content="${escapedDesc}">
   <meta property="og:title" content="${escapedName} — Daily AI Gen">
   <meta property="og:description" content="${escapedDesc}">
   <meta property="og:url" content="${canonicalUrl}">
-  <meta property="og:type" content="website">
+  <meta property="og:type" content="website">${ogImage}
   <link rel="canonical" href="${canonicalUrl}">`;
   // Update title to include site name if not already
   let result = html.replace(/<title>([^<]*?)\s*(?:—\s*Daily AI Gen)?<\/title>/i,
@@ -459,8 +525,13 @@ function renderTodaySlot(app) {
        </div>`
     : '';
 
+  const imgHtml = app.image
+    ? `<div class="card-img" style="background-image:url('/apps/${app.id || app.date}/og.jpg')"></div>`
+    : '';
+
   return `
   <a href="/apps/${app.id || app.date}/" class="card" style="--accent:${catColor}">
+    ${imgHtml}
     <div class="card-top">
       ${app.category ? `<span class="category">${app.category}</span>` : ''}
     </div>
@@ -718,6 +789,16 @@ function generateGallery(manifest) {
     .card--compact { padding: 1rem; box-shadow: 3px 3px 0 #1A1A1A; }
     .card--compact:hover { box-shadow: 6px 6px 0 #1A1A1A; }
 
+    .card-img {
+      height: 200px;
+      margin: -1.4rem -1.4rem 1rem -1.4rem;
+      background-size: cover;
+      background-position: center;
+      border-bottom: 3px solid #1A1A1A;
+      border-radius: 2px 2px 0 0;
+      flex-shrink: 0;
+    }
+
     .card-emoji { font-size: 2.4rem; display: block; margin-bottom: 0.75rem; }
     .card--compact .card-emoji { font-size: 1.5rem; margin-bottom: 0.5rem; }
 
@@ -813,6 +894,27 @@ if (process.argv.includes('--regen-gallery')) {
   const manifest = JSON.parse(fs.readFileSync('apps.json', 'utf8'));
   generateGallery(manifest);
   console.log('✓ Gallery regenerated.');
+} else if (process.argv.includes('--gen-images')) {
+  const manifest = JSON.parse(fs.readFileSync('apps.json', 'utf8'));
+  let generated = 0;
+  for (const app of manifest) {
+    if (app.image) continue;
+    const imgPath = path.join('public', 'apps', app.id || app.date, 'og.jpg');
+    if (fs.existsSync(imgPath)) { app.image = true; continue; }
+    console.log(`🎨 ${app.name}...`);
+    try {
+      const imgPrompt = await generateImagePrompt(app.name, app.description, app.inspiration, app.category);
+      await generateImage(imgPrompt, app.id || app.date);
+      app.image = true;
+      generated++;
+      console.log(`  ✓ done`);
+    } catch (err) {
+      console.warn(`  ⚠ failed: ${err.message}`);
+    }
+  }
+  fs.writeFileSync('apps.json', JSON.stringify(manifest, null, 2));
+  generateGallery(manifest);
+  console.log(`✓ Generated ${generated} images + regenerated gallery.`);
 } else if (process.argv.includes('--fix-meta')) {
   const manifest = JSON.parse(fs.readFileSync('apps.json', 'utf8'));
   let fixed = 0;

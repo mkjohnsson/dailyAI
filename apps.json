@@ -8,7 +8,8 @@
     "connection": "The image of threat actors stealing and remixing leaked toolkits to spawn new variants inspired a creative ecosystem game where musical fragments leak, mutate, and propagate through a living network — you nurture or contain their spread.",
     "source_url": "https://newsroom.ibm.com/2026-02-25-ibm-2026-x-force-threat-index-ai-driven-attacks-are-escalating-as-basic-security-gaps-leave-enterprises-exposed",
     "emoji": "🧬",
-    "category": "AI-inspired"
+    "category": "AI-inspired",
+    "image": true
   },
   {
     "date": "2026-02-27",
@@ -20,7 +21,8 @@
     "source_url": "",
     "emoji": "🌡️",
     "category": "API tool",
-    "api": "Open-Meteo"
+    "api": "Open-Meteo",
+    "image": true
   },
   {
     "date": "2026-02-27",
@@ -31,7 +33,8 @@
     "connection": "The idea of stealing another entity's identity markers to survive inspired a multiplayer stealth game where you pickpocket visual traits from other players to blend in and avoid being 'consumed' by a roaming hunter.",
     "source_url": "https://www.ucsf.edu/news/2026/01/431411/two-new-breakthroughs-advance-neurological-disorders-and-cancer-research",
     "emoji": "🧫",
-    "category": "Game"
+    "category": "Game",
+    "image": true
   },
   {
     "date": "2026-02-27",
@@ -42,7 +45,8 @@
     "connection": "The idea that human skills have a 'half-life' before AI substitution inspired a personal tool where you map your own abilities and watch their estimated replaceability erode or hold like a living decay chart — not to panic, but to find the irreplaceable core.",
     "source_url": "https://www.the-independent.com/news/world/americas/ai-doomsday-report-citrini-b2926763.html",
     "emoji": "⚛️",
-    "category": "AI-inspired"
+    "category": "AI-inspired",
+    "image": true
   },
   {
     "date": "2026-02-27",
@@ -54,7 +58,8 @@
     "source_url": "https://www.cas.org/resources/cas-insights/scientific-breakthroughs-2026-emerging-trends-watch",
     "emoji": "🌱",
     "category": "API tool",
-    "api": "Open-Meteo"
+    "api": "Open-Meteo",
+    "image": true
   },
   {
     "date": "2026-02-27",
@@ -65,7 +70,8 @@
     "connection": "The idea that the same strand rearranges itself into different shapes to unlock different functions inspired a tool where a single dataset refolds itself into radically different visual forms, revealing hidden relationships depending on how you 'crease' it.",
     "source_url": "https://www.ucsf.edu/news/2026/01/431411/two-new-breakthroughs-advance-neurological-disorders-and-cancer-research",
     "emoji": "🧬",
-    "category": "Data/visual"
+    "category": "Data/visual",
+    "image": true
   },
   {
     "date": "2026-02-26",
@@ -76,7 +82,8 @@
     "connection": "The gap between what something appears to be and what it actually is sparked the idea of a game where you must judge the sincerity of evolving abstract creatures by studying the dissonance between their visible behavior and hidden internal patterns.",
     "source_url": "https://aiforum.org.uk/ai-news-roundup-february-23-2026/",
     "emoji": "🫀",
-    "category": "AI-inspired"
+    "category": "AI-inspired",
+    "image": true
   },
   {
     "date": "2026-02-26",
@@ -88,7 +95,8 @@
     "source_url": "https://www.washington.edu/news/2026/02/25/rubin-observatory-real-time-alerts-dirac/",
     "emoji": "🌅",
     "category": "API tool",
-    "api": "Sunrise-Sunset"
+    "api": "Sunrise-Sunset",
+    "image": true
   },
   {
     "date": "2026-02-26",
@@ -99,7 +107,8 @@
     "connection": "The idea of stealing and wearing someone else's surface identity became a collage tool where you peel textures off found images and graft them onto your own drawings, watching the borrowed skins transform your shapes into something uncanny.",
     "source_url": "https://www.ucsf.edu/news/2026/01/431411/two-new-breakthroughs-advance-neurological-disorders-and-cancer-research",
     "emoji": "🧫",
-    "category": "Creative/art"
+    "category": "Creative/art",
+    "image": true
   },
   {
     "date": "2026-02-26",
@@ -110,7 +119,8 @@
     "connection": "The terrifying beauty of exponential curves that feel flat until they suddenly aren't inspired a game where you cultivate something that grows deceptively slowly then catastrophically — and your job is to ride the inflection point rather than prevent it.",
     "source_url": "https://news.sky.com/story/ai-is-developing-so-fast-it-is-becoming-hard-to-measure-experts-say-13512068",
     "emoji": "🌿",
-    "category": "AI-inspired"
+    "category": "AI-inspired",
+    "image": true
   },
   {
     "date": "2026-02-26",
@@ -122,7 +132,8 @@
     "source_url": "",
     "emoji": "🌡️",
     "category": "API tool",
-    "api": "Open-Meteo"
+    "api": "Open-Meteo",
+    "image": true
   },
   {
     "date": "2026-02-26",
@@ -133,7 +144,8 @@
     "connection": "The idea that identical raw material can fold into billions of unique identities inspired a creative tool where you fold a single shared sheet into unrepeatable sculptural poems — your folds are your fingerprint.",
     "source_url": "https://www.ucsf.edu/news/2026/01/431411/two-new-breakthroughs-advance-neurological-disorders-and-cancer-research",
     "emoji": "🦢",
-    "category": "Creative/art"
+    "category": "Creative/art",
+    "image": true
   },
   {
     "date": "2026-02-25",
@@ -144,7 +156,8 @@
     "connection": "The idea of autonomous entities forming their own culture and language when left to interact freely inspired a game where you cultivate a tiny ecosystem of abstract glyphs that develop their own emergent communication system you must learn to read.",
     "source_url": "https://www.marketingprofs.com/opinions/2026/54257/ai-update-february-6-2026-ai-news-and-views-from-the-past-week",
     "emoji": "🔣",
-    "category": "AI-inspired"
+    "category": "AI-inspired",
+    "image": true
   },
   {
     "date": "2026-02-25",
@@ -156,7 +169,8 @@
     "source_url": "https://www.cas.org/resources/cas-insights/scientific-breakthroughs-2026-emerging-trends-watch",
     "emoji": "🌱",
     "category": "API tool",
-    "api": "Open-Meteo"
+    "api": "Open-Meteo",
+    "image": true
   },
   {
     "date": "2026-02-25",
@@ -167,7 +181,8 @@
     "connection": "What if you WERE the signal — a tiny disguise artist in a world of hungry giants, stealing and wearing the identities of things around you to survive, but each stolen mask slowly changes who you are underneath?",
     "source_url": "https://www.ucsf.edu/news/2026/01/431411/two-new-breakthroughs-advance-neurological-disorders-and-cancer-research",
     "emoji": "🎭",
-    "category": "Game"
+    "category": "Game",
+    "image": true
   },
   {
     "date": "2026-02-25",
@@ -178,7 +193,8 @@
     "connection": "The idea of a pressure floor that redirects force sideways instead of letting things collapse inspired a city-building sim where overpopulated zones don't crash—they rupture outward, spawning chaotic frontier settlements you must tame.",
     "emoji": "💥",
     "category": "Simulation",
-    "categoryColor": "#FF6D00"
+    "categoryColor": "#FF6D00",
+    "image": true
   },
   {
     "date": "2026-02-24",
@@ -189,7 +205,8 @@
     "connection": "A spinning top that can split into two smaller tops, each wobbling independently and creating unpredictable chain reactions — warmth above creates cold below, stability breaks into beautiful chaos.",
     "emoji": "🌀",
     "category": "Toy",
-    "categoryColor": "#00BCD4"
+    "categoryColor": "#00BCD4",
+    "image": true
   },
   {
     "date": "2026-02-23",
@@ -200,7 +217,8 @@
     "connection": "The idea of an ancient instrument that makes horrifying sounds to terrify enemies sparked a game where you sculpt the ugliest, most ear-splitting noises possible to scare away increasingly unfazed creatures.",
     "emoji": "📯",
     "category": "Weird/absurd",
-    "categoryColor": "#AA00FF"
+    "categoryColor": "#AA00FF",
+    "image": true
   },
   {
     "date": "2026-02-23",
@@ -210,7 +228,8 @@
     "inspiration": "Firms like Ballistic Architecture Machine flip urban design by making landscape—not buildings—the central icon, treating nature as an evolving idea.",
     "connection": "What if you simulated an ecosystem that literally builds its own architecture—roots becoming bridges, canopies becoming roofs—and the player's role is to nudge growth rather than construct anything directly?",
     "emoji": "🌿",
-    "category": "Simulation"
+    "category": "Simulation",
+    "image": true
   },
   {
     "date": "2026-02-23",
@@ -220,7 +239,8 @@
     "inspiration": "Cancer cells steal proteins from immune macrophages, coating their surface and converting defenders into unwitting allies.",
     "connection": "The idea of identity corruption spreading through contact — where consuming something dangerous transforms your role — inspired a simulation where helpful agents become compromised through the very act of trying to help.",
     "emoji": "🦠",
-    "category": "Simulation"
+    "category": "Simulation",
+    "image": true
   },
   {
     "date": "2026-02-23",
@@ -230,7 +250,8 @@
     "inspiration": "Cancer cells steal 'don't eat me' signals from immune cells, disguising threats as allies.",
     "connection": "What if a living ecosystem had entities that could camouflage themselves by absorbing the visual identity of things they consume, forcing you to watch behavior — not appearance — to find the threat?",
     "emoji": "🧫",
-    "category": "Simulation"
+    "category": "Simulation",
+    "image": true
   },
   {
     "date": "2026-02-22",
@@ -240,7 +261,8 @@
     "inspiration": "DNA in brain cells folds dynamically like origami, with each unique fold acting as a 'key' that controls neuron identity and connections.",
     "connection": "The idea of a shape that folds differently to reveal different meanings inspired a calendar where each day's data folds into a unique origami-like glyph you learn to read at a glance.",
     "emoji": "🦢",
-    "category": "Data/visual"
+    "category": "Data/visual",
+    "image": true
   },
   {
     "date": "2026-02-22",
@@ -250,13 +272,15 @@
     "inspiration": "Macrophages eating cancer cells become hijacked, accumulating foreign proteins until they switch from defenders to promoters of the thing they were fighting.",
     "connection": "I imagined a personal habit tracker where your good habits visually 'consume' bad ones, but if you relapse, the good-habit icons slowly corrupt and turn against you — a betrayal dashboard.",
     "emoji": "🦠",
-    "category": "Data/visual"
+    "category": "Data/visual",
+    "image": true
   },
   {
     "date": "2026-02-22",
     "name": "Orbital Valentine",
     "description": "A gravitational love letter generator where hearts orbit, collide, and birth new celestial bodies in a cosmic dance of attraction and color.",
     "prompt": "February 22, 2026 falls just after Valentine's season, so I'm creating a cosmic gravity simulator where hearts and celestial bodies attract each other. You click to spawn hearts that orbit and merge, creating increasingly complex and beautiful gravitational systems with trailing paths that paint the canvas like a love letter written in starlight.",
-    "emoji": "💫"
+    "emoji": "💫",
+    "image": true
   }
 ]
