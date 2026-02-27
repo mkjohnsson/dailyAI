@@ -504,7 +504,10 @@ function generateGallery(manifest) {
   }
 
   const todayGroup    = byDate[0] || null;
-  const archiveGroups = byDate.slice(1);
+  const todayOverflow = todayGroup && todayGroup.apps.length > 3
+    ? [{ date: todayGroup.date, apps: todayGroup.apps.slice(3) }]
+    : [];
+  const archiveGroups = [...todayOverflow, ...byDate.slice(1)];
 
   const todaySection = todayGroup ? `
   <section class="today-section">
