@@ -394,7 +394,7 @@ async function generate() {
 
     const appDir = path.join('public', 'apps', runId);
     fs.mkdirSync(appDir, { recursive: true });
-    fs.writeFileSync(path.join(appDir, 'index.html'), app.html);
+    fs.writeFileSync(path.join(appDir, 'index.html'), injectAppMeta(app.html, idea.name, app.description, runId));
 
     const entry = {
       date: today,
@@ -419,6 +419,27 @@ async function generate() {
   generateGallery(manifest);
 
   console.log(`\n✓ Done — ${newEntries.length} apps for ${today}`);
+}
+
+// ── Meta tag injection ────────────────────────────────────────────────────────
+
+function injectAppMeta(html, name, description, appId) {
+  const canonicalUrl = `https://dailyaigen.com/apps/${appId}/`;
+  const escapedDesc = (description || '').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+  const escapedName = (name || '').replace(/"/g, '&quot;');
+  const seoTags = `
+  <meta name="description" content="${escapedDesc}">
+  <meta property="og:title" content="${escapedName} — Daily AI Gen">
+  <meta property="og:description" content="${escapedDesc}">
+  <meta property="og:url" content="${canonicalUrl}">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="${canonicalUrl}">`;
+  // Update title to include site name if not already
+  let result = html.replace(/<title>([^<]*?)\s*(?:—\s*Daily AI Gen)?<\/title>/i,
+    (_, t) => `<title>${t.trim()} — Daily AI Gen</title>`);
+  // Inject after </title>
+  result = result.replace(/<\/title>/i, `</title>${seoTags}`);
+  return result;
 }
 
 // ── Gallery ───────────────────────────────────────────────────────────────────
@@ -513,7 +534,13 @@ function generateGallery(manifest) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DAILY AI — A new app every day</title>
+  <title>Daily AI Gen — A new AI-built app every day</title>
+  <meta name="description" content="Every day at 9 AM, Claude AI searches the web for something fascinating and builds three interactive apps from scratch. Games, tools, simulations — all running in your browser.">
+  <link rel="canonical" href="https://dailyaigen.com/">
+  <meta property="og:title" content="Daily AI Gen — A new AI-built app every day">
+  <meta property="og:description" content="Every day at 9 AM, Claude AI searches the web for something fascinating and builds three interactive apps from scratch. Games, tools, simulations — all running in your browser.">
+  <meta property="og:url" content="https://dailyaigen.com/">
+  <meta property="og:type" content="website">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
@@ -783,6 +810,20 @@ if (process.argv.includes('--regen-gallery')) {
   const manifest = JSON.parse(fs.readFileSync('apps.json', 'utf8'));
   generateGallery(manifest);
   console.log('✓ Gallery regenerated.');
+} else if (process.argv.includes('--fix-meta')) {
+  const manifest = JSON.parse(fs.readFileSync('apps.json', 'utf8'));
+  let fixed = 0;
+  for (const app of manifest) {
+    const htmlPath = path.join('public', 'apps', app.id || app.date, 'index.html');
+    if (!fs.existsSync(htmlPath)) continue;
+    const html = fs.readFileSync(htmlPath, 'utf8');
+    if (html.includes('dailyaigen.com')) continue; // already fixed
+    const updated = injectAppMeta(html, app.name, app.description, app.id || app.date);
+    fs.writeFileSync(htmlPath, updated);
+    fixed++;
+  }
+  generateGallery(manifest);
+  console.log(`✓ Fixed meta tags in ${fixed} app files + regenerated gallery.`);
 } else {
   generate().catch(err => {
     console.error('Generation failed:', err.message);
