@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Creasemap</title>
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  body {
+    font-family: 'Courier New', monospace;
+    background: #0a0a0a;
+    color: #e0e0e0;
+    overflow: hidden;
+    height: 100vh;
+  }
+  #container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  #header {
+    padding: 20px;
+    background: #111;
+    border-bottom: 1px solid #333;
+  }
+  #header h1 {
+    font-size: 18px;
+    margin-bottom: 10px;
+    color: #00ff88;
+  }
+  #dataInput {
+    width: 100%;
+    height: 80px;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    color: #e0e0e0;
+    padding: 10px;
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    resize: none;
+  }
+  #instructions {
+    margin-top: 10px;
+    font-size: 11px;
+    color: #888;
+  }
+  #canvas-container {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+  }
+  canvas {
+    display: block;
+  }
+  #fold-indicator {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    font-size: 10px;
+    background: rgba(0,255,136,0.2);
+    padding: 4px 8px;
+    border-radius: 3px;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .glow {
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+  }
+</style>
+</head>
+<body>
+<div id="container">
+  <div id="header">
+    <h1>CREASEMAP</h1>
+    <textarea id="dataInput" placeholder="Paste tabular data (CSV or tab-separated)...
+Example:
+Name,Age,Score,Hours
+Alice,25,85,12
+Bob,30,92,8
+Carol,22,78,15"></textarea>
+    <div id="instructions">Click and drag to create fold lines • Folds reshape the data ribbon into different chart types • Glowing folds = interesting correlations</div>
+  </div>
+  <div id="canvas-container">
+    <canvas id="canvas"></canvas>
+    <div id="fold-indicator"></div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const dataInput = document.getElementById('dataInput');
+const foldIndicator = document.getElementById('fold-indicator');
+
+let data = [];
+let columns = [];
+let folds = [];
+let draggingFold = null;
+let hoveredFold = null;
+
+// Sample data
+const sampleData = `Name,Age,Score,Hours
+Alice,25,85,12
+Bob,30,92,8
+Carol,22,78,15
+David,28,88,10
+Eve,35,95,6
+Frank,24,72,18`;
+
+dataInput.value = sampleData;
+
+function resize() {
+  const container = canvas.parentElement;
+  canvas.width = container.clientWidth;
+  canvas.height = container.clientHeight;
+  render();
+}
+
+function parseData(text) {
+  const lines = text.trim().split('\n');
+  if (lines.length < 2) return;
+  
+  const delimiter = lines[0].includes('\t') ? '\t' : ',';
+  columns = lines[0].split(delimiter).map(c => c.trim());
+  data = [];
+  
+  for (let i = 1; i < lines.length; i++) {
+    const values = lines[i].split(delimiter).map(v => v.trim());
+    const row = {};
+    columns.forEach((col, idx) => {
+      const val = values[idx];
+      row[col] = isNaN(val) ? val : parseFloat(val);
+    });
+    data.push(row);
+  }
+  
+  // Initialize with one fold if none exist
+  if (folds.length === 0 && columns.length > 2) {
+    folds.push({
+      position: 0.5,
+      angle: Math.PI / 3,
+      leftCols: columns.slice(0, Math.floor(columns.length / 2)),
+      rightCols: columns.slice(Math.floor(columns.length / 2))
+    });
+  }
+}
+
+function getNormalizedValue(row, col) {
+  const val = row[col];
+  if (typeof val === 'number') {
+    const allVals = data.map(r => r[col]).filter(v => typeof v === 'number');
+    const min = Math.min(...allVals);
+    const max = Math.max(...allVals);
+    return max === min ? 0.5 : (val - min) / (max - min);
+  }
+  return 0.5;
+}
+
+function calculateCorrelation(col1, col2) {
+  const vals1 = data.map(r => getNormalizedValue(r, col1));
+  const vals2 = data.map(r => getNormalizedValue(r, col2));
+  
+  const mean1 = vals1.reduce((a, b) => a + b) / vals1.length;
+  const mean2 = vals2.reduce((a, b) => a + b) / vals2.length;
+  
+  let num = 0, den1 = 0, den2 = 0;
+  for (let i = 0; i < vals1.length; i++) {
+    const diff1 = vals1[i] - mean1;
+    const diff2 = vals2[i] - mean2;
+    num += diff1 * diff2;
+    den1 += diff1 * diff1;
+    den2 += diff2 * diff2;
+  }
+  
+  return den1 === 0 || den2 === 0 ? 0 : Math.abs(num / Math.sqrt(den1 * den2));
+}
+
+function drawRibbon() {
+  if (data.length === 0) return;
+  
+  const width = canvas.width;
+  const height = canvas.height;
+  const ribbonHeight = 60;
+  const segmentWidth = width / columns.length;
+  const yStart = height / 2 - ribbonHeight / 2;
+  
+  // Draw base ribbon
+  ctx.strokeStyle = '#333';
+  ctx.lineWidth = 1;
+  
+  for (let i = 0; i < columns.length; i++) {
+    const x = i * segmentWidth;
+    ctx.fillStyle = `hsl(${i * 360 / columns.length}, 40%, 20%)`;
+    ctx.fillRect(x, yStart, segmentWidth, ribbonHeight);
+    ctx.strokeRect(x, yStart, segmentWidth, ribbonHeight);
+    
+    // Column name
+    ctx.fillStyle = '#888';
+    ctx.font = '10px Courier New';
+    ctx.textAlign = 'center';
+    ctx.fillText(columns[i], x + segmentWidth / 2, yStart - 5);
+  }
+  
+  // Draw data rows as thin lines through ribbon
+  data.forEach((row, idx) => {
+    const y = yStart + (idx + 0.5) * ribbonHeight / data.length;
+    ctx.beginPath();
+    ctx.strokeStyle = `hsla(${idx * 360 / data.length}, 60%, 60%, 0.3)`;
+    ctx.lineWidth = 0.5;
+    
+    columns.forEach((col, colIdx) => {
+      const x = colIdx * segmentWidth + segmentWidth / 2;
+      const val = getNormalizedValue(row, col);
+      const yOffset = (val - 0.5) * ribbonHeight * 0.6;
+      
+      if (colIdx === 0) {
+        ctx.moveTo(x, y + yOffset);
+      } else {
+        ctx.lineTo(x, y + yOffset);
+      }
+    });
+    ctx.stroke();
+  });
+}
+
+function drawFolds() {
+  const width = canvas.width;
+  const height = canvas.height;
+  const ribbonHeight = 60;
+  const yStart = height / 2 - ribbonHeight / 2;
+  
+  folds.forEach((fold, foldIdx) => {
+    const x = fold.position * width;
+    
+    // Calculate correlation for glow effect
+    const leftIdx = Math.floor(fold.position * columns.length);
+    const rightIdx = Math.ceil(fold.position * columns.length);
+    let correlation = 0;
+    
+    if (leftIdx >= 0 && rightIdx < columns.length) {
+      correlation = calculateCorrelation(columns[leftIdx], columns[rightIdx]);
+    }
+    
+    const isInteresting = correlation > 0.7;
+    
+    // Draw fold line
+    ctx.save();
+    ctx.translate(x, height / 2);
+    
+    if (isInteresting) {
+      // Glow effect
+      ctx.shadowColor = '#00ff88';
+      ctx.shadowBlur = 20;
+      ctx.strokeStyle = '#00ff88';
+      ctx.lineWidth = 3;
+    } else {
+      ctx.strokeStyle = hoveredFold === foldIdx ? '#00ff88' : '#666';
+      ctx.lineWidth = 2;
+    }
+    
+    ctx.beginPath();
+    ctx.moveTo(0, -height / 2);
+    ctx.lineTo(0, height / 2);
+    ctx.stroke();
+    
+    ctx.restore();
+    
+    // Draw folded visualization
+    drawFoldedChart(fold, x, yStart, ribbonHeight, leftIdx, rightIdx, isInteresting);
+  });
+}
+
+function drawFoldedChart(fold, x, yStart, ribbonHeight, leftIdx, rightIdx, isInteresting) {
+  if (leftIdx < 0 || rightIdx >= columns.length) return;
+  
+  const leftCol = columns[leftIdx];
+  const rightCol = columns[rightIdx];
+  const chartSize = 120;
+  const cx = x;
+  const cy = yStart + ribbonHeight + 80;
+  
+  // Determine chart type based on fold angle and column types
+  const leftIsNumeric = typeof data[0][leftCol] === 'number';
+  const rightIsNumeric = typeof data[0][rightCol] === 'number';
+  
+  ctx.save();
+  
+  if (isInteresting) {
+    ctx.shadowColor = '#00ff88';
+    ctx.shadowBlur = 15;
+  }
+  
+  if (leftIsNumeric && rightIsNumeric) {
+    // Scatter plot
+    drawScatterPlot(leftCol, rightCol, cx, cy, chartSize);
+  } else if (leftIsNumeric || rightIsNumeric) {
+    // Bar chart
+    drawBarChart(leftIsNumeric ? rightCol : leftCol, leftIsNumeric ? leftCol : rightCol, cx, cy, chartSize);
+  } else {
+    // Alluvial/Sankey-like
+    drawAlluvial(leftCol, rightCol, cx, cy, chartSize);
+  }
+  
+  ctx.restore();
+  
+  // Labels
+  ctx.fillStyle = isInteresting ? '#00ff88' : '#666';
+  ctx.font = '9px Courier New';
+  ctx.textAlign = 'center';
+  ctx.fillText(`${leftCol} × ${rightCol}`, cx, cy + chartSize / 2 + 20);
+}
+
+function drawScatterPlot(col1, col2, cx, cy, size) {
+  const margin = 10;
+  const plotSize = size - margin * 2;
+  
+  ctx.strokeStyle = '#444';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(cx - plotSize / 2, cy - plotSize / 2, plotSize, plotSize);
+  
+  data.forEach((row, idx) => {
+    const x1 = getNormalizedValue(row, col1);
+    const x2 = getNormalizedValue(row, col2);
+    
+    const px = cx - plotSize / 2 + x1 * plotSize;
+    const py = cy + plotSize / 2 - x2 * plotSize;
+    
+    ctx.fillStyle = `hsla(${idx * 360 / data.length}, 70%, 60%, 0.7)`;
+    ctx.beginPath();
+    ctx.arc(px, py, 3, 0, Math.PI * 2);
+    ctx.fill();
+  });
+}
+
+function drawBarChart(categoryCol, valueCol, cx, cy, size) {
+  const margin = 10;
+  const plotSize = size - margin * 2;
+  const barWidth = plotSize / data.length;
+  
+  data.forEach((row, idx) => {
+    const val = getNormalizedValue(row, valueCol);
+    const barHeight = val * plotSize;
+    
+    const x = cx - plotSize / 2 + idx * barWidth;
+    const y = cy + plotSize / 2 - barHeight;
+    
+    ctx.fillStyle = `hsla(${idx * 360 / data.length}, 60%, 50%, 0.8)`;
+    ctx.fillRect(x, y, barWidth - 2, barHeight);
+  });
+}
+
+function drawAlluvial(col1, col2, cx, cy, size) {
+  const margin = 10;
+  const plotSize = size - margin * 2;
+  
+  // Group by categories
+  const groups1 = {};
+  const groups2 = {};
+  
+  data.forEach(row => {
+    const v1 = row[col1];
+    const v2 = row[col2];
+    groups1[v1] = (groups1[v1] || 0) + 1;
+    groups2[v2] = (groups2[v2] || 0) + 1;
+  });
+  
+  const keys1 = Object.keys(groups1);
+  const keys2 = Object.keys(groups2);
+  
+  const leftX = cx - plotSize / 2;
+  const rightX = cx + plotSize / 2;
+  
+  let y1Offset = 0;
+  keys1.forEach((key, idx) => {
+    const height = (groups1[key] / data.length) * plotSize;
+    const y = cy - plotSize / 2 + y1Offset + height / 2;
+    
+    ctx.fillStyle = `hsla(${idx * 360 / keys1.length}, 60%, 50%, 0.6)`;
+    ctx.fillRect(leftX - 15, cy - plotSize / 2 + y1Offset, 10, height);
+    
+    y1Offset += height;
+  });
+  
+  let y2Offset = 0;
+  keys2.forEach((key, idx) => {
+    const height = (groups2[key] / data.length) * plotSize;
+    
+    ctx.fillStyle = `hsla(${idx * 360 / keys2.length}, 60%, 50%, 0.6)`;
+    ctx.fillRect(rightX + 5, cy - plotSize / 2 + y2Offset, 10, height);
+    
+    y2Offset += height;
+  });
+}
+
+function render() {
+  ctx.fillStyle = '#0a0a0a';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  drawRibbon();
+  drawFolds();
+}
+
+function handleMouseDown(e) {
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  
+  // Check if clicking near a fold
+  for (let i = 0; i < folds.length; i++) {
+    const foldX = folds[i].position * canvas.width;
+    if (Math.abs(x - foldX) < 10) {
+      draggingFold = i;
+      return;
+    }
+  }
+  
+  // Create new fold
+  if (columns.length > 0) {
+    folds.push({
+      position: x / canvas.width,
+      angle: Math.PI / 3
+    });
+    draggingFold = folds.length - 1;
+    render();
+  }
+}
+
+function handleMouseMove(e) {
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  
+  if (draggingFold !== null) {
+    folds[draggingFold].position = Math.max(0.05, Math.min(0.95, x / canvas.width));
+    render();
+  } else {
+    // Check hover
+    let newHovered = null;
+    for (let i = 0; i < folds.length; i++) {
+      const foldX = folds[i].position * canvas.width;
+      if (Math.abs(x - foldX) < 10) {
+        newHovered = i;
+        break;
+      }
+    }
+    if (newHovered !== hoveredFold) {
+      hoveredFold = newHovered;
+      render();
+    }
+  }
+}
+
+function handleMouseUp() {
+  draggingFold = null;
+}
+
+dataInput.addEventListener('input', () => {
+  parseData(dataInput.value);
+  render();
+});
+
+canvas.addEventListener('mousedown', handleMouseDown);
+canvas.addEventListener('mousemove', handleMouseMove);
+canvas.addEventListener('mouseup', handleMouseUp);
+canvas.addEventListener('mouseleave', handleMouseUp);
+
+window.addEventListener('resize', resize);
+
+parseData(dataInput.value);
+resize();
+</script>
+</body>
+</html>

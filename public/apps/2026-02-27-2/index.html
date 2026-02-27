@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rootwatch - Crop Drought Monitor</title>
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #8B7355 0%, #D2B48C 100%);
+  color: #2C1810;
+  padding: 20px;
+  min-height: 100vh;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  background: #FFF8DC;
+  border-radius: 12px;
+  padding: 30px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+}
+
+h1 {
+  font-size: 2.5em;
+  margin-bottom: 10px;
+  color: #2F4F2F;
+  text-align: center;
+}
+
+.subtitle {
+  text-align: center;
+  color: #666;
+  margin-bottom: 30px;
+  font-size: 0.95em;
+}
+
+.input-panel {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr auto;
+  gap: 15px;
+  margin-bottom: 30px;
+  align-items: end;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+}
+
+label {
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #2F4F2F;
+  font-size: 0.9em;
+}
+
+input, select {
+  padding: 10px;
+  border: 2px solid #8B7355;
+  border-radius: 6px;
+  font-size: 1em;
+  background: white;
+}
+
+input:focus, select:focus {
+  outline: none;
+  border-color: #2F4F2F;
+}
+
+button {
+  padding: 10px 30px;
+  background: #2F4F2F;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 1em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+button:hover:not(:disabled) {
+  background: #1C3A1C;
+  transform: translateY(-2px);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+  font-size: 1.2em;
+  color: #2F4F2F;
+}
+
+.spinner {
+  border: 4px solid #D2B48C;
+  border-top: 4px solid #2F4F2F;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  animation: spin 1s linear infinite;
+  margin: 20px auto;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.error {
+  background: #FFE4E1;
+  border: 2px solid #DC143C;
+  border-radius: 6px;
+  padding: 20px;
+  margin: 20px 0;
+  color: #8B0000;
+}
+
+.results {
+  display: none;
+}
+
+.results.visible {
+  display: block;
+}
+
+.info-bar {
+  background: #F0E68C;
+  border-left: 5px solid #DAA520;
+  padding: 15px;
+  margin-bottom: 25px;
+  border-radius: 6px;
+}
+
+.info-bar h3 {
+  color: #2F4F2F;
+  margin-bottom: 8px;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+  margin-top: 10px;
+}
+
+.info-item {
+  background: white;
+  padding: 10px;
+  border-radius: 4px;
+}
+
+.info-label {
+  font-size: 0.85em;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+.info-value {
+  font-size: 1.2em;
+  font-weight: 600;
+  color: #2F4F2F;
+}
+
+.chart-container {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 25px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.chart-title {
+  font-size: 1.3em;
+  font-weight: 600;
+  margin-bottom: 15px;
+  color: #2F4F2F;
+}
+
+canvas {
+  max-width: 100%;
+  height: auto;
+}
+
+.forecast-panel {
+  background: #E6F3E6;
+  border: 2px solid #2F4F2F;
+  border-radius: 8px;
+  padding: 20px;
+  margin-top: 25px;
+}
+
+.forecast-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.forecast-day {
+  background: white;
+  padding: 12px;
+  border-radius: 6px;
+  text-align: center;
+}
+
+.forecast-date {
+  font-size: 0.85em;
+  color: #666;
+  margin-bottom: 6px;
+}
+
+.forecast-moisture {
+  font-size: 1.4em;
+  font-weight: 700;
+  margin: 5px 0;
+}
+
+.forecast-rain {
+  font-size: 0.9em;
+  color: #1E90FF;
+}
+
+.stress-warning {
+  background: #FF6B6B;
+  color: white;
+  padding: 15px;
+  border-radius: 6px;
+  margin-top: 15px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.stress-ok {
+  background: #51CF66;
+  color: white;
+  padding: 15px;
+  border-radius: 6px;
+  margin-top: 15px;
+  font-weight: 600;
+  text-align: center;
+}
+
+@media (max-width: 768px) {
+  .input-panel {
+    grid-template-columns: 1fr;
+  }
+  
+  h1 {
+    font-size: 1.8em;
+  }
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🌾 Rootwatch</h1>
+  <p class="subtitle">Real-time drought stress monitoring for your field</p>
+  
+  <div class="input-panel">
+    <div class="field">
+      <label for="lat">Latitude</label>
+      <input type="number" id="lat" step="0.0001" value="40.7128" placeholder="e.g., 40.7128">
+    </div>
+    <div class="field">
+      <label for="lon">Longitude</label>
+      <input type="number" id="lon" step="0.0001" value="-100.5" placeholder="e.g., -100.5">
+    </div>
+    <div class="field">
+      <label for="crop">Crop Type</label>
+      <select id="crop">
+        <option value="shallow">Shallow (Lettuce, Spinach)</option>
+        <option value="medium">Medium (Wheat, Barley)</option>
+        <option value="deep">Deep (Maize, Sorghum)</option>
+      </select>
+    </div>
+    <button id="analyzeBtn">Analyze</button>
+  </div>
+  
+  <div id="loading" class="loading" style="display:none;">
+    <div class="spinner"></div>
+    <p>Fetching soil moisture data...</p>
+  </div>
+  
+  <div id="error" class="error" style="display:none;"></div>
+  
+  <div id="results" class="results">
+    <div class="info-bar">
+      <h3>Field Analysis</h3>
+      <div class="info-grid">
+        <div class="info-item">
+          <div class="info-label">Root Zone</div>
+          <div class="info-value" id="rootZone">-</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Current Stress Index</div>
+          <div class="info-value" id="currentStress">-</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Avg Moisture (90d)</div>
+          <div class="info-value" id="avgMoisture">-</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Water Deficit</div>
+          <div class="info-value" id="waterDeficit">-</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="chart-container">
+      <div class="chart-title">90-Day Soil Moisture History</div>
+      <canvas id="moistureChart"></canvas>
+    </div>
+    
+    <div class="chart-container">
+      <div class="chart-title">Drought Stress Index Timeline</div>
+      <canvas id="stressChart"></canvas>
+    </div>
+    
+    <div class="forecast-panel">
+      <div class="chart-title">7-Day Forecast</div>
+      <div class="forecast-grid" id="forecastGrid"></div>
+      <div id="stressAlert"></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+const cropProfiles = {
+  shallow: { name: 'Shallow Root (0-30cm)', depths: ['0_to_1cm', 'soil_moisture_1_to_3cm', 'soil_moisture_3_to_9cm', 'soil_moisture_9_to_27cm'], threshold: 0.15, stressThreshold: 60 },
+  medium: { name: 'Medium Root (0-60cm)', depths: ['0_to_1cm', 'soil_moisture_1_to_3cm', 'soil_moisture_3_to_9cm', 'soil_moisture_9_to_27cm', 'soil_moisture_27_to_81cm'], threshold: 0.18, stressThreshold: 70 },
+  deep: { name: 'Deep Root (0-120cm)', depths: ['0_to_1cm', 'soil_moisture_1_to_3cm', 'soil_moisture_3_to_9cm', 'soil_moisture_9_to_27cm', 'soil_moisture_27_to_81cm'], threshold: 0.20, stressThreshold: 80 }
+};
+
+let moistureChart, stressChart;
+
+document.getElementById('analyzeBtn').addEventListener('click', analyze);
+
+async function analyze() {
+  const lat = parseFloat(document.getElementById('lat').value);
+  const lon = parseFloat(document.getElementById('lon').value);
+  const cropType = document.getElementById('crop').value;
+  
+  if (isNaN(lat) || isNaN(lon)) {
+    showError('Please enter valid coordinates');
+    return;
+  }
+  
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('error').style.display = 'none';
+  document.getElementById('results').classList.remove('visible');
+  document.getElementById('analyzeBtn').disabled = true;
+  
+  try {
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - 90);
+    
+    const historicalUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${formatDate(startDate)}&end_date=${formatDate(endDate)}&daily=soil_moisture_0_to_1cm,soil_moisture_1_to_3cm,soil_moisture_3_to_9cm,soil_moisture_9_to_27cm,soil_moisture_27_to_81cm,precipitation_sum,et0_fao_evapotranspiration&timezone=auto`;
+    
+    const forecastUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=soil_moisture_0_to_1cm,soil_moisture_1_to_3cm,soil_moisture_3_to_9cm,soil_moisture_9_to_27cm,soil_moisture_27_to_81cm,precipitation_sum&timezone=auto&forecast_days=7`;
+    
+    const [historicalRes, forecastRes] = await Promise.all([
+      fetch(historicalUrl),
+      fetch(forecastUrl)
+    ]);
+    
+    if (!historicalRes.ok || !forecastRes.ok) {
+      throw new Error('Failed to fetch data from Open-Meteo API');
+    }
+    
+    const historical = await historicalRes.json();
+    const forecast = await forecastRes.json();
+    
+    processAndDisplay(historical, forecast, cropType);
+    
+  } catch (error) {
+    showError(error.message);
+  } finally {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('analyzeBtn').disabled = false;
+  }
+}
+
+function formatDate(date) {
+  return date.toISOString().split('T')[0];
+}
+
+function showError(message) {
+  const errorDiv = document.getElementById('error');
+  errorDiv.textContent = `Error: ${message}`;
+  errorDiv.style.display = 'block';
+}
+
+function processAndDisplay(historical, forecast, cropType) {
+  const profile = cropProfiles[cropType];
+  const dates = historical.daily.time;
+  
+  // Calculate average moisture across crop's root zone
+  const avgMoisture = dates.map((_, i) => {
+    let sum = 0;
+    let count = 0;
+    if (historical.daily.soil_moisture_0_to_1cm) sum += historical.daily.soil_moisture_0_to_1cm[i] || 0, count++;
+    if (historical.daily.soil_moisture_1_to_3cm) sum += historical.daily.soil_moisture_1_to_3cm[i] || 0, count++;
+    if (historical.daily.soil_moisture_3_to_9cm) sum += historical.daily.soil_moisture_3_to_9cm[i] || 0, count++;
+    if (historical.daily.soil_moisture_9_to_27cm) sum += historical.daily.soil_moisture_9_to_27cm[i] || 0, count++;
+    if (cropType !== 'shallow' && historical.daily.soil_moisture_27_to_81cm) {
+      sum += historical.daily.soil_moisture_27_to_81cm[i] || 0;
+      count++;
+    }
+    return count > 0 ? sum / count : 0;
+  });
+  
+  // Calculate drought stress index
+  const stressIndex = dates.map((_, i) => {
+    const moisture = avgMoisture[i];
+    const precip = historical.daily.precipitation_sum[i] || 0;
+    const et0 = historical.daily.et0_fao_evapotranspiration[i] || 0;
+    
+    // Moisture deficit component (0-40 points)
+    const moistureDeficit = Math.max(0, (profile.threshold - moisture) / profile.threshold) * 40;
+    
+    // Water balance component (0-35 points)
+    const waterBalance = Math.max(0, Math.min(35, (et0 - precip) * 5));
+    
+    // Consecutive dry days component (0-25 points)
+    let dryDays = 0;
+    for (let j = i; j >= Math.max(0, i - 7); j--) {
+      if ((historical.daily.precipitation_sum[j] || 0) < 1) dryDays++;
+      else break;
+    }
+    const dryDayScore = Math.min(25, dryDays * 3);
+    
+    return moistureDeficit + waterBalance + dryDayScore;
+  });
+  
+  // Update info panel
+  document.getElementById('rootZone').textContent = profile.name;
+  document.getElementById('currentStress').textContent = stressIndex[stressIndex.length - 1].toFixed(1);
+  document.getElementById('avgMoisture').textContent = (avgMoisture.reduce((a, b) => a + b, 0) / avgMoisture.length * 100).toFixed(1) + '%';
+  
+  const totalPrecip = historical.daily.precipitation_sum.reduce((a, b) => a + (b || 0), 0);
+  const totalET = historical.daily.et0_fao_evapotranspiration.reduce((a, b) => a + (b || 0), 0);
+  document.getElementById('waterDeficit').textContent = (totalET - totalPrecip).toFixed(1) + ' mm';
+  
+  // Render moisture chart
+  renderMoistureChart(dates, historical, cropType);
+  
+  // Render stress chart
+  renderStressChart(dates, stressIndex, profile.stressThreshold);
+  
+  // Render forecast
+  renderForecast(forecast, cropType, profile, stressIndex[stressIndex.length - 1]);
+  
+  document.getElementById('results').classList.add('visible');
+}
+
+function renderMoistureChart(dates, data, cropType) {
+  const ctx = document.getElementById('moistureChart').getContext('2d');
+  
+  if (moistureChart) moistureChart.destroy();
+  
+  const datasets = [
+    {
+      label: 'Surface (0-1cm)',
+      data: data.daily.soil_moisture_0_to_1cm,
+      borderColor: '#8B4513',
+      backgroundColor: 'rgba(139, 69, 19, 0.1)',
+      borderWidth: 2,
+      tension: 0.3
+    },
+    {
+      label: 'Shallow (1-9cm)',
+      data: data.daily.soil_moisture_3_to_9cm,
+      borderColor: '#D2691E',
+      backgroundColor: 'rgba(210, 105, 30, 0.1)',
+      borderWidth: 2,
+      tension: 0.3
+    },
+    {
+      label: 'Medium (9-27cm)',
+      data: data.daily.soil_moisture_9_to_27cm,
+      borderColor: '#CD853F',
+      backgroundColor: 'rgba(205, 133, 63, 0.1)',
+      borderWidth: 2,
+      tension: 0.3
+    }
+  ];
+  
+  if (cropType !== 'shallow') {
+    datasets.push({
+      label: 'Deep (27-81cm)',
+      data: data.daily.soil_moisture_27_to_81cm,
+      borderColor: '#DEB887',
+      backgroundColor: 'rgba(222, 184, 135, 0.1)',
+      borderWidth: 2,
+      tension: 0.3
+    });
+  }
+  
+  moistureChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: dates,
+      datasets: datasets
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      aspectRatio: 2.5,
+      plugins: {
+        legend: { position: 'top' },
+        tooltip: { mode: 'index', intersect: false }
+      },
+      scales: {
+        y: {
+          title: { display: true, text: 'Soil Moisture (m³/m³)' },
+          min: 0,
+          max: 0.5
+        },
+        x: {
+          title: { display: true, text: 'Date' },
+          ticks: { maxTicksLimit: 10 }
+        }
+      }
+    }
+  });
+}
+
+function renderStressChart(dates, stressIndex, threshold) {
+  const ctx = document.getElementById('stressChart').getContext('2d');
+  
+  if (stressChart) stressChart.destroy();
+  
+  stressChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: dates,
+      datasets: [
+        {
+          label: 'Drought Stress Index',
+          data: stressIndex,
+          borderColor: '#FF6B6B',
+          backgroundColor: 'rgba(255, 107, 107, 0.2)',
+          borderWidth: 3,
+          tension: 0.3,
+          fill: true
+        },
+        {
+          label: 'Critical Threshold',
+          data: Array(dates.length).fill(threshold),
+          borderColor: '#DC143C',
+          borderWidth: 2,
+          borderDash: [10, 5],
+          pointRadius: 0,
+          fill: false
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      aspectRatio: 2.5,
+      plugins: {
+        legend: { position: 'top' },
+        tooltip: { mode: 'index', intersect: false }
+      },
+      scales: {
+        y: {
+          title: { display: true, text: 'Stress Index (0-100)' },
+          min: 0,
+          max: 100
+        },
+        x: {
+          title: { display: true, text: 'Date' },
+          ticks: { maxTicksLimit: 10 }
+        }
+      }
+    }
+  });
+}
+
+function renderForecast(forecast, cropType, profile, currentStress) {
+  const grid = document.getElementById('forecastGrid');
+  const alert = document.getElementById('stressAlert');
+  grid.innerHTML = '';
+  
+  const dates = forecast.daily.time;
+  
+  dates.forEach((date, i) => {
+    let sum = 0, count = 0;
+    if (forecast.daily.soil_moisture_0_to_1cm) sum += forecast.daily.soil_moisture_0_to_1cm[i] || 0, count++;
+    if (forecast.daily.soil_moisture_1_to_3cm) sum += forecast.daily.soil_moisture_1_to_3cm[i] || 0, count++;
+    if (forecast.daily.soil_moisture_3_to_9cm) sum += forecast.daily.soil_moisture_3_to_9cm[i] || 0, count++;
+    if (forecast.daily.soil_moisture_9_to_27cm) sum += forecast.daily.soil_moisture_9_to_27cm[i] || 0, count++;
+    if (cropType !== 'shallow' && forecast.daily.soil_moisture_27_to_81cm) {
+      sum += forecast.daily.soil_moisture_27_to_81cm[i] || 0;
+      count++;
+    }
+    
+    const avgMoisture = count > 0 ? sum / count : 0;
+    const precip = forecast.daily.precipitation_sum[i] || 0;
+    
+    const dayDiv = document.createElement('div');
+    dayDiv.className = 'forecast-day';
+    
+    const moistureColor = avgMoisture < profile.threshold ? '#FF6B6B' : '#51CF66';
+    
+    dayDiv.innerHTML = `
+      <div class="forecast-date">${new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+      <div class="forecast-moisture" style="color: ${moistureColor}">${(avgMoisture * 100).toFixed(1)}%</div>
+      <div class="forecast-rain">☔ ${precip.toFixed(1)}mm</div>
+    `;
+    
+    grid.appendChild(dayDiv);
+  });
+  
+  // Estimate days until critical stress
+  const avgForecastMoisture = dates.reduce((sum, date, i) => {
+    let s = 0, c = 0;
+    if (forecast.daily.soil_moisture_9_to_27cm) s += forecast.daily.soil_moisture_9_to_27cm[i] || 0, c++;
+    return sum + (c > 0 ? s / c : 0);
+  }, 0) / dates.length;
+  
+  const totalForecastRain = forecast.daily.precipitation_sum.reduce((a, b) => a + (b || 0), 0);
+  
+  if (currentStress > profile.stressThreshold) {
+    if (totalForecastRain < 5) {
+      alert.innerHTML = `<div class="stress-warning">⚠️ CRITICAL: Crop is under severe drought stress. Irrigation recommended immediately. Forecast shows only ${totalForecastRain.toFixed(1)}mm rain in next 7 days.</div>`;
+    } else {
+      alert.innerHTML = `<div class="stress-warning">⚠️ WARNING: Currently stressed but ${totalForecastRain.toFixed(1)}mm rain forecasted may provide relief.</div>`;
+    }
+  } else {
+    if (avgForecastMoisture < profile.threshold && totalForecastRain < 10) {
+      alert.innerHTML = `<div class="stress-ok">✓ Current stress is acceptable, but monitor closely. Low rainfall forecasted (${totalForecastRain.toFixed(1)}mm).</div>`;
+    } else {
+      alert.innerHTML = `<div class="stress-ok">✓ Crop moisture levels healthy. Forecast looks favorable with ${totalForecastRain.toFixed(1)}mm expected rainfall.</div>`;
+    }
+  }
+}
+</script>
+</body>
+</html>

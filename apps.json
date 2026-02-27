@@ -1,5 +1,39 @@
 [
   {
+    "date": "2026-02-27",
+    "id": "2026-02-27-3",
+    "name": "Halflife",
+    "description": "Enter your skills and watch them decay or fuse on a periodic table based on real AI automation research, discovering hybrid abilities that resist replacement.",
+    "inspiration": "The Citrini Research 'Global Intelligence Crisis' report hypothesizing that machine intelligence becomes a competent substitute for human intelligence across growing task ranges by 2028, triggering market panic.",
+    "connection": "The idea that human skills have a 'half-life' before AI substitution inspired a personal tool where you map your own abilities and watch their estimated replaceability erode or hold like a living decay chart — not to panic, but to find the irreplaceable core.",
+    "source_url": "https://www.the-independent.com/news/world/americas/ai-doomsday-report-citrini-b2926763.html",
+    "emoji": "⚛️",
+    "category": "AI-inspired"
+  },
+  {
+    "date": "2026-02-27",
+    "id": "2026-02-27-2",
+    "name": "Rootwatch",
+    "description": "Type in any field's coordinates and crop type to see 90 days of layered soil moisture history with a real-time drought stress index that warns when your crop's root zone is dangerously dry.",
+    "inspiration": "CRISPR-edited crops with deeper roots for drought tolerance are entering fields, but farmers and agronomists still need to know when drought stress is actually building in their specific location — not just surface dryness, but the cumulative soil moisture deficit over weeks that determines whether crops survive or fail.",
+    "connection": "Open-Meteo provides free hourly and daily soil moisture data at multiple depths (0-7cm, 7-28cm, 28-100cm, 100-255cm), plus precipitation and evapotranspiration, making it uniquely suited to track deep-root-zone drought stress over time.",
+    "source_url": "https://www.cas.org/resources/cas-insights/scientific-breakthroughs-2026-emerging-trends-watch",
+    "emoji": "🌱",
+    "category": "API tool",
+    "api": "Open-Meteo"
+  },
+  {
+    "date": "2026-02-27",
+    "id": "2026-02-27",
+    "name": "Creasemap",
+    "description": "Paste spreadsheet data and fold it like origami — each crease reshapes the ribbon into a different chart type, revealing hidden correlations where columns meet.",
+    "inspiration": "DNA folds like origami in different neuron types, using variable folding patterns as keys to control gene interactions during brain development.",
+    "connection": "The idea that the same strand rearranges itself into different shapes to unlock different functions inspired a tool where a single dataset refolds itself into radically different visual forms, revealing hidden relationships depending on how you 'crease' it.",
+    "source_url": "https://www.ucsf.edu/news/2026/01/431411/two-new-breakthroughs-advance-neurological-disorders-and-cancer-research",
+    "emoji": "🧬",
+    "category": "Data/visual"
+  },
+  {
     "date": "2026-02-26",
     "id": "2026-02-26-6",
     "name": "Tellglow",

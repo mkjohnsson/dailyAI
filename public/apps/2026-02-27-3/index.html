@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Halflife — Skill Isotope Decay Simulator</title>
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Courier New', monospace;
+  background: #0a0e15;
+  color: #e0e0e0;
+  overflow-x: hidden;
+  padding: 20px;
+}
+
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+h1 {
+  font-size: 2.5em;
+  color: #00ffaa;
+  margin-bottom: 10px;
+  text-shadow: 0 0 20px rgba(0, 255, 170, 0.5);
+}
+
+.subtitle {
+  color: #888;
+  font-size: 0.9em;
+  margin-bottom: 20px;
+}
+
+.controls {
+  background: #151920;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 30px;
+  border: 1px solid #2a3040;
+}
+
+.input-group {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+}
+
+input[type="text"] {
+  flex: 1;
+  min-width: 200px;
+  padding: 10px;
+  background: #0a0e15;
+  border: 1px solid #00ffaa;
+  color: #e0e0e0;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+}
+
+button {
+  padding: 10px 20px;
+  background: #00ffaa;
+  border: none;
+  color: #0a0e15;
+  font-weight: bold;
+  cursor: pointer;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  transition: all 0.3s;
+}
+
+button:hover {
+  background: #00dd99;
+  box-shadow: 0 0 15px rgba(0, 255, 170, 0.5);
+}
+
+.timeline {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.year-display {
+  font-size: 1.8em;
+  color: #00ffaa;
+  margin-bottom: 10px;
+}
+
+.timeline-bar {
+  width: 100%;
+  height: 30px;
+  background: #151920;
+  border-radius: 15px;
+  overflow: hidden;
+  border: 1px solid #2a3040;
+}
+
+.timeline-progress {
+  height: 100%;
+  background: linear-gradient(90deg, #00ffaa, #ff6b6b);
+  transition: width 0.5s ease;
+  box-shadow: 0 0 20px rgba(0, 255, 170, 0.5);
+}
+
+.periodic-table {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 15px;
+  margin-bottom: 30px;
+  min-height: 400px;
+}
+
+.isotope {
+  background: #151920;
+  border: 2px solid #2a3040;
+  border-radius: 8px;
+  padding: 15px;
+  cursor: move;
+  position: relative;
+  transition: all 0.3s;
+  user-select: none;
+}
+
+.isotope.dragging {
+  opacity: 0.5;
+  transform: scale(1.05);
+}
+
+.isotope.stable {
+  border-color: #00ffaa;
+  box-shadow: 0 0 20px rgba(0, 255, 170, 0.3);
+}
+
+.isotope.decaying {
+  border-color: #ff6b6b;
+  animation: pulse 2s infinite;
+}
+
+.isotope.fused {
+  border-color: #ffaa00;
+  background: linear-gradient(135deg, #151920, #2a2010);
+  box-shadow: 0 0 25px rgba(255, 170, 0, 0.4);
+}
+
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 10px rgba(255, 107, 107, 0.3); }
+  50% { box-shadow: 0 0 25px rgba(255, 107, 107, 0.6); }
+}
+
+.isotope-symbol {
+  font-size: 1.5em;
+  font-weight: bold;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+}
+
+.isotope-name {
+  font-size: 0.85em;
+  margin-bottom: 8px;
+  word-wrap: break-word;
+}
+
+.decay-rate {
+  font-size: 0.75em;
+  color: #888;
+  margin-bottom: 5px;
+}
+
+.stability-bar {
+  width: 100%;
+  height: 6px;
+  background: #0a0e15;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.stability-fill {
+  height: 100%;
+  transition: width 0.5s ease;
+  border-radius: 3px;
+}
+
+.fusion-zone {
+  background: #1a1520;
+  border: 2px dashed #ffaa00;
+  border-radius: 8px;
+  padding: 30px;
+  text-align: center;
+  margin-bottom: 20px;
+  min-height: 150px;
+  position: relative;
+}
+
+.fusion-zone h3 {
+  color: #ffaa00;
+  margin-bottom: 15px;
+}
+
+.fusion-result {
+  background: #2a2010;
+  padding: 15px;
+  border-radius: 6px;
+  margin-top: 15px;
+  border: 1px solid #ffaa00;
+}
+
+.automation-score {
+  font-size: 1.2em;
+  color: #00ffaa;
+  margin-top: 10px;
+}
+
+.legend {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 20px;
+  font-size: 0.85em;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legend-color {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+}
+
+.instructions {
+  background: #151920;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  border-left: 4px solid #00ffaa;
+  font-size: 0.9em;
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>⚛️ HALFLIFE</h1>
+    <div class="subtitle">Skill Isotope Decay Simulator — Based on AI Automation Research</div>
+  </header>
+
+  <div class="instructions">
+    <strong>How it works:</strong> Add your skills below. They'll appear as glowing isotopes. Hit "Start Simulation" to watch them decay over 10 years based on AI automation likelihood. Drag two isotopes into the Fusion Zone to create hybrid skills that resist automation. Skills with high human qualities (creativity, physical craft, emotional intelligence) remain stable.
+  </div>
+
+  <div class="controls">
+    <div class="input-group">
+      <input type="text" id="skillInput" placeholder="Enter a skill, hobby, or task (e.g., 'spreadsheet modeling', 'improv comedy')">
+      <button onclick="addSkill()">Add Skill</button>
+      <button onclick="startSimulation()">Start Simulation</button>
+      <button onclick="resetSimulation()">Reset</button>
+    </div>
+  </div>
+
+  <div class="timeline">
+    <div class="year-display">Year: <span id="currentYear">2024</span></div>
+    <div class="timeline-bar">
+      <div class="timeline-progress" id="timelineProgress" style="width: 0%"></div>
+    </div>
+  </div>
+
+  <div class="fusion-zone" id="fusionZone">
+    <h3>⚗️ Fusion Chamber</h3>
+    <div style="color: #888;">Drag two skills here to discover fusion possibilities</div>
+    <div id="fusionResult"></div>
+  </div>
+
+  <div class="periodic-table" id="periodicTable"></div>
+
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-color" style="background: #00ffaa;"></div>
+      <span>Stable (Human-resistant)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-color" style="background: #ff6b6b;"></div>
+      <span>Decaying (AI-automatable)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-color" style="background: #ffaa00;"></div>
+      <span>Fused (Hybrid skill)</span>
+    </div>
+  </div>
+</div>
+
+<script>
+// AI Automation likelihood database (0-100, higher = easier to automate)
+const automationLikelihood = {
+  // High automation risk
+  'data entry': 95,
+  'spreadsheet modeling': 85,
+  'basic coding': 80,
+  'translation': 75,
+  'transcription': 90,
+  'customer service chat': 85,
+  'scheduling': 88,
+  'bookkeeping': 82,
+  'legal research': 70,
+  'tax preparation': 78,
+  'photo editing': 65,
+  'copywriting': 60,
+  'social media posting': 72,
+  
+  // Medium automation risk
+  'graphic design': 55,
+  'video editing': 50,
+  'teaching': 45,
+  'project management': 48,
+  'marketing strategy': 42,
+  'journalism': 52,
+  'music composition': 40,
+  
+  // Low automation risk (high human qualities)
+  'improv comedy': 15,
+  'physical therapy': 20,
+  'psychotherapy': 12,
+  'sculpture': 18,
+  'carpentry': 22,
+  'nursing': 25,
+  'creative direction': 28,
+  'negotiation': 20,
+  'childcare': 15,
+  'massage therapy': 10,
+  'crisis counseling': 8,
+  'fine dining service': 25,
+  'gardening': 30,
+  'storytelling': 32,
+  'live performance': 18,
+  'mentorship': 20,
+  'physical comedy': 12
+};
+
+let skills = [];
+let simulationRunning = false;
+let currentYear = 2024;
+let simulationInterval = null;
+let draggedElements = [];
+
+class Skill {
+  constructor(name) {
+    this.name = name;
+    this.id = Date.now() + Math.random();
+    this.automationRate = this.calculateAutomationRate(name);
+    this.stability = 100;
+    this.isFused = false;
+    this.fusedFrom = null;
+    this.element = null;
+  }
+
+  calculateAutomationRate(name) {
+    const lowerName = name.toLowerCase();
+    
+    // Check exact matches
+    for (let [key, value] of Object.entries(automationLikelihood)) {
+      if (lowerName.includes(key)) {
+        return value;
+      }
+    }
+    
+    // Keyword-based heuristics
+    const keywords = {
+      high: ['data', 'entry', 'spreadsheet', 'basic', 'simple', 'routine', 'repetitive', 'calculation', 'sorting'],
+      medium: ['writing', 'design', 'editing', 'analysis', 'planning', 'research'],
+      low: ['improv', 'therapy', 'creative', 'physical', 'emotional', 'craft', 'performance', 'human', 'empathy', 'intuition', 'judgment']
+    };
+    
+    for (let word of keywords.low) {
+      if (lowerName.includes(word)) return 15 + Math.random() * 15;
+    }
+    for (let word of keywords.high) {
+      if (lowerName.includes(word)) return 70 + Math.random() * 20;
+    }
+    for (let word of keywords.medium) {
+      if (lowerName.includes(word)) return 40 + Math.random() * 20;
+    }
+    
+    // Default
+    return 50 + Math.random() * 20;
+  }
+
+  getSymbol() {
+    const words = this.name.split(' ');
+    if (words.length >= 2) {
+      return (words[0][0] + words[1][0]).toUpperCase();
+    }
+    return this.name.substring(0, 2).toUpperCase();
+  }
+
+  decay(years) {
+    if (this.isFused) return; // Fused skills don't decay
+    
+    const decayFactor = (this.automationRate / 100) * years * 10;
+    this.stability = Math.max(0, this.stability - decayFactor);
+  }
+
+  getStabilityColor() {
+    if (this.isFused) return '#ffaa00';
+    if (this.stability > 70) return '#00ffaa';
+    if (this.stability > 40) return '#ffaa00';
+    return '#ff6b6b';
+  }
+
+  getCategory() {
+    if (this.isFused) return 'fused';
+    if (this.automationRate < 35) return 'stable';
+    return 'decaying';
+  }
+}
+
+function addSkill() {
+  const input = document.getElementById('skillInput');
+  const skillName = input.value.trim();
+  
+  if (!skillName) return;
+  
+  const skill = new Skill(skillName);
+  skills.push(skill);
+  renderSkill(skill);
+  
+  input.value = '';
+}
+
+function renderSkill(skill) {
+  const table = document.getElementById('periodicTable');
+  const div = document.createElement('div');
+  div.className = `isotope ${skill.getCategory()}`;
+  div.draggable = true;
+  div.dataset.skillId = skill.id;
+  
+  div.innerHTML = `
+    <div class="isotope-symbol">${skill.getSymbol()}</div>
+    <div class="isotope-name">${skill.name}</div>
+    <div class="decay-rate">AI Risk: ${Math.round(skill.automationRate)}%</div>
+    <div class="stability-bar">
+      <div class="stability-fill" style="width: ${skill.stability}%; background: ${skill.getStabilityColor()}"></div>
+    </div>
+  `;
+  
+  div.addEventListener('dragstart', handleDragStart);
+  div.addEventListener('dragend', handleDragEnd);
+  
+  table.appendChild(div);
+  skill.element = div;
+}
+
+function updateSkillDisplay(skill) {
+  if (!skill.element) return;
+  
+  skill.element.className = `isotope ${skill.getCategory()}`;
+  const fillBar = skill.element.querySelector('.stability-fill');
+  fillBar.style.width = skill.stability + '%';
+  fillBar.style.background = skill.getStabilityColor();
+}
+
+function startSimulation() {
+  if (skills.length === 0) {
+    alert('Add some skills first!');
+    return;
+  }
+  
+  if (simulationRunning) return;
+  
+  simulationRunning = true;
+  currentYear = 2024;
+  
+  simulationInterval = setInterval(() => {
+    currentYear++;
+    const yearsElapsed = currentYear - 2024;
+    
+    document.getElementById('currentYear').textContent = currentYear;
+    document.getElementById('timelineProgress').style.width = (yearsElapsed / 10) * 100 + '%';
+    
+    skills.forEach(skill => {
+      skill.decay(1);
+      updateSkillDisplay(skill);
+    });
+    
+    if (yearsElapsed >= 10) {
+      clearInterval(simulationInterval);
+      simulationRunning = false;
+    }
+  }, 1000);
+}
+
+function resetSimulation() {
+  clearInterval(simulationInterval);
+  simulationRunning = false;
+  currentYear = 2024;
+  skills = [];
+  document.getElementById('periodicTable').innerHTML = '';
+  document.getElementById('currentYear').textContent = '2024';
+  document.getElementById('timelineProgress').style.width = '0%';
+  document.getElementById('fusionResult').innerHTML = '';
+  draggedElements = [];
+}
+
+function handleDragStart(e) {
+  e.target.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/html', e.target.dataset.skillId);
+}
+
+function handleDragEnd(e) {
+  e.target.classList.remove('dragging');
+}
+
+const fusionZone = document.getElementById('fusionZone');
+
+fusionZone.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  fusionZone.style.background = '#252020';
+});
+
+fusionZone.addEventListener('dragleave', () => {
+  fusionZone.style.background = '#1a1520';
+});
+
+fusionZone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  fusionZone.style.background = '#1a1520';
+  
+  const skillId = parseFloat(e.dataTransfer.getData('text/html'));
+  const skill = skills.find(s => s.id === skillId);
+  
+  if (!skill) return;
+  
+  draggedElements.push(skill);
+  
+  if (draggedElements.length === 2) {
+    attemptFusion(draggedElements[0], draggedElements[1]);
+    draggedElements = [];
+  }
+});
+
+function attemptFusion(skill1, skill2) {
+  // Calculate fusion compatibility
+  const avgAutomation = (skill1.automationRate + skill2.automationRate) / 2;
+  const automationDiff = Math.abs(skill1.automationRate - skill2.automationRate);
+  
+  // Fusion is more powerful when combining high-automation with low-automation
+  const fusionBonus = automationDiff / 2;
+  const newAutomationRate = Math.max(10, avgAutomation - fusionBonus);
+  
+  const fusedName = `${skill1.name} × ${skill2.name}`;
+  const fusedSkill = new Skill(fusedName);
+  fusedSkill.automationRate = newAutomationRate;
+  fusedSkill.stability = 100;
+  fusedSkill.isFused = true;
+  fusedSkill.fusedFrom = [skill1.name, skill2.name];
+  
+  skills.push(fusedSkill);
+  renderSkill(fusedSkill);
+  
+  // Show fusion result
+  const resistanceScore = Math.round(100 - newAutomationRate);
+  const resultDiv = document.getElementById('fusionResult');
+  resultDiv.innerHTML = `
+    <div class="fusion-result">
+      <strong>✨ Fusion Successful!</strong><br>
+      <em>${fusedName}</em><br>
+      <div class="automation-score">Automation Resistance: ${resistanceScore}/100</div>
+      <div style="margin-top: 10px; color: #888; font-size: 0.85em;">
+        ${getFusionExplanation(skill1, skill2, resistanceScore)}
+      </div>
+    </div>
+  `;
+}
+
+function getFusionExplanation(skill1, skill2, score) {
+  if (score > 80) {
+    return `Exceptional fusion! The human elements of "${skill1.name}" combined with "${skill2.name}" create a deeply contextual skill that requires improvisation, judgment, and lived experience—extremely difficult to automate.`;
+  } else if (score > 60) {
+    return `Strong fusion. This hybrid requires both technical understanding and human intuition, making it resilient to automation for the foreseeable future.`;
+  } else if (score > 40) {
+    return `Moderate fusion. While AI can assist with parts of this skill, the combination still requires human oversight and creative decision-making.`;
+  } else {
+    return `Weak fusion. Both skills have high automation potential. Consider pairing with more human-centric abilities.`;
+  }
+}
+
+// Add enter key support
+document.getElementById('skillInput').addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') addSkill();
+});
+
+// Add some starter skills for demo
+setTimeout(() => {
+  const starters = ['spreadsheet modeling', 'improv comedy', 'carpentry', 'data entry'];
+  starters.forEach(s => {
+    document.getElementById('skillInput').value = s;
+    addSkill();
+  });
+}, 100);
+</script>
+</body>
+</html>
