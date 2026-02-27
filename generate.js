@@ -523,8 +523,8 @@ function generateGallery(manifest) {
     ${archiveGroups.map(group => `
     <div class="archive-day">
       <div class="archive-day-label">${formatDate(group.date)}</div>
-      <div class="archive-day-grid">
-        ${group.apps.map(a => renderCard(a)).join('')}
+      <div class="today-grid">
+        ${group.apps.map(a => renderTodaySlot(a)).join('')}
       </div>
     </div>`).join('')}
   </section>` : '';
@@ -792,9 +792,9 @@ function generateGallery(manifest) {
       <span class="logo-sub">A NEW APP EVERY DAY</span>
     </div>
     <div class="about">
-      Every day at 9 AM, <strong>Claude</strong> searches the web for something interesting,
-      uses it as creative inspiration, and builds three interactive web apps — completely on its own.<br>
-      Each app is a single HTML file that runs entirely in your browser.
+      What if AI had no brief, no client, no deadline — just complete creative freedom?<br><br>
+      Every day, <strong>Claude</strong> searches the web for something fascinating, uses it as a spark,
+      and builds whatever it wants. Three new apps. Every single day.
     </div>
   </div>
 
