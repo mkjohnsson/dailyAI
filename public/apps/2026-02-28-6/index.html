@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trustscar — Daily AI Gen</title>
+  <meta name="description" content="A trust-based creature evolution game where every choice is permanently logged on a public ledger, forcing you to balance honesty against strategic deception as NPCs judge your history and your creature transforms based on your reputation.">
+  <meta property="og:title" content="Trustscar — Daily AI Gen">
+  <meta property="og:description" content="A trust-based creature evolution game where every choice is permanently logged on a public ledger, forcing you to balance honesty against strategic deception as NPCs judge your history and your creature transforms based on your reputation.">
+  <meta property="og:url" content="https://dailyaigen.com/apps/2026-02-28-6/">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="https://dailyaigen.com/apps/2026-02-28-6/">
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  body {
+    font-family: 'Courier New', monospace;
+    background: linear-gradient(to bottom, #1a1a2e 0%, #0f3460 100%);
+    color: #eee;
+    overflow: hidden;
+    height: 100vh;
+  }
+  
+  #game-container {
+    display: flex;
+    height: 100vh;
+  }
+  
+  #left-panel {
+    width: 300px;
+    background: rgba(0, 0, 0, 0.5);
+    border-right: 2px solid #16213e;
+    padding: 20px;
+    overflow-y: auto;
+  }
+  
+  #main-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  #creature-display {
+    height: 40%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.3);
+    border-bottom: 2px solid #16213e;
+    position: relative;
+  }
+  
+  #creature-canvas {
+    max-width: 100%;
+    max-height: 100%;
+  }
+  
+  #interaction-area {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+  }
+  
+  .stat-bar {
+    margin: 10px 0;
+  }
+  
+  .stat-label {
+    font-size: 11px;
+    color: #aaa;
+    margin-bottom: 3px;
+  }
+  
+  .bar-container {
+    background: #1a1a2e;
+    height: 20px;
+    border-radius: 3px;
+    overflow: hidden;
+    border: 1px solid #333;
+  }
+  
+  .bar-fill {
+    height: 100%;
+    transition: width 0.3s, background 0.3s;
+  }
+  
+  .trust-bar { background: linear-gradient(to right, #e74c3c, #f39c12, #2ecc71); }
+  .evolution-bar { background: linear-gradient(to right, #9b59b6, #3498db); }
+  
+  #ledger {
+    margin-top: 20px;
+  }
+  
+  .ledger-title {
+    font-size: 14px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: #f39c12;
+    border-bottom: 1px solid #333;
+    padding-bottom: 5px;
+  }
+  
+  .ledger-entry {
+    font-size: 10px;
+    padding: 8px;
+    margin: 5px 0;
+    background: rgba(255, 255, 255, 0.05);
+    border-left: 3px solid;
+    border-radius: 3px;
+  }
+  
+  .ledger-honest { border-color: #2ecc71; }
+  .ledger-neutral { border-color: #f39c12; }
+  .ledger-deceptive { border-color: #e74c3c; }
+  
+  .event-card {
+    background: rgba(22, 33, 62, 0.8);
+    border: 2px solid #16213e;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  
+  .event-title {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: #3498db;
+  }
+  
+  .event-description {
+    font-size: 13px;
+    line-height: 1.6;
+    margin-bottom: 15px;
+    color: #bbb;
+  }
+  
+  .choice-btn {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    margin: 8px 0;
+    background: linear-gradient(to right, #16213e, #0f3460);
+    border: 1px solid #3498db;
+    border-radius: 5px;
+    color: #eee;
+    cursor: pointer;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    text-align: left;
+    transition: all 0.2s;
+  }
+  
+  .choice-btn:hover {
+    background: linear-gradient(to right, #1a2a4e, #13496e);
+    border-color: #5dade2;
+    transform: translateX(5px);
+  }
+  
+  .choice-tag {
+    display: inline-block;
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    margin-left: 8px;
+    font-weight: bold;
+  }
+  
+  .tag-honest { background: #2ecc71; color: #000; }
+  .tag-neutral { background: #f39c12; color: #000; }
+  .tag-deceptive { background: #e74c3c; color: #fff; }
+  
+  #creature-info {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 10px;
+    border-radius: 5px;
+    font-size: 11px;
+  }
+  
+  .zone-locked {
+    background: rgba(231, 76, 60, 0.2);
+    border-color: #e74c3c;
+  }
+  
+  #intro-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+  
+  #intro-content {
+    max-width: 600px;
+    padding: 40px;
+    text-align: center;
+  }
+  
+  #intro-content h1 {
+    font-size: 36px;
+    margin-bottom: 20px;
+    color: #3498db;
+  }
+  
+  #intro-content p {
+    font-size: 14px;
+    line-height: 1.8;
+    margin-bottom: 30px;
+    color: #bbb;
+  }
+  
+  #start-btn {
+    padding: 15px 40px;
+    font-size: 16px;
+    background: #3498db;
+    border: none;
+    border-radius: 5px;
+    color: #fff;
+    cursor: pointer;
+    font-family: 'Courier New', monospace;
+    transition: all 0.3s;
+  }
+  
+  #start-btn:hover {
+    background: #5dade2;
+    transform: scale(1.05);
+  }
+</style>
+</head>
+<body>
+
+<div id="intro-screen">
+  <div id="intro-content">
+    <h1>TRUSTSCAR</h1>
+    <p>You have been given a shapeshifting creature in a world governed by trust.</p>
+    <p>Every action is recorded on a public ledger. NPCs read your history before trading, opening gates, or sharing secrets.</p>
+    <p>Honest behavior evolves your creature and unlocks new zones. Deception scars your ledger permanently, causing your creature to degrade and regions to lock you out.</p>
+    <p><strong>Warning:</strong> Some challenges can only be solved through half-truths. Choose wisely. There are no reloads.</p>
+    <button id="start-btn">HATCH CREATURE</button>
+  </div>
+</div>
+
+<div id="game-container" style="display: none;">
+  <div id="left-panel">
+    <div class="stat-bar">
+      <div class="stat-label">TRUST SCORE</div>
+      <div class="bar-container">
+        <div class="bar-fill trust-bar" id="trust-bar" style="width: 50%"></div>
+      </div>
+      <div style="font-size: 10px; margin-top: 3px;" id="trust-value">50 / 100</div>
+    </div>
+    
+    <div class="stat-bar">
+      <div class="stat-label">EVOLUTION</div>
+      <div class="bar-container">
+        <div class="bar-fill evolution-bar" id="evolution-bar" style="width: 0%"></div>
+      </div>
+      <div style="font-size: 10px; margin-top: 3px;" id="evolution-value">Hatchling (0/100)</div>
+    </div>
+    
+    <div id="ledger">
+      <div class="ledger-title">TRUST LEDGER (PUBLIC)</div>
+      <div id="ledger-entries"></div>
+    </div>
+  </div>
+  
+  <div id="main-area">
+    <div id="creature-display">
+      <canvas id="creature-canvas" width="400" height="300"></canvas>
+      <div id="creature-info">
+        <div id="creature-name">Hatchling</div>
+        <div id="creature-status">Newly born</div>
+      </div>
+    </div>
+    
+    <div id="interaction-area">
+      <div id="events-container"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Game State
+const gameState = {
+  trust: 50,
+  evolution: 0,
+  ledger: [],
+  currentZone: 0,
+  lockedZones: [],
+  eventIndex: 0,
+  creatureForm: 'hatchling'
+};
+
+// Creature forms based on trust and evolution
+const creatureForms = {
+  hatchling: { minTrust: 0, minEvolution: 0, name: 'Hatchling' },
+  trustling: { minTrust: 60, minEvolution: 30, name: 'Trustling' },
+  guardian: { minTrust: 70, minEvolution: 60, name: 'Guardian' },
+  scarred: { minTrust: 0, minEvolution: 0, name: 'Scarred One' },
+  deceiver: { minTrust: 0, minEvolution: 20, name: 'Deceiver' }
+};
+
+// Events database
+const events = [
+  {
+    zone: 0,
+    title: 'The Merchant of Emberfall',
+    description: 'A traveling merchant offers you a rare seed. "This will grow into something valuable," he says. "Pay me 10 gold now, or take it on credit and pay 15 gold when we meet again in three days."',
+    choices: [
+      { text: 'Pay 10 gold now (honest)', trust: 5, evolution: 5, type: 'honest' },
+      { text: 'Take on credit, intend to pay', trust: 2, evolution: 3, type: 'neutral' },
+      { text: 'Take on credit, plan to avoid him', trust: -10, evolution: -5, type: 'deceptive' }
+    ]
+  },
+  {
+    zone: 0,
+    title: 'The Gate Guardian',
+    description: 'A stone guardian blocks the path to the Crystal Wastes. "Only those with pure intent may pass. Have you broken any promises?" Your ledger is visible to it.',
+    choices: [
+      { text: 'Tell the truth about your ledger', trust: 8, evolution: 8, type: 'honest', requireMinTrust: 40 },
+      { text: 'Minimize your mistakes', trust: 0, evolution: 2, type: 'neutral' },
+      { text: 'Claim a perfect record', trust: -15, evolution: 0, type: 'deceptive' }
+    ]
+  },
+  {
+    zone: 0,
+    title: 'The Trapped Scholar',
+    description: 'A scholar is trapped under rubble. "Please help! But I must warn you—I stole a forbidden tome. If you save me, authorities will question you. Will you claim ignorance of my crime?"',
+    choices: [
+      { text: 'Save them and tell authorities the truth', trust: 10, evolution: 5, type: 'honest' },
+      { text: 'Save them and claim ignorance (half-truth)', trust: -5, evolution: 10, type: 'neutral', special: 'Opens Scholar questline' },
+      { text: 'Leave them to avoid trouble', trust: -8, evolution: -3, type: 'deceptive' }
+    ]
+  },
+  {
+    zone: 1,
+    title: 'The Crystal Wastes - Nomad Trade',
+    description: 'A nomad offers clean water for information. "Tell me the route to Emberfall. But I hear bandits use that road. Should I be warned?"',
+    choices: [
+      { text: 'Tell the full truth about bandits', trust: 6, evolution: 6, type: 'honest' },
+      { text: 'Share route, downplay danger', trust: -3, evolution: 8, type: 'neutral', special: 'Nomad survives, grateful later' },
+      { text: 'Give false route to keep it secret', trust: -12, evolution: -5, type: 'deceptive' }
+    ],
+    requireMinTrust: 45
+  },
+  {
+    zone: 1,
+    title: 'The Whispering Shrine',
+    description: 'An ancient shrine asks: "What is the weight of your deceptions?" Your creature trembles. You sense this shrine can evolve your creature—or scar it permanently.',
+    choices: [
+      { text: 'Confess all deceptions openly', trust: 12, evolution: 15, type: 'honest' },
+      { text: 'Confess some, hide the worst', trust: -2, evolution: 8, type: 'neutral' },
+      { text: 'Claim you have never deceived', trust: -20, evolution: -10, type: 'deceptive', special: 'Shrine curses you' }
+    ],
+    requireMinTrust: 40
+  },
+  {
+    zone: 2,
+    title: 'The Council of Echoes',
+    description: 'Five elders sit in judgment. "We have read your ledger. You have shown growth. But we need someone to infiltrate the Shadow Market. You must pretend to be a trader of dark goods. Will you accept this necessary deception?"',
+    choices: [
+      { text: 'Accept the mission (tactical deception)', trust: -10, evolution: 20, type: 'neutral', special: 'Unlocks Shadow Market' },
+      { text: 'Refuse on principle', trust: 8, evolution: 5, type: 'honest', special: 'Locks Shadow Market forever' },
+      { text: 'Accept then betray the Council', trust: -25, evolution: -15, type: 'deceptive' }
+    ],
+    requireMinTrust: 60
+  },
+  {
+    zone: 2,
+    title: 'The Final Mirror',
+    description: 'A massive mirror shows your creature\'s true form—every choice reflected in its shape. "You have reached the end of this journey. What have you become?"',
+    choices: [
+      { text: 'Accept your reflection', trust: 15, evolution: 25, type: 'honest', special: 'True Ending' },
+      { text: 'Shatter the mirror', trust: -30, evolution: -20, type: 'deceptive', special: 'Corruption Ending' }
+    ],
+    requireMinTrust: 55
+  }
+];
+
+// Initialize
+document.getElementById('start-btn').addEventListener('click', () => {
+  document.getElementById('intro-screen').style.display = 'none';
+  document.getElementById('game-container').style.display = 'flex';
+  addLedgerEntry('Creature hatched in Emberfall Village', 'neutral');
+  drawCreature();
+  showNextEvent();
+});
+
+// Update UI
+function updateUI() {
+  const trustBar = document.getElementById('trust-bar');
+  const evolutionBar = document.getElementById('evolution-bar');
+  
+  gameState.trust = Math.max(0, Math.min(100, gameState.trust));
+  gameState.evolution = Math.max(0, Math.min(100, gameState.evolution));
+  
+  trustBar.style.width = gameState.trust + '%';
+  evolutionBar.style.width = gameState.evolution + '%';
+  
+  document.getElementById('trust-value').textContent = `${gameState.trust} / 100`;
+  
+  // Determine creature form
+  let newForm = 'hatchling';
+  if (gameState.trust < 30 && gameState.evolution > 15) {
+    newForm = 'deceiver';
+  } else if (gameState.trust < 40) {
+    newForm = 'scarred';
+  } else if (gameState.trust >= 70 && gameState.evolution >= 60) {
+    newForm = 'guardian';
+  } else if (gameState.trust >= 60 && gameState.evolution >= 30) {
+    newForm = 'trustling';
+  }
+  
+  if (newForm !== gameState.creatureForm) {
+    gameState.creatureForm = newForm;
+    drawCreature();
+  }
+  
+  document.getElementById('evolution-value').textContent = 
+    `${creatureForms[gameState.creatureForm].name} (${gameState.evolution}/100)`;
+  
+  document.getElementById('creature-name').textContent = creatureForms[gameState.creatureForm].name;
+  
+  if (gameState.trust < 30) {
+    document.getElementById('creature-status').textContent = 'Degrading...';
+  } else if (gameState.trust > 70) {
+    document.getElementById('creature-status').textContent = 'Flourishing';
+  } else {
+    document.getElementById('creature-status').textContent = 'Stable';
+  }
+}
+
+// Draw creature
+function drawCreature() {
+  const canvas = document.getElementById('creature-canvas');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+  const centerX = canvas.width / 2;
+  const centerY = canvas.height / 2;
+  
+  const form = gameState.creatureForm;
+  
+  // Different visual styles based on form
+  if (form === 'hatchling') {
+    // Small, simple form
+    ctx.fillStyle = '#3498db';
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, 40, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.fillStyle = '#2c3e50';
+    ctx.beginPath();
+    ctx.arc(centerX - 15, centerY - 10, 5, 0, Math.PI * 2);
+    ctx.arc(centerX + 15, centerY - 10, 5, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (form === 'trustling') {
+    // Evolved, symmetrical
+    ctx.fillStyle = '#2ecc71';
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, 50, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Wings
+    ctx.fillStyle = '#27ae60';
+    ctx.beginPath();
+    ctx.ellipse(centerX - 50, centerY, 30, 50, -Math.PI / 4, 0, Math.PI * 2);
+    ctx.ellipse(centerX + 50, centerY, 30, 50, Math.PI / 4, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.fillStyle = '#2c3e50';
+    ctx.beginPath();
+    ctx.arc(centerX - 15, centerY - 10, 7, 0, Math.PI * 2);
+    ctx.arc(centerX + 15, centerY - 10, 7, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (form === 'guardian') {
+    // Majestic, large
+    ctx.fillStyle = '#9b59b6';
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, 60, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Crown
+    ctx.strokeStyle = '#f39c12';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    for (let i = 0; i < 8; i++) {
+      const angle = (i / 8) * Math.PI * 2;
+      const x = centerX + Math.cos(angle) * 70;
+      const y = centerY + Math.sin(angle) * 70 - 30;
+      ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.stroke();
+    
+    ctx.fillStyle = '#2c3e50';
+    ctx.beginPath();
+    ctx.arc(centerX - 20, centerY - 15, 8, 0, Math.PI * 2);
+    ctx.arc(centerX + 20, centerY - 15, 8, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (form === 'scarred') {
+    // Damaged, asymmetric
+    ctx.fillStyle = '#95a5a6';
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, 45, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Scars
+    ctx.strokeStyle = '#e74c3c';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(centerX - 30, centerY - 20);
+    ctx.lineTo(centerX + 20, centerY + 30);
+    ctx.moveTo(centerX + 10, centerY - 30);
+    ctx.lineTo(centerX - 20, centerY + 20);
+    ctx.stroke();
+    
+    ctx.fillStyle = '#7f8c8d';
+    ctx.beginPath();
+    ctx.arc(centerX - 15, centerY - 10, 6, 0, Math.PI * 2);
+    ctx.arc(centerX + 15, centerY - 5, 4, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (form === 'deceiver') {
+    // Dark, fragmented
+    ctx.fillStyle = '#34495e';
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, 50, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Broken pieces
+    ctx.fillStyle = '#e74c3c';
+    ctx.beginPath();
+    ctx.arc(centerX - 40, centerY - 30, 15, 0, Math.PI * 2);
+    ctx.arc(centerX + 40, centerY + 20, 12, 0, Math.PI * 2);
+    ctx.arc(centerX, centerY - 50, 10, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.fillStyle = '#c0392b';
+    ctx.beginPath();
+    ctx.arc(centerX - 15, centerY - 10, 8, 0, Math.PI * 2);
+    ctx.arc(centerX + 15, centerY - 10, 8, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+// Add ledger entry
+function addLedgerEntry(text, type) {
+  gameState.ledger.unshift({ text, type, timestamp: Date.now() });
+  
+  const ledgerContainer = document.getElementById('ledger-entries');
+  const entry = document.createElement('div');
+  entry.className = `ledger-entry ledger-${type}`;
+  entry.textContent = text;
+  
+  ledgerContainer.insertBefore(entry, ledgerContainer.firstChild);
+  
+  // Keep only last 8 entries visible
+  while (ledgerContainer.children.length > 8) {
+    ledgerContainer.removeChild(ledgerContainer.lastChild);
+  }
+}
+
+// Show next event
+function showNextEvent() {
+  const container = document.getElementById('events-container');
+  container.innerHTML = '';
+  
+  // Find next available event
+  let nextEvent = null;
+  for (let i = gameState.eventIndex; i < events.length; i++) {
+    const event = events[i];
+    
+    // Check if zone is locked
+    if (gameState.lockedZones.includes(event.zone)) {
+      continue;
+    }
+    
+    // Check trust requirement
+    if (event.requireMinTrust && gameState.trust < event.requireMinTrust) {
+      // Show locked message
+      const card = document.createElement('div');
+      card.className = 'event-card zone-locked';
+      card.innerHTML = `
+        <div class="event-title">🔒 ${event.title}</div>
+        <div class="event-description">This zone is locked. Required trust: ${event.requireMinTrust}. Your trust: ${gameState.trust}</div>
+      `;
+      container.appendChild(card);
+      gameState.eventIndex = i + 1;
+      setTimeout(() => showNextEvent(), 3000);
+      return;
+    }
+    
+    nextEvent = event;
+    gameState.eventIndex = i;
+    break;
+  }
+  
+  if (!nextEvent) {
+    // Game over
+    const card = document.createElement('div');
+    card.className = 'event-card';
+    card.innerHTML = `
+      <div class="event-title">Journey Complete</div>
+      <div class="event-description">
+        Your journey has ended. Your final trust score: ${gameState.trust}/100<br>
+        Your creature became: ${creatureForms[gameState.creatureForm].name}<br><br>
+        ${gameState.trust > 70 ? 'The world remembers you as a beacon of trust.' : 
+          gameState.trust < 30 ? 'The world remembers you as the Scarred One, a cautionary tale.' :
+          'The world remembers you as one who walked the middle path.'}
+      </div>
+    `;
+    container.appendChild(card);
+    return;
+  }
+  
+  // Show event
+  const card = document.createElement('div');
+  card.className = 'event-card';
+  card.innerHTML = `
+    <div class="event-title">${nextEvent.title}</div>
+    <div class="event-description">${nextEvent.description}</div>
+  `;
+  
+  nextEvent.choices.forEach((choice, index) => {
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    
+    const tagClass = `tag-${choice.type}`;
+    const tagText = choice.type.toUpperCase();
+    
+    btn.innerHTML = `${choice.text} <span class="choice-tag ${tagClass}">${tagText}</span>`;
+    
+    if (choice.requireMinTrust && gameState.trust < choice.requireMinTrust) {
+      btn.disabled = true;
+      btn.style.opacity = '0.4';
+      btn.style.cursor = 'not-allowed';
+    }
+    
+    btn.addEventListener('click', () => {
+      handleChoice(nextEvent, choice);
+    });
+    
+    card.appendChild(btn);
+  });
+  
+  container.appendChild(card);
+}
+
+// Handle choice
+function handleChoice(event, choice) {
+  gameState.trust += choice.trust;
+  gameState.evolution += choice.evolution;
+  
+  let ledgerText = `${event.title}: ${choice.text}`;
+  if (choice.special) {
+    ledgerText += ` [${choice.special}]`;
+  }
+  
+  addLedgerEntry(ledgerText, choice.type);
+  
+  // Special consequences
+  if (choice.special && choice.special.includes('Locks')) {
+    const zoneMatch = choice.special.match(/Locks (\w+)/);
+    if (zoneMatch) {
+      gameState.lockedZones.push(2); // Lock advanced zones
+    }
+  }
+  
+  if (choice.trust < -15) {
+    addLedgerEntry('⚠️ Major trust violation recorded', 'deceptive');
+  }
+  
+  updateUI();
+  
+  gameState.eventIndex++;
+  
+  setTimeout(() => {
+    showNextEvent();
+  }, 500);
+}
+
+updateUI();
+</script>
+
+</body>
+</html>

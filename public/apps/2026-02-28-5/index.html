@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lightledger — Daily AI Gen</title>
+  <meta name="description" content="Lightledger reveals your 30-day light budget by location, charting daily golden hours and twilight phases as stacked time ribbons with side-by-side comparison and optimal-window suggestions for photography or outdoor work.">
+  <meta property="og:title" content="Lightledger — Daily AI Gen">
+  <meta property="og:description" content="Lightledger reveals your 30-day light budget by location, charting daily golden hours and twilight phases as stacked time ribbons with side-by-side comparison and optimal-window suggestions for photography or outdoor work.">
+  <meta property="og:url" content="https://dailyaigen.com/apps/2026-02-28-5/">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="https://dailyaigen.com/apps/2026-02-28-5/">
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+  color: #fff;
+  padding: 20px;
+  min-height: 100vh;
+}
+
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+h1 {
+  text-align: center;
+  margin-bottom: 30px;
+  font-size: 2.5em;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+.controls {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 30px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.location-input {
+  background: rgba(255,255,255,0.1);
+  padding: 20px;
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  flex: 1;
+  min-width: 300px;
+  max-width: 500px;
+}
+
+.location-input h3 {
+  margin-bottom: 10px;
+  font-size: 1.2em;
+}
+
+.input-group {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+input {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 1em;
+  background: rgba(255,255,255,0.9);
+}
+
+button {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 6px;
+  font-size: 1em;
+  cursor: pointer;
+  background: #ff6b6b;
+  color: white;
+  font-weight: bold;
+  transition: background 0.3s;
+}
+
+button:hover {
+  background: #ff5252;
+}
+
+button:disabled {
+  background: #666;
+  cursor: not-allowed;
+}
+
+.auto-btn {
+  background: #4ecdc4;
+  width: 100%;
+}
+
+.auto-btn:hover {
+  background: #45b8b0;
+}
+
+.results {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(600px, 1fr));
+  gap: 30px;
+  margin-bottom: 30px;
+}
+
+.location-result {
+  background: rgba(255,255,255,0.1);
+  padding: 20px;
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+}
+
+.location-result h2 {
+  margin-bottom: 15px;
+  font-size: 1.5em;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+  font-size: 1.2em;
+}
+
+.error {
+  background: rgba(255,107,107,0.2);
+  padding: 15px;
+  border-radius: 6px;
+  margin-bottom: 15px;
+  border: 1px solid #ff6b6b;
+}
+
+.chart {
+  margin: 20px 0;
+  background: rgba(0,0,0,0.2);
+  padding: 15px;
+  border-radius: 8px;
+}
+
+.day-bar {
+  display: flex;
+  height: 30px;
+  margin: 3px 0;
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+.day-label {
+  position: absolute;
+  left: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.75em;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+  z-index: 1;
+}
+
+.time-block {
+  height: 100%;
+  transition: opacity 0.3s;
+}
+
+.time-block:hover {
+  opacity: 0.8;
+}
+
+.civil-twilight { background: #a8dadc; }
+.golden-hour { background: #ffd166; }
+.daylight { background: #06d6a0; }
+
+.legend {
+  display: flex;
+  gap: 20px;
+  margin: 15px 0;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legend-color {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 15px;
+  margin: 20px 0;
+}
+
+.stat-card {
+  background: rgba(0,0,0,0.2);
+  padding: 15px;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 2em;
+  font-weight: bold;
+  margin: 5px 0;
+}
+
+.stat-label {
+  font-size: 0.9em;
+  opacity: 0.8;
+}
+
+.delta-chart {
+  margin: 20px 0;
+  background: rgba(0,0,0,0.2);
+  padding: 15px;
+  border-radius: 8px;
+}
+
+.delta-chart h4 {
+  margin-bottom: 10px;
+}
+
+.sparkline {
+  display: flex;
+  align-items: flex-end;
+  height: 60px;
+  gap: 2px;
+}
+
+.spark-bar {
+  flex: 1;
+  background: #4ecdc4;
+  min-width: 2px;
+  border-radius: 2px 2px 0 0;
+  transition: background 0.3s;
+}
+
+.spark-bar.negative {
+  background: #ff6b6b;
+}
+
+.spark-bar:hover {
+  opacity: 0.7;
+}
+
+.best-window {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  padding: 20px;
+  border-radius: 8px;
+  margin: 20px 0;
+}
+
+.best-window h4 {
+  margin-bottom: 10px;
+}
+
+.window-detail {
+  font-size: 1.1em;
+  margin: 5px 0;
+}
+
+@media (max-width: 768px) {
+  .results {
+    grid-template-columns: 1fr;
+  }
+  
+  h1 {
+    font-size: 1.8em;
+  }
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🌅 Lightledger</h1>
+  
+  <div class="controls">
+    <div class="location-input">
+      <h3>Location A</h3>
+      <div class="input-group">
+        <input type="text" id="nameA" placeholder="Location name">
+      </div>
+      <div class="input-group">
+        <input type="number" id="latA" placeholder="Latitude" step="0.01">
+        <input type="number" id="lngA" placeholder="Longitude" step="0.01">
+      </div>
+      <button class="auto-btn" onclick="autoDetect('A')">📍 Auto-detect Location</button>
+      <button style="width: 100%; margin-top: 10px;" onclick="fetchLocation('A')">Fetch Light Data</button>
+    </div>
+    
+    <div class="location-input">
+      <h3>Location B (Optional)</h3>
+      <div class="input-group">
+        <input type="text" id="nameB" placeholder="Location name">
+      </div>
+      <div class="input-group">
+        <input type="number" id="latB" placeholder="Latitude" step="0.01">
+        <input type="number" id="lngB" placeholder="Longitude" step="0.01">
+      </div>
+      <button class="auto-btn" onclick="autoDetect('B')">📍 Auto-detect Location</button>
+      <button style="width: 100%; margin-top: 10px;" onclick="fetchLocation('B')">Fetch Light Data</button>
+    </div>
+  </div>
+  
+  <div class="results" id="results"></div>
+</div>
+
+<script>
+const data = {
+  A: null,
+  B: null
+};
+
+async function autoDetect(loc) {
+  if (!navigator.geolocation) {
+    alert('Geolocation is not supported by your browser');
+    return;
+  }
+  
+  navigator.geolocation.getCurrentPosition(
+    position => {
+      document.getElementById(`lat${loc}`).value = position.coords.latitude.toFixed(2);
+      document.getElementById(`lng${loc}`).value = position.coords.longitude.toFixed(2);
+      document.getElementById(`name${loc}`).value = 'Current Location';
+    },
+    error => {
+      alert('Unable to retrieve your location');
+    }
+  );
+}
+
+async function fetchLocation(loc) {
+  const lat = document.getElementById(`lat${loc}`).value;
+  const lng = document.getElementById(`lng${loc}`).value;
+  const name = document.getElementById(`name${loc}`).value || `${lat}, ${lng}`;
+  
+  if (!lat || !lng) {
+    alert('Please enter latitude and longitude');
+    return;
+  }
+  
+  showLoading(loc, name);
+  
+  try {
+    const days = [];
+    const today = new Date();
+    
+    for (let i = 0; i < 30; i++) {
+      const date = new Date(today);
+      date.setDate(date.getDate() + i);
+      const dateStr = date.toISOString().split('T')[0];
+      
+      const url = `https://api.sunrise-sunset.org/json?lat=${lat}&lng=${lng}&date=${dateStr}&formatted=0`;
+      const response = await fetch(url);
+      
+      if (!response.ok) throw new Error('API request failed');
+      
+      const result = await response.json();
+      
+      if (result.status !== 'OK') throw new Error('API returned error status');
+      
+      days.push({
+        date: dateStr,
+        ...result.results
+      });
+      
+      // Small delay to avoid rate limiting
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+    
+    data[loc] = { name, lat, lng, days };
+    renderLocation(loc);
+    
+  } catch (error) {
+    showError(loc, name, error.message);
+  }
+}
+
+function showLoading(loc, name) {
+  const resultDiv = document.getElementById(`result${loc}`) || createResultDiv(loc);
+  resultDiv.innerHTML = `
+    <h2>${name}</h2>
+    <div class="loading">⏳ Fetching 30 days of light data...</div>
+  `;
+}
+
+function showError(loc, name, message) {
+  const resultDiv = document.getElementById(`result${loc}`) || createResultDiv(loc);
+  resultDiv.innerHTML = `
+    <h2>${name}</h2>
+    <div class="error">❌ Error: ${message}</div>
+  `;
+}
+
+function createResultDiv(loc) {
+  const results = document.getElementById('results');
+  const div = document.createElement('div');
+  div.id = `result${loc}`;
+  div.className = 'location-result';
+  results.appendChild(div);
+  return div;
+}
+
+function renderLocation(loc) {
+  const { name, lat, lng, days } = data[loc];
+  const resultDiv = document.getElementById(`result${loc}`);
+  
+  // Calculate statistics
+  const stats = calculateStats(days);
+  const deltas = calculateDeltas(days);
+  const bestWindow = findBestWindow(days);
+  
+  resultDiv.innerHTML = `
+    <h2>${name}</h2>
+    <div style="opacity: 0.8; margin-bottom: 15px;">📍 ${lat}°, ${lng}°</div>
+    
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-color civil-twilight"></div>
+        <span>Civil Twilight</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color golden-hour"></div>
+        <span>Golden Hour</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color daylight"></div>
+        <span>Full Daylight</span>
+      </div>
+    </div>
+    
+    <div class="stats">
+      <div class="stat-card">
+        <div class="stat-label">Avg Daylight</div>
+        <div class="stat-value">${stats.avgDaylight}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Avg Golden Hour</div>
+        <div class="stat-value">${stats.avgGolden}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Change</div>
+        <div class="stat-value" style="color: ${stats.totalChange >= 0 ? '#4ecdc4' : '#ff6b6b'}">
+          ${stats.totalChange > 0 ? '+' : ''}${stats.totalChange}m
+        </div>
+      </div>
+    </div>
+    
+    <div class="chart">
+      ${days.map((day, i) => renderDayBar(day, i)).join('')}
+    </div>
+    
+    <div class="delta-chart">
+      <h4>📊 Daily Change in Total Light (minutes)</h4>
+      <div class="sparkline">
+        ${deltas.map(delta => renderSparkBar(delta, deltas)).join('')}
+      </div>
+    </div>
+    
+    ${bestWindow ? `
+      <div class="best-window">
+        <h4>✨ Best Window for Outdoor Activities</h4>
+        <div class="window-detail">📅 ${bestWindow.start} to ${bestWindow.end}</div>
+        <div class="window-detail">🌅 ${bestWindow.days} consecutive days</div>
+        <div class="window-detail">⏱️ Avg ${bestWindow.avgGolden} golden hour daily</div>
+        <div class="window-detail">💡 ${bestWindow.reason}</div>
+      </div>
+    ` : ''}
+  `;
+}
+
+function renderDayBar(day, index) {
+  const { date, sunrise, sunset, civil_twilight_begin, civil_twilight_end } = day;
+  
+  const civilStart = new Date(civil_twilight_begin);
+  const sunriseTime = new Date(sunrise);
+  const sunsetTime = new Date(sunset);
+  const civilEnd = new Date(civil_twilight_end);
+  
+  // Golden hour: ~1 hour after sunrise and before sunset
+  const goldenMorningEnd = new Date(sunriseTime.getTime() + 60 * 60 * 1000);
+  const goldenEveningStart = new Date(sunsetTime.getTime() - 60 * 60 * 1000);
+  
+  const totalMinutes = 24 * 60;
+  
+  const morningTwilight = (sunriseTime - civilStart) / 60000;
+  const morningGolden = (goldenMorningEnd - sunriseTime) / 60000;
+  const daylight = (goldenEveningStart - goldenMorningEnd) / 60000;
+  const eveningGolden = (sunsetTime - goldenEveningStart) / 60000;
+  const eveningTwilight = (civilEnd - sunsetTime) / 60000;
+  
+  const dateObj = new Date(date);
+  const label = `${dateObj.getMonth() + 1}/${dateObj.getDate()}`;
+  
+  return `
+    <div class="day-bar" title="${date}">
+      <div class="day-label">${label}</div>
+      <div class="time-block civil-twilight" style="width: ${morningTwilight/totalMinutes*100}%"></div>
+      <div class="time-block golden-hour" style="width: ${morningGolden/totalMinutes*100}%"></div>
+      <div class="time-block daylight" style="width: ${daylight/totalMinutes*100}%"></div>
+      <div class="time-block golden-hour" style="width: ${eveningGolden/totalMinutes*100}%"></div>
+      <div class="time-block civil-twilight" style="width: ${eveningTwilight/totalMinutes*100}%"></div>
+    </div>
+  `;
+}
+
+function calculateStats(days) {
+  let totalDaylight = 0;
+  let totalGolden = 0;
+  
+  days.forEach(day => {
+    const sunrise = new Date(day.sunrise);
+    const sunset = new Date(day.sunset);
+    const daylight = (sunset - sunrise) / 60000;
+    totalDaylight += daylight;
+    totalGolden += 120; // 2 hours golden hour per day
+  });
+  
+  const firstDay = new Date(days[0].sunset) - new Date(days[0].sunrise);
+  const lastDay = new Date(days[days.length-1].sunset) - new Date(days[days.length-1].sunrise);
+  const totalChange = Math.round((lastDay - firstDay) / 60000);
+  
+  return {
+    avgDaylight: formatMinutes(totalDaylight / days.length),
+    avgGolden: formatMinutes(totalGolden / days.length),
+    totalChange
+  };
+}
+
+function calculateDeltas(days) {
+  const deltas = [];
+  for (let i = 1; i < days.length; i++) {
+    const prev = new Date(days[i-1].civil_twilight_end) - new Date(days[i-1].civil_twilight_begin);
+    const curr = new Date(days[i].civil_twilight_end) - new Date(days[i].civil_twilight_begin);
+    deltas.push((curr - prev) / 60000);
+  }
+  return deltas;
+}
+
+function renderSparkBar(delta, allDeltas) {
+  const maxAbs = Math.max(...allDeltas.map(Math.abs));
+  const height = maxAbs > 0 ? (Math.abs(delta) / maxAbs * 100) : 0;
+  const className = delta < 0 ? 'spark-bar negative' : 'spark-bar';
+  return `<div class="${className}" style="height: ${height}%" title="${delta > 0 ? '+' : ''}${delta.toFixed(1)} min"></div>`;
+}
+
+function findBestWindow(days) {
+  let bestStart = 0;
+  let bestLength = 0;
+  let bestScore = 0;
+  
+  for (let i = 0; i < days.length - 2; i++) {
+    for (let len = 3; len <= Math.min(7, days.length - i); len++) {
+      let score = 0;
+      for (let j = i; j < i + len; j++) {
+        const sunrise = new Date(days[j].sunrise);
+        const sunset = new Date(days[j].sunset);
+        score += (sunset - sunrise) / 60000;
+      }
+      if (score > bestScore) {
+        bestScore = score;
+        bestStart = i;
+        bestLength = len;
+      }
+    }
+  }
+  
+  if (bestLength === 0) return null;
+  
+  const windowDays = days.slice(bestStart, bestStart + bestLength);
+  const avgGolden = 120; // 2 hours per day
+  
+  return {
+    start: new Date(windowDays[0].date).toLocaleDateString(),
+    end: new Date(windowDays[windowDays.length-1].date).toLocaleDateString(),
+    days: bestLength,
+    avgGolden: formatMinutes(avgGolden),
+    reason: 'Longest consecutive period with maximum total light hours'
+  };
+}
+
+function formatMinutes(mins) {
+  const hours = Math.floor(mins / 60);
+  const minutes = Math.round(mins % 60);
+  return `${hours}h ${minutes}m`;
+}
+</script>
+</body>
+</html>
