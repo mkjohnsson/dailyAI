@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GreenPulse - Green Crypto Index Tracker — Daily AI Gen</title>
+  <meta name="description" content="GreenPulse tracks a watchlist of eco-friendly cryptocurrencies against Bitcoin and Ethereum, showing whether the green sector is beating the market through real-time price data and a weighted index chart.">
+  <meta property="og:title" content="GreenPulse — Daily AI Gen">
+  <meta property="og:description" content="GreenPulse tracks a watchlist of eco-friendly cryptocurrencies against Bitcoin and Ethereum, showing whether the green sector is beating the market through real-time price data and a weighted index chart.">
+  <meta property="og:url" content="https://dailyaigen.com/apps/2026-02-28-2/">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="https://dailyaigen.com/apps/2026-02-28-2/">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+            color: #e0e0e0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        h1 {
+            font-size: 2.5em;
+            color: #4ecca3;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #a0a0a0;
+            font-size: 1.1em;
+        }
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .timeframe-btns {
+            display: flex;
+            gap: 8px;
+        }
+        button {
+            padding: 10px 20px;
+            background: #2c5364;
+            border: 2px solid #4ecca3;
+            color: #4ecca3;
+            cursor: pointer;
+            font-size: 1em;
+            border-radius: 5px;
+            transition: all 0.3s;
+        }
+        button:hover {
+            background: #4ecca3;
+            color: #0f2027;
+        }
+        button.active {
+            background: #4ecca3;
+            color: #0f2027;
+        }
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: rgba(255,255,255,0.05);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid rgba(78, 204, 163, 0.3);
+        }
+        .stat-card h3 {
+            color: #4ecca3;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+        .stat-value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #fff;
+        }
+        .positive { color: #4ecca3; }
+        .negative { color: #ff6b6b; }
+        .chart-container {
+            background: rgba(255,255,255,0.05);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(78, 204, 163, 0.3);
+        }
+        .watchlist {
+            background: rgba(255,255,255,0.05);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid rgba(78, 204, 163, 0.3);
+        }
+        .watchlist h2 {
+            color: #4ecca3;
+            margin-bottom: 15px;
+        }
+        .token-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 15px;
+        }
+        .token-card {
+            background: rgba(255,255,255,0.03);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid rgba(78, 204, 163, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .token-info h4 {
+            color: #fff;
+            margin-bottom: 5px;
+        }
+        .token-price {
+            font-size: 1.2em;
+            color: #4ecca3;
+        }
+        .token-change {
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+        .loading {
+            text-align: center;
+            padding: 60px;
+            font-size: 1.5em;
+            color: #4ecca3;
+        }
+        .spinner {
+            border: 4px solid rgba(78, 204, 163, 0.2);
+            border-top: 4px solid #4ecca3;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .error {
+            background: rgba(255, 107, 107, 0.2);
+            border: 1px solid #ff6b6b;
+            padding: 15px;
+            border-radius: 8px;
+            color: #ff6b6b;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🌱 GreenPulse</h1>
+            <p class="subtitle">Green Crypto Sector Performance Tracker</p>
+        </header>
+
+        <div class="controls">
+            <div class="timeframe-btns">
+                <button class="timeframe-btn active" data-days="7">7 Days</button>
+                <button class="timeframe-btn" data-days="30">30 Days</button>
+                <button class="timeframe-btn" data-days="90">90 Days</button>
+            </div>
+            <button id="refreshBtn">↻ Refresh Data</button>
+        </div>
+
+        <div id="error"></div>
+        <div id="loading" class="loading" style="display:none;">
+            <div class="spinner"></div>
+            Loading market data...
+        </div>
+
+        <div id="content" style="display:none;">
+            <div class="summary">
+                <div class="stat-card">
+                    <h3>Green Index vs BTC</h3>
+                    <div class="stat-value" id="indexDivergence">-</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Total Market Cap</h3>
+                    <div class="stat-value" id="totalMcap">-</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Top Gainer</h3>
+                    <div class="stat-value" id="topGainer">-</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Top Loser</h3>
+                    <div class="stat-value" id="topLoser">-</div>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <canvas id="performanceChart"></canvas>
+            </div>
+
+            <div class="watchlist">
+                <h2>Green Crypto Watchlist</h2>
+                <div class="token-grid" id="tokenGrid"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const GREEN_TOKENS = [
+            'energy-web-token',
+            'power-ledger',
+            'moss-carbon-credit',
+            'solarcoin',
+            'vechain',
+            'cardano',
+            'algorand',
+            'stellar'
+        ];
+
+        let currentDays = 7;
+        let chart = null;
+        let allData = {};
+
+        async function fetchCoinData(coinId, days) {
+            const response = await fetch(
+                `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${days}`
+            );
+            if (!response.ok) throw new Error(`Failed to fetch ${coinId}`);
+            return response.json();
+        }
+
+        async function fetchCurrentPrices() {
+            const ids = [...GREEN_TOKENS, 'bitcoin', 'ethereum'].join(',');
+            const response = await fetch(
+                `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&order=market_cap_desc&sparkline=false&price_change_percentage=24h,7d,30d`
+            );
+            if (!response.ok) throw new Error('Failed to fetch current prices');
+            return response.json();
+        }
+
+        async function loadAllData() {
+            showLoading(true);
+            hideError();
+
+            try {
+                // Fetch historical data for all coins
+                const [greenHistorical, btcHistorical, ethHistorical, currentData] = await Promise.all([
+                    Promise.all(GREEN_TOKENS.map(id => fetchCoinData(id, currentDays))),
+                    fetchCoinData('bitcoin', currentDays),
+                    fetchCoinData('ethereum', currentDays),
+                    fetchCurrentPrices()
+                ]);
+
+                allData = {
+                    greenHistorical,
+                    btcHistorical,
+                    ethHistorical,
+                    currentData
+                };
+
+                renderAll();
+            } catch (error) {
+                showError('Error fetching data: ' + error.message + '. Please try again.');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function calculateGreenIndex(greenHistorical, currentData) {
+            // Get market caps for weighting
+            const marketCaps = {};
+            GREEN_TOKENS.forEach((id, idx) => {
+                const coin = currentData.find(c => c.id === id);
+                if (coin) {
+                    marketCaps[id] = coin.market_cap || 1;
+                }
+            });
+
+            const totalMcap = Object.values(marketCaps).reduce((a, b) => a + b, 0);
+
+            // Calculate weighted index over time
+            const timestamps = greenHistorical[0].prices.map(p => p[0]);
+            const indexValues = timestamps.map((timestamp, i) => {
+                let weightedSum = 0;
+                let weightSum = 0;
+
+                GREEN_TOKENS.forEach((id, idx) => {
+                    if (greenHistorical[idx] && greenHistorical[idx].prices[i]) {
+                        const price = greenHistorical[idx].prices[i][1];
+                        const weight = marketCaps[id] || 0;
+                        weightedSum += price * weight;
+                        weightSum += weight;
+                    }
+                });
+
+                return [timestamp, weightSum > 0 ? weightedSum / weightSum : 0];
+            });
+
+            // Normalize to start at 100
+            const startValue = indexValues[0][1];
+            return indexValues.map(([ts, val]) => [ts, (val / startValue) * 100]);
+        }
+
+        function normalizeToStart(data) {
+            const startPrice = data[0][1];
+            return data.map(([ts, price]) => [ts, (price / startPrice) * 100]);
+        }
+
+        function renderAll() {
+            const { greenHistorical, btcHistorical, ethHistorical, currentData } = allData;
+
+            // Calculate green index
+            const greenIndex = calculateGreenIndex(greenHistorical, currentData);
+            const btcNormalized = normalizeToStart(btcHistorical.prices);
+            const ethNormalized = normalizeToStart(ethHistorical.prices);
+
+            // Calculate divergence
+            const greenChange = ((greenIndex[greenIndex.length - 1][1] - 100)).toFixed(2);
+            const btcChange = ((btcNormalized[btcNormalized.length - 1][1] - 100)).toFixed(2);
+            const divergence = (greenChange - btcChange).toFixed(2);
+
+            document.getElementById('indexDivergence').innerHTML = 
+                `<span class="${divergence >= 0 ? 'positive' : 'negative'}">${divergence > 0 ? '+' : ''}${divergence}%</span>`;
+
+            // Total market cap
+            const totalMcap = currentData
+                .filter(c => GREEN_TOKENS.includes(c.id))
+                .reduce((sum, c) => sum + (c.market_cap || 0), 0);
+            document.getElementById('totalMcap').textContent = 
+                '$' + (totalMcap / 1e9).toFixed(2) + 'B';
+
+            // Top gainer/loser
+            const greenCoins = currentData.filter(c => GREEN_TOKENS.includes(c.id));
+            const changeKey = currentDays === 7 ? 'price_change_percentage_7d_in_currency' : 
+                             currentDays === 30 ? 'price_change_percentage_30d_in_currency' : 
+                             'price_change_percentage_24h_in_currency';
+            
+            greenCoins.sort((a, b) => (b[changeKey] || 0) - (a[changeKey] || 0));
+            const topGainer = greenCoins[0];
+            const topLoser = greenCoins[greenCoins.length - 1];
+
+            document.getElementById('topGainer').innerHTML = 
+                `${topGainer.symbol.toUpperCase()}<br><span class="positive">+${(topGainer[changeKey] || 0).toFixed(2)}%</span>`;
+            document.getElementById('topLoser').innerHTML = 
+                `${topLoser.symbol.toUpperCase()}<br><span class="negative">${(topLoser[changeKey] || 0).toFixed(2)}%</span>`;
+
+            // Render chart
+            renderChart(greenIndex, btcNormalized, ethNormalized);
+
+            // Render token grid
+            renderTokenGrid(currentData);
+
+            document.getElementById('content').style.display = 'block';
+        }
+
+        function renderChart(greenIndex, btcData, ethData) {
+            const ctx = document.getElementById('performanceChart').getContext('2d');
+            
+            if (chart) chart.destroy();
+
+            const labels = greenIndex.map(p => new Date(p[0]).toLocaleDateString());
+
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            label: 'Green Sector Index',
+                            data: greenIndex.map(p => p[1]),
+                            borderColor: '#4ecca3',
+                            backgroundColor: 'rgba(78, 204, 163, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Bitcoin',
+                            data: btcData.map(p => p[1]),
+                            borderColor: '#f7931a',
+                            backgroundColor: 'rgba(247, 147, 26, 0.1)',
+                            borderWidth: 2,
+                            fill: false,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Ethereum',
+                            data: ethData.map(p => p[1]),
+                            borderColor: '#627eea',
+                            backgroundColor: 'rgba(98, 126, 234, 0.1)',
+                            borderWidth: 2,
+                            fill: false,
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    aspectRatio: 2.5,
+                    plugins: {
+                        legend: {
+                            labels: { color: '#e0e0e0', font: { size: 14 } }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => `${context.dataset.label}: ${context.parsed.y.toFixed(2)}`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { 
+                                color: '#a0a0a0',
+                                maxTicksLimit: 8
+                            },
+                            grid: { color: 'rgba(255,255,255,0.1)' }
+                        },
+                        y: {
+                            ticks: { 
+                                color: '#a0a0a0',
+                                callback: (value) => value.toFixed(0)
+                            },
+                            grid: { color: 'rgba(255,255,255,0.1)' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderTokenGrid(currentData) {
+            const grid = document.getElementById('tokenGrid');
+            grid.innerHTML = '';
+
+            GREEN_TOKENS.forEach(id => {
+                const coin = currentData.find(c => c.id === id);
+                if (!coin) return;
+
+                const change24h = coin.price_change_percentage_24h || 0;
+                const card = document.createElement('div');
+                card.className = 'token-card';
+                card.innerHTML = `
+                    <div class="token-info">
+                        <h4>${coin.name} (${coin.symbol.toUpperCase()})</h4>
+                        <div class="token-price">$${coin.current_price.toFixed(coin.current_price < 1 ? 4 : 2)}</div>
+                        <div class="token-change ${change24h >= 0 ? 'positive' : 'negative'}">
+                            ${change24h >= 0 ? '+' : ''}${change24h.toFixed(2)}% (24h)
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.innerHTML = `<div class="error">${message}</div>`;
+        }
+
+        function hideError() {
+            document.getElementById('error').innerHTML = '';
+        }
+
+        // Event listeners
+        document.querySelectorAll('.timeframe-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.timeframe-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentDays = parseInt(btn.dataset.days);
+                loadAllData();
+            });
+        });
+
+        document.getElementById('refreshBtn').addEventListener('click', loadAllData);
+
+        // Initial load
+        loadAllData();
+    </script>
+</body>
+</html>

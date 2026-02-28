@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Foldlink — Daily AI Gen</title>
+  <meta name="description" content="Two players start with the same visual seed and independently make a sequence of transformations, then the app reveals a merged origami-like structure showing where your creative decisions aligned or diverged.">
+  <meta property="og:title" content="Foldlink — Daily AI Gen">
+  <meta property="og:description" content="Two players start with the same visual seed and independently make a sequence of transformations, then the app reveals a merged origami-like structure showing where your creative decisions aligned or diverged.">
+  <meta property="og:url" content="https://dailyaigen.com/apps/2026-02-28/">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="https://dailyaigen.com/apps/2026-02-28/">
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  body {
+    font-family: 'Courier New', monospace;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    color: #eee;
+    overflow: hidden;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  #app {
+    width: 100%;
+    max-width: 900px;
+    padding: 20px;
+  }
+  
+  .screen {
+    display: none;
+    animation: fadeIn 0.5s;
+  }
+  
+  .screen.active {
+    display: block;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  h1 {
+    font-size: 3rem;
+    text-align: center;
+    margin-bottom: 1rem;
+    background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .subtitle {
+    text-align: center;
+    margin-bottom: 2rem;
+    opacity: 0.7;
+    font-size: 0.9rem;
+  }
+  
+  .seed-display {
+    text-align: center;
+    margin: 3rem 0;
+  }
+  
+  .seed-box {
+    width: 200px;
+    height: 200px;
+    margin: 0 auto 1rem;
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    font-weight: bold;
+    transition: transform 0.3s;
+  }
+  
+  .seed-box:hover {
+    transform: scale(1.05);
+  }
+  
+  .seed-word {
+    font-size: 1.5rem;
+    margin-top: 1rem;
+    letter-spacing: 0.2em;
+  }
+  
+  .choices {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    max-width: 600px;
+    margin: 2rem auto;
+  }
+  
+  .choice-btn {
+    padding: 2rem 1rem;
+    background: rgba(255,255,255,0.1);
+    border: 2px solid rgba(255,255,255,0.2);
+    border-radius: 15px;
+    color: #eee;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-family: 'Courier New', monospace;
+  }
+  
+  .choice-btn:hover {
+    background: rgba(255,255,255,0.2);
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  }
+  
+  .choice-label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+    font-size: 1.2rem;
+  }
+  
+  .choice-desc {
+    font-size: 0.85rem;
+    opacity: 0.7;
+  }
+  
+  .progress {
+    text-align: center;
+    margin-bottom: 2rem;
+    font-size: 0.9rem;
+    opacity: 0.6;
+  }
+  
+  .btn {
+    display: block;
+    margin: 2rem auto;
+    padding: 1rem 3rem;
+    background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+    border: none;
+    border-radius: 50px;
+    color: white;
+    font-size: 1.1rem;
+    cursor: pointer;
+    font-family: 'Courier New', monospace;
+    transition: transform 0.3s;
+    font-weight: bold;
+  }
+  
+  .btn:hover {
+    transform: scale(1.05);
+  }
+  
+  .btn-secondary {
+    background: rgba(255,255,255,0.1);
+    border: 2px solid rgba(255,255,255,0.3);
+  }
+  
+  #canvas {
+    display: block;
+    margin: 2rem auto;
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    background: #0a0a0a;
+  }
+  
+  .stats {
+    max-width: 600px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background: rgba(255,255,255,0.05);
+    border-radius: 15px;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    margin: 1rem 0;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+  
+  .stat-label {
+    opacity: 0.7;
+  }
+  
+  .stat-value {
+    font-weight: bold;
+    font-size: 1.2rem;
+  }
+  
+  .compatibility-score {
+    text-align: center;
+    font-size: 3rem;
+    margin: 2rem 0;
+    background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: bold;
+  }
+  
+  .player-indicator {
+    text-align: center;
+    font-size: 1.5rem;
+    margin-bottom: 2rem;
+    padding: 1rem;
+    background: rgba(255,255,255,0.1);
+    border-radius: 10px;
+    border: 2px solid;
+  }
+  
+  .player1 { border-color: #ff6b6b; }
+  .player2 { border-color: #4ecdc4; }
+  
+  .share-text {
+    background: rgba(0,0,0,0.3);
+    padding: 1rem;
+    border-radius: 10px;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+    word-break: break-all;
+    text-align: center;
+  }
+  
+  .intro-text {
+    max-width: 600px;
+    margin: 2rem auto;
+    line-height: 1.6;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- Start Screen -->
+  <div id="startScreen" class="screen active">
+    <h1>FOLDLINK</h1>
+    <div class="subtitle">Discover how two minds fold the same idea differently</div>
+    <div class="intro-text">
+      <p>Two players. One shared starting point. Six transformations each.</p>
+      <p style="margin-top: 1rem;">Each of you will privately make choices that "fold" a simple shape. At the end, we'll merge your paths into a unique visual that shows where you thought alike — and where you diverged.</p>
+    </div>
+    <button class="btn" onclick="startGame()">Begin Folding</button>
+  </div>
+  
+  <!-- Seed Reveal -->
+  <div id="seedScreen" class="screen">
+    <h1>Your Seed</h1>
+    <div class="subtitle">Both players: remember this</div>
+    <div class="seed-display">
+      <div class="seed-box" id="seedBox"></div>
+      <div class="seed-word" id="seedWord"></div>
+    </div>
+    <button class="btn" onclick="startPlayer1()">Player 1: Start Folding</button>
+  </div>
+  
+  <!-- Folding Screen -->
+  <div id="foldScreen" class="screen">
+    <div class="player-indicator" id="playerIndicator"></div>
+    <div class="progress" id="progress"></div>
+    <div class="choices" id="choices"></div>
+  </div>
+  
+  <!-- Transition Screen -->
+  <div id="transitionScreen" class="screen">
+    <h1>Player 1 Complete</h1>
+    <div class="subtitle">Pass the device to Player 2</div>
+    <div class="intro-text">
+      <p>Player 2: You'll see the same starting seed, then make your own six transformations.</p>
+      <p style="margin-top: 1rem;">Don't discuss your choices until after you're both done!</p>
+    </div>
+    <button class="btn" onclick="startPlayer2()">Player 2: Start Folding</button>
+  </div>
+  
+  <!-- Result Screen -->
+  <div id="resultScreen" class="screen">
+    <h1>Your Foldlink</h1>
+    <div class="compatibility-score" id="compatScore"></div>
+    <canvas id="canvas" width="800" height="600"></canvas>
+    <div class="stats">
+      <div class="stat-row">
+        <span class="stat-label">Convergent Moments:</span>
+        <span class="stat-value" id="convergent">0</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Divergent Moments:</span>
+        <span class="stat-value" id="divergent">0</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Cognitive Sync:</span>
+        <span class="stat-value" id="sync">0%</span>
+      </div>
+    </div>
+    <button class="btn" onclick="copyResult()">Copy Shareable Summary</button>
+    <button class="btn btn-secondary" onclick="location.reload()">Create Another</button>
+  </div>
+</div>
+
+<script>
+const seeds = [
+  { color: '#ff6b6b', word: 'EMBER' },
+  { color: '#4ecdc4', word: 'TIDE' },
+  { color: '#45b7d1', word: 'ECHO' },
+  { color: '#f9ca24', word: 'PRISM' },
+  { color: '#a29bfe', word: 'DRIFT' },
+  { color: '#fd79a8', word: 'BLOOM' },
+  { color: '#00b894', word: 'FLUX' },
+  { color: '#fdcb6e', word: 'SPARK' }
+];
+
+const transformations = [
+  { name: 'SPLIT', desc: 'Divide into pieces', effect: 'split' },
+  { name: 'MIRROR', desc: 'Reflect symmetry', effect: 'mirror' },
+  { name: 'ROTATE', desc: 'Spin around center', effect: 'rotate' },
+  { name: 'NEST', desc: 'Layer within itself', effect: 'nest' },
+  { name: 'EXPAND', desc: 'Grow outward', effect: 'expand' },
+  { name: 'TWIST', desc: 'Spiral deformation', effect: 'twist' }
+];
+
+let currentSeed;
+let currentPlayer = 1;
+let player1Choices = [];
+let player2Choices = [];
+let currentStep = 0;
+const totalSteps = 6;
+
+function showScreen(screenId) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(screenId).classList.add('active');
+}
+
+function startGame() {
+  currentSeed = seeds[Math.floor(Math.random() * seeds.length)];
+  document.getElementById('seedBox').style.background = currentSeed.color;
+  document.getElementById('seedWord').textContent = currentSeed.word;
+  showScreen('seedScreen');
+}
+
+function startPlayer1() {
+  currentPlayer = 1;
+  currentStep = 0;
+  player1Choices = [];
+  showFoldingScreen();
+}
+
+function startPlayer2() {
+  currentPlayer = 2;
+  currentStep = 0;
+  player2Choices = [];
+  showFoldingScreen();
+}
+
+function showFoldingScreen() {
+  const indicator = document.getElementById('playerIndicator');
+  indicator.textContent = `Player ${currentPlayer}`;
+  indicator.className = `player-indicator player${currentPlayer}`;
+  
+  updateProgress();
+  renderChoices();
+  showScreen('foldScreen');
+}
+
+function updateProgress() {
+  document.getElementById('progress').textContent = 
+    `Fold ${currentStep + 1} of ${totalSteps}`;
+}
+
+function renderChoices() {
+  const container = document.getElementById('choices');
+  container.innerHTML = '';
+  
+  // Shuffle and pick 4 random transformations for this step
+  const shuffled = [...transformations].sort(() => Math.random() - 0.5).slice(0, 4);
+  
+  shuffled.forEach(transform => {
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    btn.innerHTML = `
+      <span class="choice-label">${transform.name}</span>
+      <span class="choice-desc">${transform.desc}</span>
+    `;
+    btn.onclick = () => makeChoice(transform.effect);
+    container.appendChild(btn);
+  });
+}
+
+function makeChoice(effect) {
+  if (currentPlayer === 1) {
+    player1Choices.push(effect);
+  } else {
+    player2Choices.push(effect);
+  }
+  
+  currentStep++;
+  
+  if (currentStep < totalSteps) {
+    updateProgress();
+    renderChoices();
+  } else {
+    if (currentPlayer === 1) {
+      showScreen('transitionScreen');
+    } else {
+      showResults();
+    }
+  }
+}
+
+function showResults() {
+  // Calculate compatibility
+  let matches = 0;
+  for (let i = 0; i < totalSteps; i++) {
+    if (player1Choices[i] === player2Choices[i]) {
+      matches++;
+    }
+  }
+  
+  const compatibility = Math.round((matches / totalSteps) * 100);
+  
+  document.getElementById('compatScore').textContent = `${compatibility}% Compatible`;
+  document.getElementById('convergent').textContent = matches;
+  document.getElementById('divergent').textContent = totalSteps - matches;
+  document.getElementById('sync').textContent = `${compatibility}%`;
+  
+  drawFoldlink();
+  showScreen('resultScreen');
+}
+
+function drawFoldlink() {
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width;
+  const h = canvas.height;
+  
+  ctx.fillStyle = '#0a0a0a';
+  ctx.fillRect(0, 0, w, h);
+  
+  // Draw merged origami structure
+  const centerX = w / 2;
+  const centerY = h / 2;
+  
+  // Create a path that represents both players' choices
+  ctx.save();
+  ctx.translate(centerX, centerY);
+  
+  // Draw player 1's path (left side)
+  ctx.strokeStyle = '#ff6b6b';
+  ctx.lineWidth = 3;
+  ctx.globalAlpha = 0.7;
+  drawPath(ctx, player1Choices, -1);
+  
+  // Draw player 2's path (right side)
+  ctx.strokeStyle = '#4ecdc4';
+  drawPath(ctx, player2Choices, 1);
+  
+  // Draw convergence points where choices matched
+  ctx.globalAlpha = 1;
+  for (let i = 0; i < totalSteps; i++) {
+    if (player1Choices[i] === player2Choices[i]) {
+      const angle = (i / totalSteps) * Math.PI * 2;
+      const radius = 100 + i * 30;
+      const x = Math.cos(angle) * radius;
+      const y = Math.sin(angle) * radius;
+      
+      ctx.fillStyle = '#f9ca24';
+      ctx.beginPath();
+      ctx.arc(x, y, 8, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Draw connecting line
+      ctx.strokeStyle = '#f9ca24';
+      ctx.lineWidth = 2;
+      ctx.globalAlpha = 0.3;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+  }
+  
+  // Draw center seed
+  ctx.fillStyle = currentSeed.color;
+  ctx.beginPath();
+  ctx.arc(0, 0, 30, 0, Math.PI * 2);
+  ctx.fill();
+  
+  ctx.restore();
+}
+
+function drawPath(ctx, choices, side) {
+  ctx.beginPath();
+  let x = 0, y = 0;
+  ctx.moveTo(x, y);
+  
+  let angle = side > 0 ? 0 : Math.PI;
+  let radius = 80;
+  
+  for (let i = 0; i < choices.length; i++) {
+    const choice = choices[i];
+    
+    switch(choice) {
+      case 'split':
+        angle += (Math.PI / 6) * side;
+        radius += 25;
+        break;
+      case 'mirror':
+        angle -= (Math.PI / 6) * side;
+        radius += 20;
+        break;
+      case 'rotate':
+        angle += (Math.PI / 3) * side;
+        radius += 15;
+        break;
+      case 'nest':
+        radius += 35;
+        break;
+      case 'expand':
+        radius += 45;
+        angle += (Math.PI / 12) * side;
+        break;
+      case 'twist':
+        angle += (Math.PI / 4) * side;
+        radius += 30;
+        break;
+    }
+    
+    x = Math.cos(angle) * radius;
+    y = Math.sin(angle) * radius;
+    
+    ctx.lineTo(x, y);
+    
+    // Draw small marker at each fold point
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(x, y, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+  }
+  
+  ctx.stroke();
+}
+
+function copyResult() {
+  const matches = parseInt(document.getElementById('convergent').textContent);
+  const compat = document.getElementById('compatScore').textContent;
+  
+  const text = `🔗 FOLDLINK RESULT 🔗
+Seed: ${currentSeed.word}
+${compat}
+Convergent: ${matches}/${totalSteps}
+
+Player 1: ${player1Choices.join(' → ')}
+Player 2: ${player2Choices.join(' → ')}
+
+Two minds, one starting point. This is where we overlapped.`;
+  
+  navigator.clipboard.writeText(text).then(() => {
+    alert('Result copied! Share your cognitive sync.');
+  });
+}
+</script>
+</body>
+</html>

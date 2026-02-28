@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relicdrop — Daily AI Gen</title>
+  <meta name="description" content="You drop cultural relics into a petri dish of autonomous agents and watch civilizations emerge, evolve, and react over accelerated generations.">
+  <meta property="og:title" content="Relicdrop — Daily AI Gen">
+  <meta property="og:description" content="You drop cultural relics into a petri dish of autonomous agents and watch civilizations emerge, evolve, and react over accelerated generations.">
+  <meta property="og:url" content="https://dailyaigen.com/apps/2026-02-28-3/">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="https://dailyaigen.com/apps/2026-02-28-3/">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0a0a0a;
+            color: #00ff88;
+            overflow: hidden;
+        }
+        #container {
+            display: flex;
+            height: 100vh;
+        }
+        #dish {
+            flex: 1;
+            position: relative;
+            background: radial-gradient(circle at center, #1a1a1a 0%, #0a0a0a 100%);
+            border-right: 2px solid #00ff88;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        #sidebar {
+            width: 300px;
+            background: #111;
+            padding: 20px;
+            overflow-y: auto;
+            border-left: 1px solid #00ff88;
+        }
+        h1 {
+            font-size: 20px;
+            margin-bottom: 10px;
+            color: #00ff88;
+        }
+        h2 {
+            font-size: 14px;
+            margin: 20px 0 10px;
+            color: #00ccff;
+        }
+        .relic-btn {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            background: #1a3a2a;
+            border: 1px solid #00ff88;
+            color: #00ff88;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        .relic-btn:hover {
+            background: #00ff88;
+            color: #000;
+        }
+        #stats {
+            font-size: 11px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+        .stat-line {
+            display: flex;
+            justify-content: space-between;
+            margin: 3px 0;
+        }
+        #cards {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .card {
+            background: #1a1a2a;
+            border: 1px solid #00ccff;
+            padding: 10px;
+            margin: 10px 0;
+            font-size: 10px;
+            line-height: 1.4;
+        }
+        .card-title {
+            color: #00ccff;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .card-gen {
+            color: #888;
+            font-size: 9px;
+        }
+        #generation {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 14px;
+            background: rgba(0,0,0,0.7);
+            padding: 5px 10px;
+            border: 1px solid #00ff88;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="dish">
+            <canvas id="canvas"></canvas>
+            <div id="generation">GEN: 0</div>
+        </div>
+        <div id="sidebar">
+            <h1>RELICDROP</h1>
+            <div id="stats">
+                <div class="stat-line"><span>Agents:</span><span id="agentCount">0</span></div>
+                <div class="stat-line"><span>Tribes:</span><span id="tribeCount">0</span></div>
+                <div class="stat-line"><span>Conflicts:</span><span id="conflictCount">0</span></div>
+                <div class="stat-line"><span>Relics Dropped:</span><span id="relicCount">0</span></div>
+            </div>
+            <h2>DROP RELICS</h2>
+            <button class="relic-btn" onclick="dropRelic('color')">🎨 Sacred Color</button>
+            <button class="relic-btn" onclick="dropRelic('shape')">◇ Holy Geometry</button>
+            <button class="relic-btn" onclick="dropRelic('sound')">♪ Ritual Tone</button>
+            <button class="relic-btn" onclick="dropRelic('speed')">⚡ Movement Code</button>
+            <button class="relic-btn" onclick="dropRelic('gathering')">⊕ Gathering Law</button>
+            <button class="relic-btn" onclick="dropRelic('aggression')">⚔ War Doctrine</button>
+            <h2>ANTHROPOLOGY CARDS</h2>
+            <div id="cards"></div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        let width, height;
+        function resize() {
+            width = canvas.width = canvas.offsetWidth;
+            height = canvas.height = canvas.offsetHeight;
+        }
+        resize();
+        window.addEventListener('resize', resize);
+
+        // Core simulation state
+        let agents = [];
+        let tribes = [];
+        let generation = 0;
+        let relicsDropped = 0;
+        let conflictCount = 0;
+        let cards = [];
+        let activeRelics = [];
+
+        // Agent class
+        class Agent {
+            constructor(x, y, tribe) {
+                this.x = x;
+                this.y = y;
+                this.tribe = tribe;
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = (Math.random() - 0.5) * 2;
+                this.age = 0;
+                this.energy = 100;
+                this.ritual = null;
+                this.memory = [];
+            }
+
+            update() {
+                this.age++;
+                this.energy -= 0.1;
+
+                // Apply tribe behaviors
+                const tribe = tribes[this.tribe];
+                if (!tribe) return;
+
+                // Speed modifier from relics
+                const speedMod = tribe.speedMod || 1;
+                
+                // Movement
+                this.vx += (Math.random() - 0.5) * 0.5 * speedMod;
+                this.vy += (Math.random() - 0.5) * 0.5 * speedMod;
+                
+                // Gathering behavior
+                if (tribe.gathering) {
+                    const center = tribe.gatherPoint || {x: width/2, y: height/2};
+                    this.vx += (center.x - this.x) * 0.001;
+                    this.vy += (center.y - this.y) * 0.001;
+                }
+
+                // Max speed
+                const maxSpeed = 2 * speedMod;
+                const speed = Math.sqrt(this.vx*this.vx + this.vy*this.vy);
+                if (speed > maxSpeed) {
+                    this.vx = (this.vx / speed) * maxSpeed;
+                    this.vy = (this.vy / speed) * maxSpeed;
+                }
+
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // Wrap edges
+                if (this.x < 0) this.x = width;
+                if (this.x > width) this.x = 0;
+                if (this.y < 0) this.y = height;
+                if (this.y > height) this.y = 0;
+
+                // Damping
+                this.vx *= 0.98;
+                this.vy *= 0.98;
+            }
+
+            draw() {
+                const tribe = tribes[this.tribe];
+                if (!tribe) return;
+
+                ctx.fillStyle = tribe.color;
+                
+                if (tribe.shape === 'circle') {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                } else if (tribe.shape === 'square') {
+                    ctx.fillRect(this.x - 3, this.y - 3, 6, 6);
+                } else if (tribe.shape === 'triangle') {
+                    ctx.beginPath();
+                    ctx.moveTo(this.x, this.y - 4);
+                    ctx.lineTo(this.x - 3, this.y + 3);
+                    ctx.lineTo(this.x + 3, this.y + 3);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+            }
+        }
+
+        // Initialize tribes
+        function initTribes() {
+            tribes = [
+                { id: 0, color: '#ff6b6b', shape: 'circle', population: 0, aggression: 0.5, gathering: false, speedMod: 1 },
+                { id: 1, color: '#4ecdc4', shape: 'circle', population: 0, aggression: 0.5, gathering: false, speedMod: 1 },
+                { id: 2, color: '#ffe66d', shape: 'circle', population: 0, aggression: 0.5, gathering: false, speedMod: 1 },
+            ];
+        }
+
+        // Initialize agents
+        function initAgents() {
+            agents = [];
+            for (let i = 0; i < 60; i++) {
+                const tribe = i % 3;
+                agents.push(new Agent(
+                    Math.random() * width,
+                    Math.random() * height,
+                    tribe
+                ));
+                tribes[tribe].population++;
+            }
+        }
+
+        // Drop a relic
+        function dropRelic(type) {
+            const x = Math.random() * width;
+            const y = Math.random() * height;
+            
+            activeRelics.push({ x, y, type, age: 0, radius: 50 });
+            relicsDropped++;
+
+            // Find which tribe is closest
+            let closestTribe = null;
+            let minDist = Infinity;
+            
+            agents.forEach(agent => {
+                const dist = Math.hypot(agent.x - x, agent.y - y);
+                if (dist < minDist) {
+                    minDist = dist;
+                    closestTribe = agent.tribe;
+                }
+            });
+
+            if (closestTribe !== null) {
+                applyRelicEffect(closestTribe, type, x, y);
+            }
+
+            updateStats();
+        }
+
+        function applyRelicEffect(tribeId, type, x, y) {
+            const tribe = tribes[tribeId];
+            const behaviors = [];
+
+            if (type === 'color') {
+                const newColor = '#' + Math.floor(Math.random()*16777215).toString(16);
+                const oldColor = tribe.color;
+                tribe.color = newColor;
+                behaviors.push(`Tribe ${tribeId} changed sacred color from ${oldColor} to ${newColor}`);
+                
+                // Check if another tribe has similar color - could cause conflict
+                tribes.forEach((t, i) => {
+                    if (i !== tribeId && colorDistance(t.color, newColor) < 50) {
+                        conflictCount++;
+                        behaviors.push(`Color conflict erupted with Tribe ${i}!`);
+                    }
+                });
+            }
+            else if (type === 'shape') {
+                const shapes = ['circle', 'square', 'triangle'];
+                const oldShape = tribe.shape;
+                tribe.shape = shapes[Math.floor(Math.random() * shapes.length)];
+                behaviors.push(`Tribe ${tribeId} adopted ${tribe.shape} as holy geometry (was ${oldShape})`);
+            }
+            else if (type === 'sound') {
+                behaviors.push(`Tribe ${tribeId} began ritual chanting (frequency: ${Math.floor(200 + Math.random()*400)}Hz)`);
+                playTone(200 + Math.random() * 400, 0.5);
+            }
+            else if (type === 'speed') {
+                const oldSpeed = tribe.speedMod;
+                tribe.speedMod = 0.5 + Math.random() * 2;
+                behaviors.push(`Tribe ${tribeId} movement doctrine changed (${oldSpeed.toFixed(2)}x → ${tribe.speedMod.toFixed(2)}x)`);
+            }
+            else if (type === 'gathering') {
+                tribe.gathering = !tribe.gathering;
+                tribe.gatherPoint = {x, y};
+                behaviors.push(`Tribe ${tribeId} ${tribe.gathering ? 'established gathering site' : 'dissolved gathering'}`);
+            }
+            else if (type === 'aggression') {
+                const oldAgg = tribe.aggression;
+                tribe.aggression = Math.random();
+                behaviors.push(`Tribe ${tribeId} war doctrine shift (${oldAgg.toFixed(2)} → ${tribe.aggression.toFixed(2)})`);
+                
+                if (tribe.aggression > 0.8) {
+                    // High aggression - attack nearby agents
+                    agents.forEach(agent => {
+                        if (agent.tribe !== tribeId) {
+                            const dist = Math.hypot(agent.x - x, agent.y - y);
+                            if (dist < 100) {
+                                agent.energy -= 30;
+                                conflictCount++;
+                            }
+                        }
+                    });
+                    behaviors.push(`Aggressive purge eliminated ${Math.floor(Math.random()*5)} foreign agents`);
+                }
+            }
+
+            // Create anthropology card
+            if (behaviors.length > 0) {
+                addCard(type, generation, behaviors);
+            }
+        }
+
+        function colorDistance(c1, c2) {
+            const r1 = parseInt(c1.substr(1,2), 16);
+            const g1 = parseInt(c1.substr(3,2), 16);
+            const b1 = parseInt(c1.substr(5,2), 16);
+            const r2 = parseInt(c2.substr(1,2), 16);
+            const g2 = parseInt(c2.substr(3,2), 16);
+            const b2 = parseInt(c2.substr(5,2), 16);
+            return Math.sqrt((r1-r2)**2 + (g1-g2)**2 + (b1-b2)**2);
+        }
+
+        function playTone(freq, duration) {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = freq;
+            oscillator.type = 'sine';
+            
+            gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + duration);
+        }
+
+        function addCard(relicType, gen, behaviors) {
+            const icons = {
+                color: '🎨',
+                shape: '◇',
+                sound: '♪',
+                speed: '⚡',
+                gathering: '⊕',
+                aggression: '⚔'
+            };
+
+            cards.unshift({
+                type: relicType,
+                generation: gen,
+                behaviors: behaviors,
+                icon: icons[relicType]
+            });
+
+            if (cards.length > 10) cards.pop();
+            renderCards();
+        }
+
+        function renderCards() {
+            const container = document.getElementById('cards');
+            container.innerHTML = cards.map(card => `
+                <div class="card">
+                    <div class="card-title">${card.icon} ${card.type.toUpperCase()} RELIC</div>
+                    <div class="card-gen">Generation ${card.generation}</div>
+                    ${card.behaviors.map(b => `<div>• ${b}</div>`).join('')}
+                </div>
+            `).join('');
+        }
+
+        function updateStats() {
+            // Update tribe populations
+            tribes.forEach(t => t.population = 0);
+            agents.forEach(a => tribes[a.tribe].population++);
+
+            document.getElementById('agentCount').textContent = agents.length;
+            document.getElementById('tribeCount').textContent = tribes.filter(t => t.population > 0).length;
+            document.getElementById('conflictCount').textContent = conflictCount;
+            document.getElementById('relicCount').textContent = relicsDropped;
+        }
+
+        function simulate() {
+            // Update agents
+            agents.forEach(agent => agent.update());
+
+            // Remove dead agents
+            agents = agents.filter(a => a.energy > 0);
+
+            // Reproduction
+            if (Math.random() < 0.1 && agents.length < 150) {
+                const parent = agents[Math.floor(Math.random() * agents.length)];
+                if (parent && parent.energy > 50) {
+                    const child = new Agent(parent.x + (Math.random()-0.5)*10, parent.y + (Math.random()-0.5)*10, parent.tribe);
+                    agents.push(child);
+                    parent.energy -= 20;
+                    tribes[parent.tribe].population++;
+                }
+            }
+
+            // Conflicts between tribes
+            for (let i = 0; i < agents.length; i++) {
+                for (let j = i + 1; j < agents.length; j++) {
+                    const a1 = agents[i];
+                    const a2 = agents[j];
+                    const dist = Math.hypot(a1.x - a2.x, a1.y - a2.y);
+                    
+                    if (dist < 10 && a1.tribe !== a2.tribe) {
+                        const t1 = tribes[a1.tribe];
+                        const t2 = tribes[a2.tribe];
+                        
+                        if (Math.random() < (t1.aggression + t2.aggression) / 2) {
+                            if (Math.random() < 0.5) {
+                                a1.energy -= 10;
+                            } else {
+                                a2.energy -= 10;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Age relics
+            activeRelics = activeRelics.filter(r => {
+                r.age++;
+                return r.age < 300;
+            });
+
+            // Generation counter
+            if (Math.random() < 0.02) {
+                generation++;
+                document.getElementById('generation').textContent = `GEN: ${generation}`;
+            }
+
+            updateStats();
+        }
+
+        function draw() {
+            ctx.fillStyle = 'rgba(10, 10, 10, 0.15)';
+            ctx.fillRect(0, 0, width, height);
+
+            // Draw relics
+            activeRelics.forEach(relic => {
+                const alpha = 1 - (relic.age / 300);
+                ctx.strokeStyle = `rgba(0, 255, 136, ${alpha * 0.3})`;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(relic.x, relic.y, relic.radius, 0, Math.PI * 2);
+                ctx.stroke();
+            });
+
+            // Draw agents
+            agents.forEach(agent => agent.draw());
+
+            // Draw tribe territories (faint)
+            tribes.forEach((tribe, i) => {
+                if (tribe.gathering && tribe.gatherPoint) {
+                    ctx.strokeStyle = tribe.color + '33';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.arc(tribe.gatherPoint.x, tribe.gatherPoint.y, 40, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+            });
+        }
+
+        function loop() {
+            simulate();
+            draw();
+            requestAnimationFrame(loop);
+        }
+
+        // Initialize and start
+        initTribes();
+        initAgents();
+        updateStats();
+        loop();
+    </script>
+</body>
+</html>

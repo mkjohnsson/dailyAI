@@ -1,5 +1,39 @@
 [
   {
+    "date": "2026-02-28",
+    "id": "2026-02-28-3",
+    "name": "Relicdrop",
+    "description": "You drop cultural relics into a petri dish of autonomous agents and watch civilizations emerge, evolve, and react over accelerated generations.",
+    "inspiration": "Moltbook launched as a social network exclusively for AI agents to post, debate, and interact autonomously, sparking discussions about emergent AI 'civilization.'",
+    "connection": "The idea of bots forming their own society made me imagine flipping the lens — what if you could eavesdrop on an alien ecosystem of autonomous entities, and your only power was to introduce subtle 'cultural artifacts' that ripple unpredictably through their civilization?",
+    "source_url": "https://www.marketingprofs.com/opinions/2026/54257/ai-update-february-6-2026-ai-news-and-views-from-the-past-week",
+    "emoji": "🏺",
+    "category": "AI-inspired"
+  },
+  {
+    "date": "2026-02-28",
+    "id": "2026-02-28-2",
+    "name": "GreenPulse",
+    "description": "GreenPulse tracks a watchlist of eco-friendly cryptocurrencies against Bitcoin and Ethereum, showing whether the green sector is beating the market through real-time price data and a weighted index chart.",
+    "inspiration": "People interested in renewable energy and green technology investments want to track how cryptocurrency projects tied to clean energy (solar tokens, carbon credits, green mining) perform relative to the broader crypto market, but there's no simple tool that isolates and benchmarks this emerging sector.",
+    "connection": "CoinGecko provides real-time and historical price, market cap, and volume data for thousands of tokens including green/energy-tagged cryptocurrencies, making it possible to build a live sector dashboard without authentication.",
+    "source_url": "https://www.cas.org/resources/cas-insights/scientific-breakthroughs-2026-emerging-trends-watch",
+    "emoji": "🌱",
+    "category": "API tool",
+    "api": "CoinGecko"
+  },
+  {
+    "date": "2026-02-28",
+    "id": "2026-02-28",
+    "name": "Foldlink",
+    "description": "Two players start with the same visual seed and independently make a sequence of transformations, then the app reveals a merged origami-like structure showing where your creative decisions aligned or diverged.",
+    "inspiration": "DNA folds like origami in varied patterns across neurons, acting as a dynamic key that controls identity and connections during brain development.",
+    "connection": "The idea that folding patterns determine identity and wiring sparked a friendship game where two people fold the same prompt in radically different ways, then see how their 'wiring' overlaps or diverges.",
+    "source_url": "https://www.ucsf.edu/news/2026/01/431411/two-new-breakthroughs-advance-neurological-disorders-and-cancer-research",
+    "emoji": "🧬",
+    "category": "Fun/social"
+  },
+  {
     "date": "2026-02-27",
     "id": "2026-02-27-6",
     "name": "Strainplay",
