@@ -144,17 +144,21 @@ function formatDate(dateStr) {
 // ── Research ──────────────────────────────────────────────────────────────────
 
 // Returns: Array<{ finding: string, detail: string, url: string }>
-async function research(focusArea = 'general') {
+async function research(focusArea = 'general', usedTopics = []) {
+  const blacklist = usedTopics.length > 0
+    ? `\n\nDo NOT return stories about these topics — they have already been used as inspiration recently:\n${usedTopics.map(t => `- ${t}`).join('\n')}`
+    : '';
+
   const topic = focusArea === 'ai'
-    ? `the latest news and developments in artificial intelligence this week (around ${today}). Include new model releases, research papers, product launches, and interesting AI applications.`
-    : `5 fascinating, surprising, or counterintuitive things from the world this week (around ${today}). Cover different domains — science, nature, culture, mathematics, human behavior, technology. Avoid politics.`;
+    ? `the 5 biggest AI news stories TODAY (${today}). Include new model releases, research breakthroughs, product launches, and interesting AI applications.`
+    : `the 5 biggest world news stories TODAY (${today}). Cover a mix of domains — geopolitics, science, economy, culture, nature, space. Be specific and concrete.`;
 
   const label = focusArea === 'ai' ? 'Researching AI news...' : 'Researching world news...';
   console.log(label);
 
   const text = await callAPI(RESEARCH_MODEL, [{
     role: 'user',
-    content: `Find ${topic}
+    content: `Find ${topic}${blacklist}
 
 Focus on things that are visually interesting, conceptually rich, or mechanically inspiring. Be specific and concrete.
 
@@ -316,7 +320,7 @@ AVOID:
 - Particle systems reacting to mouse movement
 - Psychedelic visuals, floating orbs, nebulas
 - "Meditative" or "zen" themes
-- Space/cosmos (unless the concept specifically requires it)
+- Space/cosmos as generic aesthetic — BUT space/astronomy apps are fine when the concept genuinely requires it (e.g. a lunar eclipse timer, a meteor shower tracker)
 - Generic canvas animations as a substitute for real interaction
 - Physics simulations as the main mechanic (unless category is Simulation)
 
@@ -361,10 +365,13 @@ async function generate() {
   const dailyCategories = selectDailyCategories(manifest);
   console.log(`Categories: ${dailyCategories.map(c => c.label).join(' · ')}`);
 
+  // Build blacklist from recent inspirations to avoid repetition
+  const usedTopics = manifest.slice(0, 21).map(a => a.inspiration).filter(Boolean);
+
   // Run both research calls in parallel
   const [generalResearch, aiResearch] = await Promise.all([
-    research('general'),
-    research('ai'),
+    research('general', usedTopics),
+    research('ai', usedTopics),
   ]);
 
   const recentSummaries = manifest.slice(0, 9).map(a => `${a.name}: ${a.description}`).join('\n');
