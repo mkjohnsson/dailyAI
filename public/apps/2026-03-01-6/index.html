@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Marginalia — Daily AI Gen</title>
+  <meta name="description" content="Draw barriers in a glowing energy gradient to manage autonomous organisms that evolve and adapt their behavior, trying to sustain biodiversity against collapse.">
+  <meta property="og:title" content="Marginalia — Daily AI Gen">
+  <meta property="og:description" content="Draw barriers in a glowing energy gradient to manage autonomous organisms that evolve and adapt their behavior, trying to sustain biodiversity against collapse.">
+  <meta property="og:url" content="https://dailyaigen.com/apps/2026-03-01-6/">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="https://dailyaigen.com/apps/2026-03-01-6/">
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  body {
+    font-family: 'Courier New', monospace;
+    background: #0a0a0a;
+    color: #00ff88;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+  }
+  
+  #header {
+    padding: 15px 20px;
+    background: #111;
+    border-bottom: 2px solid #00ff88;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  
+  #title {
+    font-size: 24px;
+    font-weight: bold;
+  }
+  
+  #stats {
+    display: flex;
+    gap: 30px;
+    font-size: 14px;
+  }
+  
+  .stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .stat-label {
+    font-size: 10px;
+    opacity: 0.6;
+    margin-bottom: 2px;
+  }
+  
+  .stat-value {
+    font-size: 16px;
+    font-weight: bold;
+  }
+  
+  .critical { color: #ff3366; }
+  .warning { color: #ffaa00; }
+  .good { color: #00ff88; }
+  
+  #container {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  canvas {
+    display: block;
+    cursor: crosshair;
+  }
+  
+  #instructions {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    padding: 10px 20px;
+    border: 1px solid #00ff88;
+    border-radius: 5px;
+    font-size: 12px;
+    text-align: center;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+  <div id="header">
+    <div id="title">MARGINALIA</div>
+    <div id="stats">
+      <div class="stat">
+        <div class="stat-label">BIODIVERSITY</div>
+        <div class="stat-value good" id="biodiversity">0.00</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">MARGIN EFFICIENCY</div>
+        <div class="stat-value good" id="efficiency">0.00</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">POPULATION</div>
+        <div class="stat-value" id="population">0</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">GENERATION</div>
+        <div class="stat-value" id="generation">0</div>
+      </div>
+    </div>
+  </div>
+  
+  <div id="container">
+    <canvas id="canvas"></canvas>
+    <div id="instructions">
+      CLICK & DRAG to draw margin lines • Organisms adapt to route around barriers • Balance energy flow to sustain diversity
+    </div>
+  </div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+let width, height;
+function resize() {
+  width = canvas.width = window.innerWidth;
+  height = canvas.height = window.innerHeight - document.getElementById('header').offsetHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+// Margin lines
+const margins = [];
+let drawing = false;
+let currentLine = null;
+
+canvas.addEventListener('mousedown', (e) => {
+  drawing = true;
+  const rect = canvas.getBoundingClientRect();
+  currentLine = {
+    x1: e.clientX - rect.left,
+    y1: e.clientY - rect.top,
+    x2: e.clientX - rect.left,
+    y2: e.clientY - rect.top,
+    age: 0
+  };
+});
+
+canvas.addEventListener('mousemove', (e) => {
+  if (!drawing) return;
+  const rect = canvas.getBoundingClientRect();
+  currentLine.x2 = e.clientX - rect.left;
+  currentLine.y2 = e.clientY - rect.top;
+});
+
+canvas.addEventListener('mouseup', () => {
+  if (drawing && currentLine) {
+    const dist = Math.hypot(currentLine.x2 - currentLine.x1, currentLine.y2 - currentLine.y1);
+    if (dist > 20) {
+      margins.push(currentLine);
+    }
+  }
+  drawing = false;
+  currentLine = null;
+});
+
+// Organism species
+const SPECIES = [
+  { color: '#ff3366', speed: 2, size: 4, energyPref: 0.8 },
+  { color: '#3366ff', speed: 1.5, size: 5, energyPref: 0.5 },
+  { color: '#ffaa00', speed: 2.5, size: 3, energyPref: 0.3 },
+  { color: '#00ffff', speed: 1, size: 6, energyPref: 0.6 }
+];
+
+class Organism {
+  constructor(x, y, speciesIdx, generation = 0, genes = null) {
+    this.x = x;
+    this.y = y;
+    this.speciesIdx = speciesIdx;
+    this.generation = generation;
+    this.species = SPECIES[speciesIdx];
+    
+    // Genes: [marginAvoidance, energySeeking, reproductionThreshold]
+    if (genes) {
+      this.genes = genes.map(g => g + (Math.random() - 0.5) * 0.1);
+    } else {
+      this.genes = [
+        Math.random() * 0.5 + 0.3, // margin avoidance
+        Math.random() * 0.5 + 0.5, // energy seeking
+        Math.random() * 30 + 40    // reproduction threshold
+      ];
+    }
+    
+    this.energy = 50;
+    this.angle = Math.random() * Math.PI * 2;
+    this.age = 0;
+  }
+  
+  getEnergyLevel(y) {
+    // Energy gradient from floor to ceiling
+    return 1 - (y / height);
+  }
+  
+  findMarginInfluence(x, y) {
+    let totalForce = { x: 0, y: 0 };
+    
+    for (const margin of margins) {
+      const dist = this.distanceToLine(x, y, margin);
+      if (dist < 50) {
+        const repulsion = (50 - dist) / 50;
+        const nx = margin.y2 - margin.y1;
+        const ny = -(margin.x2 - margin.x1);
+        const len = Math.hypot(nx, ny);
+        if (len > 0) {
+          totalForce.x += (nx / len) * repulsion * this.genes[0];
+          totalForce.y += (ny / len) * repulsion * this.genes[0];
+        }
+      }
+    }
+    
+    return totalForce;
+  }
+  
+  distanceToLine(px, py, line) {
+    const A = px - line.x1;
+    const B = py - line.y1;
+    const C = line.x2 - line.x1;
+    const D = line.y2 - line.y1;
+    
+    const dot = A * C + B * D;
+    const lenSq = C * C + D * D;
+    let param = -1;
+    
+    if (lenSq !== 0) param = dot / lenSq;
+    
+    let xx, yy;
+    if (param < 0) {
+      xx = line.x1;
+      yy = line.y1;
+    } else if (param > 1) {
+      xx = line.x2;
+      yy = line.y2;
+    } else {
+      xx = line.x1 + param * C;
+      yy = line.y1 + param * D;
+    }
+    
+    return Math.hypot(px - xx, py - yy);
+  }
+  
+  update(organisms) {
+    this.age++;
+    
+    // Energy consumption
+    this.energy -= 0.2;
+    
+    // Seek preferred energy level
+    const currentEnergy = this.getEnergyLevel(this.y);
+    const targetEnergy = this.species.energyPref;
+    const energyDiff = targetEnergy - currentEnergy;
+    
+    // Movement influenced by genes
+    const marginForce = this.findMarginInfluence(this.x, this.y);
+    
+    this.angle += (Math.random() - 0.5) * 0.3;
+    this.angle += energyDiff * this.genes[1] * 0.02;
+    this.angle += Math.atan2(marginForce.y, marginForce.x) * 0.3;
+    
+    const speed = this.species.speed;
+    this.x += Math.cos(this.angle) * speed;
+    this.y += Math.sin(this.angle) * speed;
+    
+    // Wrap around
+    if (this.x < 0) this.x = width;
+    if (this.x > width) this.x = 0;
+    if (this.y < 0) this.y = height;
+    if (this.y > height) this.y = 0;
+    
+    // Gain energy from gradient
+    const energyGain = this.getEnergyLevel(this.y) * 0.5;
+    this.energy += energyGain;
+    
+    // Reproduction
+    if (this.energy > this.genes[2] && Math.random() < 0.01) {
+      this.energy *= 0.5;
+      return new Organism(
+        this.x + (Math.random() - 0.5) * 20,
+        this.y + (Math.random() - 0.5) * 20,
+        this.speciesIdx,
+        this.generation + 1,
+        [...this.genes]
+      );
+    }
+    
+    return null;
+  }
+  
+  draw() {
+    ctx.fillStyle = this.species.color;
+    ctx.globalAlpha = Math.min(this.energy / 50, 1);
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.species.size, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+}
+
+// Initialize organisms
+const organisms = [];
+for (let i = 0; i < 20; i++) {
+  for (let s = 0; s < SPECIES.length; s++) {
+    organisms.push(new Organism(
+      Math.random() * width,
+      Math.random() * height,
+      s
+    ));
+  }
+}
+
+// Game loop
+let frame = 0;
+
+function calculateBiodiversity() {
+  const counts = [0, 0, 0, 0];
+  organisms.forEach(o => counts[o.speciesIdx]++);
+  
+  const total = organisms.length;
+  if (total === 0) return 0;
+  
+  let shannon = 0;
+  counts.forEach(count => {
+    if (count > 0) {
+      const p = count / total;
+      shannon -= p * Math.log(p);
+    }
+  });
+  
+  return shannon / Math.log(SPECIES.length);
+}
+
+function calculateEfficiency() {
+  if (margins.length === 0) return 1;
+  
+  const diversity = calculateBiodiversity();
+  const marginPenalty = Math.min(margins.length / 20, 1);
+  
+  return diversity * (1 - marginPenalty * 0.3);
+}
+
+function getMaxGeneration() {
+  return organisms.reduce((max, o) => Math.max(max, o.generation), 0);
+}
+
+function updateStats() {
+  const biodiversity = calculateBiodiversity();
+  const efficiency = calculateEfficiency();
+  
+  document.getElementById('biodiversity').textContent = biodiversity.toFixed(2);
+  document.getElementById('efficiency').textContent = efficiency.toFixed(2);
+  document.getElementById('population').textContent = organisms.length;
+  document.getElementById('generation').textContent = getMaxGeneration();
+  
+  const bioEl = document.getElementById('biodiversity');
+  bioEl.className = 'stat-value ' + (biodiversity > 0.7 ? 'good' : biodiversity > 0.4 ? 'warning' : 'critical');
+  
+  const effEl = document.getElementById('efficiency');
+  effEl.className = 'stat-value ' + (efficiency > 0.6 ? 'good' : efficiency > 0.3 ? 'warning' : 'critical');
+}
+
+function animate() {
+  frame++;
+  
+  // Draw energy gradient
+  const gradient = ctx.createLinearGradient(0, height, 0, 0);
+  gradient.addColorStop(0, '#001a0a');
+  gradient.addColorStop(0.3, '#003320');
+  gradient.addColorStop(0.6, '#005540');
+  gradient.addColorStop(1, '#00ff88');
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, width, height);
+  
+  // Draw margins
+  ctx.strokeStyle = '#00ff88';
+  ctx.lineWidth = 2;
+  ctx.globalAlpha = 0.6;
+  
+  for (let i = margins.length - 1; i >= 0; i--) {
+    const margin = margins[i];
+    margin.age++;
+    
+    ctx.beginPath();
+    ctx.moveTo(margin.x1, margin.y1);
+    ctx.lineTo(margin.x2, margin.y2);
+    ctx.stroke();
+    
+    // Draw permeability indicators
+    const steps = 5;
+    for (let j = 0; j <= steps; j++) {
+      const t = j / steps;
+      const x = margin.x1 + (margin.x2 - margin.x1) * t;
+      const y = margin.y1 + (margin.y2 - margin.y1) * t;
+      
+      ctx.fillStyle = '#00ff88';
+      ctx.beginPath();
+      ctx.arc(x, y, 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    
+    // Fade old margins
+    if (margin.age > 600) {
+      margins.splice(i, 1);
+    }
+  }
+  
+  ctx.globalAlpha = 1;
+  
+  // Draw current line
+  if (currentLine) {
+    ctx.strokeStyle = '#ffff00';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(currentLine.x1, currentLine.y1);
+    ctx.lineTo(currentLine.x2, currentLine.y2);
+    ctx.stroke();
+  }
+  
+  // Update organisms
+  const newOrganisms = [];
+  for (let i = organisms.length - 1; i >= 0; i--) {
+    const org = organisms[i];
+    const offspring = org.update(organisms);
+    
+    if (offspring) {
+      newOrganisms.push(offspring);
+    }
+    
+    if (org.energy <= 0 || org.age > 1000) {
+      organisms.splice(i, 1);
+    }
+  }
+  
+  organisms.push(...newOrganisms);
+  
+  // Draw organisms
+  organisms.forEach(o => o.draw());
+  
+  // Update stats every 30 frames
+  if (frame % 30 === 0) {
+    updateStats();
+  }
+  
+  requestAnimationFrame(animate);
+}
+
+animate();
+</script>
+</body>
+</html>

@@ -1,6 +1,43 @@
 [
   {
     "date": "2026-03-01",
+    "id": "2026-03-01-6",
+    "name": "Marginalia",
+    "description": "Draw barriers in a glowing energy gradient to manage autonomous organisms that evolve and adapt their behavior, trying to sustain biodiversity against collapse.",
+    "inspiration": "NVIDIA's 75.2% non-GAAP gross margins demonstrate premium pricing power amid soaring enterprise AI agent adoption, where companies race to invest billions in compute infrastructure.",
+    "connection": "The idea of 'margins' as invisible borders between profit and loss inspired a game about literal margins — the thin edges of stability in ecosystems where autonomous agents consume resources and you must maintain the delicate margin between flourishing and collapse.",
+    "source_url": "https://www.nasdaq.com/articles/nvidia-vs-broadcom-smarter-ai-stock-buy-march-2026",
+    "emoji": "🧫",
+    "category": "AI-inspired",
+    "image": true
+  },
+  {
+    "date": "2026-03-01",
+    "id": "2026-03-01-5",
+    "name": "RootSoak",
+    "description": "Watch real-time soil moisture forecasts animate through underground layers as rain percolates downward, showing exactly when your crops need water.",
+    "inspiration": "Farmers and agricultural researchers working with new drought-resistant CRISPR-edited crops need to know exactly when and how deeply rain penetrates soil to decide whether to irrigate — but standard weather apps only show rainfall amounts, not what that means for root-zone moisture over time.",
+    "connection": "Open-Meteo provides hourly precipitation, soil moisture at multiple depths (0-7cm, 7-28cm, 28-100cm, 100-255cm), and soil temperature data for any coordinate, which is exactly what's needed to visualize water availability at different root depths.",
+    "source_url": "https://www.cas.org/resources/cas-insights/scientific-breakthroughs-2026-emerging-trends-watch",
+    "emoji": "🌱",
+    "category": "API tool",
+    "api": "Open-Meteo",
+    "image": true
+  },
+  {
+    "date": "2026-03-01",
+    "id": "2026-03-01-4",
+    "name": "Stressline",
+    "description": "A weekly life-balance tracker that visualizes your recurring commitments as structural stress on a bridge beam cross-section, showing cracks where burnout is forming and healing when you schedule recovery.",
+    "inspiration": "Self-healing infrastructure coatings with embedded microcapsules that rupture and seal breaches when damage occurs, shifting maintenance from reactive to predictive.",
+    "connection": "The idea of invisible micro-damage accumulating beneath a surface before catastrophic failure inspired a personal timeline where you visualize the hidden wear-and-tear of your daily commitments — micro-fractures in your time and energy that compound silently.",
+    "source_url": "https://www.cas.org/resources/cas-insights/scientific-breakthroughs-2026-emerging-trends-watch",
+    "emoji": "🪨",
+    "category": "Data/visual",
+    "image": true
+  },
+  {
+    "date": "2026-03-01",
     "id": "2026-03-01-3",
     "name": "Voidparse",
     "description": "Decode corrupted alien AI transmissions by assembling glyphs, waveforms, and spectrograms before time runs out — each wrong answer permanently corrupts the shared narrative.",

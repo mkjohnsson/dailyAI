@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stressline — Daily AI Gen</title>
+  <meta name="description" content="A weekly life-balance tracker that visualizes your recurring commitments as structural stress on a bridge beam cross-section, showing cracks where burnout is forming and healing when you schedule recovery.">
+  <meta property="og:title" content="Stressline — Daily AI Gen">
+  <meta property="og:description" content="A weekly life-balance tracker that visualizes your recurring commitments as structural stress on a bridge beam cross-section, showing cracks where burnout is forming and healing when you schedule recovery.">
+  <meta property="og:url" content="https://dailyaigen.com/apps/2026-03-01-4/">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="https://dailyaigen.com/apps/2026-03-01-4/">
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    color: #eee;
+    min-height: 100vh;
+    padding: 20px;
+  }
+  
+  .container {
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  
+  header {
+    text-align: center;
+    margin-bottom: 30px;
+  }
+  
+  h1 {
+    font-size: 2.5em;
+    margin-bottom: 10px;
+    color: #fff;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+  }
+  
+  .subtitle {
+    color: #aaa;
+    font-size: 0.95em;
+  }
+  
+  .main-content {
+    display: grid;
+    grid-template-columns: 350px 1fr;
+    gap: 30px;
+  }
+  
+  .panel {
+    background: rgba(255,255,255,0.05);
+    border-radius: 12px;
+    padding: 25px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  
+  .panel h2 {
+    margin-bottom: 20px;
+    font-size: 1.3em;
+    color: #fff;
+  }
+  
+  .commitment-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  
+  input, select {
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+    font-size: 0.95em;
+  }
+  
+  input::placeholder {
+    color: #888;
+  }
+  
+  button {
+    padding: 12px 20px;
+    border-radius: 6px;
+    border: none;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    cursor: pointer;
+    font-size: 1em;
+    font-weight: 600;
+    transition: transform 0.2s;
+  }
+  
+  button:hover {
+    transform: translateY(-2px);
+  }
+  
+  button:active {
+    transform: translateY(0);
+  }
+  
+  .commitment-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .commitment-item {
+    background: rgba(255,255,255,0.08);
+    padding: 12px;
+    border-radius: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-left: 4px solid;
+  }
+  
+  .commitment-info {
+    flex: 1;
+  }
+  
+  .commitment-name {
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  
+  .commitment-meta {
+    font-size: 0.85em;
+    color: #aaa;
+  }
+  
+  .remove-btn {
+    background: rgba(255,59,48,0.8);
+    padding: 6px 12px;
+    font-size: 0.85em;
+  }
+  
+  .beam-container {
+    position: relative;
+    width: 100%;
+    height: 600px;
+  }
+  
+  canvas {
+    width: 100%;
+    height: 100%;
+    border-radius: 12px;
+  }
+  
+  .legend {
+    margin-top: 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+  }
+  
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  .legend-color {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+  }
+  
+  .legend-label {
+    font-size: 0.9em;
+  }
+  
+  .stats {
+    margin-top: 20px;
+    padding: 15px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 8px;
+  }
+  
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 0.95em;
+  }
+  
+  .stat-label {
+    color: #aaa;
+  }
+  
+  .stat-value {
+    font-weight: 600;
+  }
+  
+  .warning {
+    color: #ff6b6b;
+  }
+  
+  .healthy {
+    color: #51cf66;
+  }
+  
+  @media (max-width: 1024px) {
+    .main-content {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>Stressline</h1>
+    <p class="subtitle">Visualize your weekly commitments as structural stress on a bridge beam</p>
+  </header>
+  
+  <div class="main-content">
+    <div class="panel">
+      <h2>Add Commitment</h2>
+      <div class="commitment-form">
+        <input type="text" id="commitmentName" placeholder="e.g., Work, Family time, Exercise">
+        <select id="commitmentCategory">
+          <option value="work">Work</option>
+          <option value="relationships">Relationships</option>
+          <option value="hobbies">Hobbies</option>
+          <option value="rest">Rest/Recovery</option>
+          <option value="health">Health</option>
+          <option value="other">Other</option>
+        </select>
+        <input type="number" id="commitmentHours" placeholder="Hours per week" min="0" max="168" step="0.5">
+        <button onclick="addCommitment()">Add Commitment</button>
+      </div>
+      
+      <h2>Your Commitments</h2>
+      <div class="commitment-list" id="commitmentList"></div>
+      
+      <div class="stats" id="stats"></div>
+    </div>
+    
+    <div class="panel">
+      <h2>Structural Integrity Analysis</h2>
+      <div class="beam-container">
+        <canvas id="beamCanvas"></canvas>
+      </div>
+      
+      <div class="legend">
+        <div class="legend-item">
+          <div class="legend-color" style="background: #ff6b6b;"></div>
+          <div class="legend-label">Work</div>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="background: #ff9ff3;"></div>
+          <div class="legend-label">Relationships</div>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="background: #ffd93d;"></div>
+          <div class="legend-label">Hobbies</div>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="background: #51cf66;"></div>
+          <div class="legend-label">Rest/Recovery</div>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="background: #4dabf7;"></div>
+          <div class="legend-label">Health</div>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="background: #9775fa;"></div>
+          <div class="legend-label">Other</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const categoryColors = {
+  work: '#ff6b6b',
+  relationships: '#ff9ff3',
+  hobbies: '#ffd93d',
+  rest: '#51cf66',
+  health: '#4dabf7',
+  other: '#9775fa'
+};
+
+let commitments = [];
+let cracks = [];
+let healingCapsules = [];
+
+const canvas = document.getElementById('beamCanvas');
+const ctx = canvas.getContext('2d');
+
+function resizeCanvas() {
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * window.devicePixelRatio;
+  canvas.height = rect.height * window.devicePixelRatio;
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+}
+
+resizeCanvas();
+window.addEventListener('resize', () => {
+  resizeCanvas();
+  drawBeam();
+});
+
+function addCommitment() {
+  const name = document.getElementById('commitmentName').value.trim();
+  const category = document.getElementById('commitmentCategory').value;
+  const hours = parseFloat(document.getElementById('commitmentHours').value);
+  
+  if (!name || !hours || hours <= 0) {
+    alert('Please fill in all fields with valid values');
+    return;
+  }
+  
+  commitments.push({
+    id: Date.now(),
+    name,
+    category,
+    hours
+  });
+  
+  document.getElementById('commitmentName').value = '';
+  document.getElementById('commitmentHours').value = '';
+  
+  updateUI();
+  calculateStress();
+}
+
+function removeCommitment(id) {
+  commitments = commitments.filter(c => c.id !== id);
+  updateUI();
+  calculateStress();
+}
+
+function updateUI() {
+  const list = document.getElementById('commitmentList');
+  
+  if (commitments.length === 0) {
+    list.innerHTML = '<p style="color: #666; font-style: italic;">No commitments yet</p>';
+  } else {
+    list.innerHTML = commitments.map(c => `
+      <div class="commitment-item" style="border-left-color: ${categoryColors[c.category]}">
+        <div class="commitment-info">
+          <div class="commitment-name">${c.name}</div>
+          <div class="commitment-meta">${c.category} • ${c.hours} hrs/week</div>
+        </div>
+        <button class="remove-btn" onclick="removeCommitment(${c.id})">Remove</button>
+      </div>
+    `).join('');
+  }
+  
+  updateStats();
+}
+
+function updateStats() {
+  const totalHours = commitments.reduce((sum, c) => sum + c.hours, 0);
+  const restHours = commitments.filter(c => c.category === 'rest').reduce((sum, c) => sum + c.hours, 0);
+  const workHours = commitments.filter(c => c.category === 'work').reduce((sum, c) => sum + c.hours, 0);
+  
+  const overcommitted = totalHours > 112; // 16 hrs/day * 7
+  const restDeficit = restHours < 14; // Less than 2 hrs/day rest
+  
+  const categoryBalance = {};
+  commitments.forEach(c => {
+    categoryBalance[c.category] = (categoryBalance[c.category] || 0) + c.hours;
+  });
+  
+  const categories = Object.keys(categoryBalance).length;
+  const unbalanced = categories > 0 && (Math.max(...Object.values(categoryBalance)) / totalHours > 0.6);
+  
+  const statsHtml = `
+    <div class="stat-row">
+      <span class="stat-label">Total weekly hours:</span>
+      <span class="stat-value ${overcommitted ? 'warning' : ''}">${totalHours.toFixed(1)} / 168</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Rest hours:</span>
+      <span class="stat-value ${restDeficit ? 'warning' : 'healthy'}">${restHours.toFixed(1)}</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Structural integrity:</span>
+      <span class="stat-value ${getIntegrityClass()}">${getIntegrityStatus()}</span>
+    </div>
+  `;
+  
+  document.getElementById('stats').innerHTML = statsHtml;
+}
+
+function getIntegrityStatus() {
+  const severity = calculateOverallStress();
+  if (severity < 0.3) return 'Excellent';
+  if (severity < 0.5) return 'Good';
+  if (severity < 0.7) return 'Stressed';
+  if (severity < 0.9) return 'Critical';
+  return 'Failure Imminent';
+}
+
+function getIntegrityClass() {
+  const severity = calculateOverallStress();
+  if (severity < 0.5) return 'healthy';
+  if (severity < 0.8) return '';
+  return 'warning';
+}
+
+function calculateOverallStress() {
+  const totalHours = commitments.reduce((sum, c) => sum + c.hours, 0);
+  const restHours = commitments.filter(c => c.category === 'rest').reduce((sum, c) => sum + c.hours, 0);
+  const workHours = commitments.filter(c => c.category === 'work').reduce((sum, c) => sum + c.hours, 0);
+  
+  let stress = 0;
+  
+  // Overcommitment stress
+  if (totalHours > 112) stress += (totalHours - 112) / 56; // Max 1.0 at 168 hrs
+  
+  // Rest deficit stress
+  if (restHours < 14) stress += (14 - restHours) / 14; // Max 1.0 at 0 rest
+  
+  // Work overload stress
+  if (workHours > 50) stress += (workHours - 50) / 50; // Max 1.0 at 100 hrs
+  
+  // Category imbalance
+  const categoryBalance = {};
+  commitments.forEach(c => {
+    categoryBalance[c.category] = (categoryBalance[c.category] || 0) + c.hours;
+  });
+  
+  if (totalHours > 0) {
+    const maxCategory = Math.max(...Object.values(categoryBalance));
+    if (maxCategory / totalHours > 0.6) {
+      stress += 0.3;
+    }
+  }
+  
+  return Math.min(stress, 1.5);
+}
+
+function calculateStress() {
+  const totalHours = commitments.reduce((sum, c) => sum + c.hours, 0);
+  const restHours = commitments.filter(c => c.category === 'rest').reduce((sum, c) => sum + c.hours, 0);
+  
+  // Generate new cracks based on stress
+  cracks = [];
+  
+  commitments.forEach((c, index) => {
+    if (c.category === 'rest') return; // Rest doesn't create cracks
+    
+    const stressLevel = c.hours / 20; // Normalize
+    const numCracks = Math.floor(stressLevel * 3) + 1;
+    
+    for (let i = 0; i < numCracks; i++) {
+      const baseY = (index / commitments.length) * 0.8 + 0.1;
+      cracks.push({
+        category: c.category,
+        x: 0.2 + Math.random() * 0.6,
+        y: baseY + (Math.random() - 0.5) * 0.1,
+        length: 0.05 + Math.random() * 0.1 * stressLevel,
+        angle: (Math.random() - 0.5) * Math.PI / 3,
+        width: 1 + stressLevel * 2,
+        branches: []
+      });
+    }
+  });
+  
+  // Generate healing capsules for rest
+  healingCapsules = [];
+  if (restHours > 0) {
+    const numCapsules = Math.floor(restHours / 7) + 1;
+    for (let i = 0; i < numCapsules; i++) {
+      healingCapsules.push({
+        x: 0.2 + Math.random() * 0.6,
+        y: 0.2 + Math.random() * 0.6,
+        radius: 0.02 + Math.random() * 0.02,
+        pulse: Math.random() * Math.PI * 2
+      });
+    }
+  }
+  
+  // Add micro-branches to cracks for high stress
+  const overallStress = calculateOverallStress();
+  if (overallStress > 0.5) {
+    cracks.forEach(crack => {
+      const numBranches = Math.floor((overallStress - 0.5) * 4);
+      for (let i = 0; i < numBranches; i++) {
+        crack.branches.push({
+          offset: Math.random(),
+          angle: (Math.random() - 0.5) * Math.PI / 2,
+          length: crack.length * (0.3 + Math.random() * 0.4)
+        });
+      }
+    });
+  }
+  
+  drawBeam();
+}
+
+function drawBeam() {
+  const rect = canvas.getBoundingClientRect();
+  const w = rect.width;
+  const h = rect.height;
+  
+  ctx.clearRect(0, 0, w, h);
+  
+  // Draw beam structure (I-beam cross-section)
+  ctx.fillStyle = '#2a2a3e';
+  
+  // Top flange
+  ctx.fillRect(w * 0.15, h * 0.15, w * 0.7, h * 0.1);
+  // Web
+  ctx.fillRect(w * 0.45, h * 0.15, w * 0.1, h * 0.7);
+  // Bottom flange
+  ctx.fillRect(w * 0.15, h * 0.75, w * 0.7, h * 0.1);
+  
+  // Draw stress distribution (gradient overlay)
+  const totalHours = commitments.reduce((sum, c) => sum + c.hours, 0);
+  
+  commitments.forEach((c, index) => {
+    const startY = (index / commitments.length) * h * 0.6 + h * 0.2;
+    const height = (c.hours / totalHours) * h * 0.6;
+    
+    const gradient = ctx.createLinearGradient(w * 0.15, startY, w * 0.85, startY);
+    gradient.addColorStop(0, categoryColors[c.category] + '20');
+    gradient.addColorStop(0.5, categoryColors[c.category] + '40');
+    gradient.addColorStop(1, categoryColors[c.category] + '20');
+    
+    ctx.fillStyle = gradient;
+    ctx.fillRect(w * 0.15, startY, w * 0.7, height);
+  });
+  
+  // Draw cracks
+  cracks.forEach(crack => {
+    const x = crack.x * w;
+    const y = crack.y * h;
+    const length = crack.length * w;
+    
+    ctx.strokeStyle = categoryColors[crack.category];
+    ctx.lineWidth = crack.width;
+    ctx.lineCap = 'round';
+    
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(
+      x + Math.cos(crack.angle) * length,
+      y + Math.sin(crack.angle) * length
+    );
+    ctx.stroke();
+    
+    // Draw branches
+    crack.branches.forEach(branch => {
+      const branchX = x + Math.cos(crack.angle) * length * branch.offset;
+      const branchY = y + Math.sin(crack.angle) * length * branch.offset;
+      
+      ctx.lineWidth = crack.width * 0.6;
+      ctx.beginPath();
+      ctx.moveTo(branchX, branchY);
+      ctx.lineTo(
+        branchX + Math.cos(crack.angle + branch.angle) * branch.length * w,
+        branchY + Math.sin(crack.angle + branch.angle) * branch.length * w
+      );
+      ctx.stroke();
+    });
+  });
+  
+  // Draw healing capsules
+  const time = Date.now() / 1000;
+  healingCapsules.forEach(capsule => {
+    const x = capsule.x * w;
+    const y = capsule.y * h;
+    const radius = capsule.radius * w;
+    const pulse = Math.sin(time * 2 + capsule.pulse) * 0.3 + 1;
+    
+    const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius * pulse);
+    gradient.addColorStop(0, categoryColors.rest + 'ff');
+    gradient.addColorStop(0.5, categoryColors.rest + '80');
+    gradient.addColorStop(1, categoryColors.rest + '00');
+    
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(x, y, radius * pulse, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Core
+    ctx.fillStyle = categoryColors.rest;
+    ctx.beginPath();
+    ctx.arc(x, y, radius * 0.5, 0, Math.PI * 2);
+    ctx.fill();
+  });
+}
+
+// Animation loop for healing capsules
+function animate() {
+  if (healingCapsules.length > 0) {
+    drawBeam();
+  }
+  requestAnimationFrame(animate);
+}
+
+animate();
+updateUI();
+</script>
+</body>
+</html>
