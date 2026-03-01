@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chokeflow — Daily AI Gen</title>
+  <meta name="description" content="Paste any network graph and watch it transform into a river delta where node size reveals bottleneck severity and cascading failures spread like droughts through the watershed.">
+  <meta property="og:title" content="Chokeflow — Daily AI Gen">
+  <meta property="og:description" content="Paste any network graph and watch it transform into a river delta where node size reveals bottleneck severity and cascading failures spread like droughts through the watershed.">
+  <meta property="og:url" content="https://dailyaigen.com/apps/2026-03-01-7/">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="https://dailyaigen.com/apps/2026-03-01-7/">
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #0a1828 0%, #1a2f3f 100%);
+    color: #e0e7ee;
+    overflow: hidden;
+    height: 100vh;
+  }
+  
+  #container {
+    display: flex;
+    height: 100vh;
+  }
+  
+  #sidebar {
+    width: 320px;
+    background: rgba(15, 25, 35, 0.95);
+    border-right: 1px solid rgba(100, 150, 200, 0.2);
+    padding: 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  
+  h1 {
+    font-size: 24px;
+    color: #64b5f6;
+    margin-bottom: 5px;
+  }
+  
+  .subtitle {
+    font-size: 12px;
+    color: #90a4ae;
+    margin-bottom: 15px;
+  }
+  
+  textarea {
+    width: 100%;
+    height: 200px;
+    background: rgba(20, 35, 50, 0.8);
+    border: 1px solid rgba(100, 150, 200, 0.3);
+    border-radius: 4px;
+    padding: 10px;
+    color: #e0e7ee;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    resize: vertical;
+  }
+  
+  button {
+    background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+    border: none;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+  
+  button:hover {
+    background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%);
+    transform: translateY(-1px);
+  }
+  
+  .examples {
+    font-size: 11px;
+    color: #78909c;
+    line-height: 1.6;
+  }
+  
+  .examples strong {
+    color: #90a4ae;
+    display: block;
+    margin-top: 8px;
+  }
+  
+  #canvas-container {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  canvas {
+    display: block;
+    cursor: crosshair;
+  }
+  
+  #tooltip {
+    position: absolute;
+    background: rgba(15, 25, 35, 0.98);
+    border: 1px solid rgba(100, 180, 255, 0.5);
+    border-radius: 6px;
+    padding: 12px 16px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+    font-size: 13px;
+    line-height: 1.6;
+    max-width: 280px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  }
+  
+  #tooltip.show {
+    opacity: 1;
+  }
+  
+  .tooltip-title {
+    font-weight: 600;
+    color: #64b5f6;
+    margin-bottom: 6px;
+    font-size: 14px;
+  }
+  
+  .tooltip-row {
+    display: flex;
+    justify-content: space-between;
+    margin: 4px 0;
+    color: #b0bec5;
+  }
+  
+  .tooltip-label {
+    color: #78909c;
+  }
+  
+  .tooltip-value {
+    font-weight: 600;
+    margin-left: 12px;
+  }
+  
+  .warning {
+    color: #ff6b6b;
+    font-weight: 600;
+  }
+  
+  #controls {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .control-row {
+    display: flex;
+    gap: 10px;
+  }
+  
+  .control-row button {
+    flex: 1;
+  }
+  
+  .closed-node {
+    background: rgba(255, 107, 107, 0.2);
+    border: 1px solid rgba(255, 107, 107, 0.4);
+    border-radius: 4px;
+    padding: 6px 10px;
+    margin: 4px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+  }
+  
+  .closed-node button {
+    padding: 4px 8px;
+    font-size: 11px;
+    background: rgba(255, 107, 107, 0.3);
+  }
+  
+  #closed-list {
+    max-height: 150px;
+    overflow-y: auto;
+  }
+  
+  .section-title {
+    font-size: 13px;
+    color: #90a4ae;
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+<div id="container">
+  <div id="sidebar">
+    <div>
+      <h1>Chokeflow</h1>
+      <div class="subtitle">Network Bottleneck Visualizer</div>
+    </div>
+    
+    <div>
+      <div class="section-title">Paste Graph Data:</div>
+      <textarea id="input" placeholder="A -> B&#10;A -> C&#10;B -> D&#10;C -> D&#10;D -> E">A -> B
+A -> C
+B -> D
+C -> D
+D -> E
+E -> F
+E -> G
+F -> H
+G -> H</textarea>
+    </div>
+    
+    <button id="parseBtn">Visualize River System</button>
+    
+    <div class="examples">
+      <strong>Supported formats:</strong>
+      • Arrow: A -> B<br>
+      • Comma: A, B<br>
+      • Tab/space separated<br>
+      • Parent-child lists<br>
+      <br>
+      <strong>Hover nodes</strong> to see flow statistics<br>
+      <strong>Click nodes</strong> to close and simulate failures
+    </div>
+    
+    <div>
+      <div class="section-title">Controls:</div>
+      <div class="control-row">
+        <button id="resetBtn">Reset All</button>
+      </div>
+    </div>
+    
+    <div id="closed-section" style="display: none;">
+      <div class="section-title">Closed Nodes:</div>
+      <div id="closed-list"></div>
+    </div>
+  </div>
+  
+  <div id="canvas-container">
+    <canvas id="canvas"></canvas>
+    <div id="tooltip"></div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const tooltip = document.getElementById('tooltip');
+const input = document.getElementById('input');
+const parseBtn = document.getElementById('parseBtn');
+const resetBtn = document.getElementById('resetBtn');
+const closedList = document.getElementById('closed-list');
+const closedSection = document.getElementById('closed-section');
+
+let nodes = [];
+let edges = [];
+let closedNodes = new Set();
+let hoveredNode = null;
+
+function resizeCanvas() {
+  const container = document.getElementById('canvas-container');
+  canvas.width = container.clientWidth;
+  canvas.height = container.clientHeight;
+  render();
+}
+
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+function parseGraph(text) {
+  const lines = text.trim().split('\n').filter(l => l.trim());
+  const nodeSet = new Set();
+  const edgeList = [];
+  
+  lines.forEach(line => {
+    line = line.trim();
+    let from, to;
+    
+    if (line.includes('->')) {
+      [from, to] = line.split('->').map(s => s.trim());
+    } else if (line.includes(',')) {
+      [from, to] = line.split(',').map(s => s.trim());
+    } else if (line.includes('\t')) {
+      [from, to] = line.split('\t').map(s => s.trim());
+    } else {
+      const parts = line.split(/\s+/);
+      if (parts.length >= 2) {
+        [from, to] = parts;
+      }
+    }
+    
+    if (from && to) {
+      nodeSet.add(from);
+      nodeSet.add(to);
+      edgeList.push({ from, to });
+    }
+  });
+  
+  return { nodes: Array.from(nodeSet), edges: edgeList };
+}
+
+function calculateFlowMetrics() {
+  const nodeMap = new Map();
+  nodes.forEach(n => {
+    nodeMap.set(n.id, {
+      inDegree: 0,
+      outDegree: 0,
+      pathsThrough: 0,
+      totalPaths: 0
+    });
+  });
+  
+  edges.forEach(e => {
+    if (!closedNodes.has(e.from) && !closedNodes.has(e.to)) {
+      nodeMap.get(e.from).outDegree++;
+      nodeMap.get(e.to).inDegree++;
+    }
+  });
+  
+  // Find sources (no incoming edges)
+  const sources = nodes.filter(n => {
+    const m = nodeMap.get(n.id);
+    return m.inDegree === 0 && !closedNodes.has(n.id);
+  });
+  
+  // Find sinks (no outgoing edges)
+  const sinks = nodes.filter(n => {
+    const m = nodeMap.get(n.id);
+    return m.outDegree === 0 && !closedNodes.has(n.id);
+  });
+  
+  // Count all paths from sources to sinks
+  function countPaths(from, to, visited = new Set()) {
+    if (closedNodes.has(from) || closedNodes.has(to)) return 0;
+    if (from === to) return 1;
+    if (visited.has(from)) return 0;
+    
+    visited.add(from);
+    let count = 0;
+    
+    edges.forEach(e => {
+      if (e.from === from && !closedNodes.has(e.to)) {
+        count += countPaths(e.to, to, new Set(visited));
+      }
+    });
+    
+    return count;
+  }
+  
+  // Count paths through each node
+  let totalPaths = 0;
+  sources.forEach(src => {
+    sinks.forEach(sink => {
+      const paths = countPaths(src.id, sink.id);
+      totalPaths += paths;
+    });
+  });
+  
+  nodes.forEach(n => {
+    if (closedNodes.has(n.id)) {
+      nodeMap.get(n.id).pathsThrough = 0;
+      return;
+    }
+    
+    let pathsThrough = 0;
+    sources.forEach(src => {
+      sinks.forEach(sink => {
+        // Count paths that go through this node
+        const pathsToNode = countPaths(src.id, n.id);
+        const pathsFromNode = countPaths(n.id, sink.id);
+        if (pathsToNode > 0 && pathsFromNode > 0) {
+          pathsThrough += pathsToNode * pathsFromNode;
+        }
+      });
+    });
+    
+    const metrics = nodeMap.get(n.id);
+    metrics.pathsThrough = pathsThrough;
+    metrics.totalPaths = totalPaths;
+  });
+  
+  return nodeMap;
+}
+
+function layoutNodes() {
+  if (nodes.length === 0) return;
+  
+  // Topological sort for vertical positioning
+  const inDegree = new Map();
+  const adjList = new Map();
+  
+  nodes.forEach(n => {
+    inDegree.set(n.id, 0);
+    adjList.set(n.id, []);
+  });
+  
+  edges.forEach(e => {
+    if (!closedNodes.has(e.from) && !closedNodes.has(e.to)) {
+      inDegree.set(e.to, inDegree.get(e.to) + 1);
+      adjList.get(e.from).push(e.to);
+    }
+  });
+  
+  const layers = [];
+  const queue = nodes.filter(n => inDegree.get(n.id) === 0).map(n => n.id);
+  const layerMap = new Map();
+  
+  let currentLayer = 0;
+  while (queue.length > 0) {
+    const layerSize = queue.length;
+    layers[currentLayer] = [];
+    
+    for (let i = 0; i < layerSize; i++) {
+      const nodeId = queue.shift();
+      layers[currentLayer].push(nodeId);
+      layerMap.set(nodeId, currentLayer);
+      
+      adjList.get(nodeId).forEach(neighbor => {
+        inDegree.set(neighbor, inDegree.get(neighbor) - 1);
+        if (inDegree.get(neighbor) === 0) {
+          queue.push(neighbor);
+        }
+      });
+    }
+    currentLayer++;
+  }
+  
+  // Handle cycles - put remaining nodes at the end
+  nodes.forEach(n => {
+    if (!layerMap.has(n.id)) {
+      if (!layers[currentLayer]) layers[currentLayer] = [];
+      layers[currentLayer].push(n.id);
+      layerMap.set(n.id, currentLayer);
+    }
+  });
+  
+  // Position nodes
+  const padding = 80;
+  const layerHeight = (canvas.height - padding * 2) / Math.max(1, layers.length - 1);
+  
+  layers.forEach((layer, layerIdx) => {
+    const layerWidth = canvas.width - padding * 2;
+    const nodeSpacing = layerWidth / Math.max(1, layer.length + 1);
+    
+    layer.forEach((nodeId, idx) => {
+      const node = nodes.find(n => n.id === nodeId);
+      node.x = padding + nodeSpacing * (idx + 1);
+      node.y = padding + layerHeight * layerIdx;
+    });
+  });
+}
+
+function buildGraph(text) {
+  const { nodes: nodeIds, edges: edgeList } = parseGraph(text);
+  
+  nodes = nodeIds.map(id => ({
+    id,
+    x: 0,
+    y: 0
+  }));
+  
+  edges = edgeList;
+  closedNodes.clear();
+  
+  layoutNodes();
+  updateClosedList();
+  render();
+}
+
+function render() {
+  ctx.fillStyle = '#0a1828';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  if (nodes.length === 0) {
+    ctx.fillStyle = '#546e7a';
+    ctx.font = '16px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Paste graph data and click "Visualize River System"', canvas.width / 2, canvas.height / 2);
+    return;
+  }
+  
+  const metrics = calculateFlowMetrics();
+  
+  // Draw edges (rivers)
+  edges.forEach(e => {
+    const from = nodes.find(n => n.id === e.from);
+    const to = nodes.find(n => n.id === e.to);
+    if (!from || !to) return;
+    
+    const fromClosed = closedNodes.has(e.from);
+    const toClosed = closedNodes.has(e.to);
+    
+    ctx.beginPath();
+    ctx.moveTo(from.x, from.y);
+    
+    const cp1x = from.x;
+    const cp1y = from.y + (to.y - from.y) * 0.3;
+    const cp2x = to.x;
+    const cp2y = to.y - (to.y - from.y) * 0.3;
+    
+    ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, to.x, to.y);
+    
+    if (fromClosed || toClosed) {
+      ctx.strokeStyle = 'rgba(150, 80, 80, 0.3)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([5, 5]);
+    } else {
+      ctx.strokeStyle = 'rgba(100, 180, 255, 0.3)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([]);
+    }
+    
+    ctx.stroke();
+  });
+  
+  ctx.setLineDash([]);
+  
+  // Draw nodes
+  nodes.forEach(n => {
+    const m = metrics.get(n.id);
+    const isClosed = closedNodes.has(n.id);
+    
+    let radius = 8;
+    let criticalityPct = 0;
+    
+    if (!isClosed && m.totalPaths > 0) {
+      criticalityPct = m.pathsThrough / m.totalPaths;
+      radius = 8 + criticalityPct * 25;
+    }
+    
+    // Glow for critical nodes
+    if (criticalityPct > 0.3 && !isClosed) {
+      const glowRadius = radius + 10;
+      const gradient = ctx.createRadialGradient(n.x, n.y, radius, n.x, n.y, glowRadius);
+      gradient.addColorStop(0, `rgba(255, 100, 100, ${criticalityPct * 0.5})`);
+      gradient.addColorStop(1, 'rgba(255, 100, 100, 0)');
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, glowRadius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    
+    // Node circle
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, radius, 0, Math.PI * 2);
+    
+    if (isClosed) {
+      ctx.fillStyle = 'rgba(100, 50, 50, 0.8)';
+      ctx.strokeStyle = 'rgba(200, 100, 100, 0.8)';
+    } else if (criticalityPct > 0.5) {
+      ctx.fillStyle = 'rgba(255, 100, 100, 0.8)';
+      ctx.strokeStyle = 'rgba(255, 150, 150, 1)';
+    } else if (criticalityPct > 0.3) {
+      ctx.fillStyle = 'rgba(255, 180, 100, 0.8)';
+      ctx.strokeStyle = 'rgba(255, 200, 150, 1)';
+    } else {
+      ctx.fillStyle = 'rgba(100, 180, 255, 0.8)';
+      ctx.strokeStyle = 'rgba(150, 200, 255, 1)';
+    }
+    
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    
+    // Label
+    ctx.fillStyle = '#e0e7ee';
+    ctx.font = '12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(n.id, n.x, n.y - radius - 8);
+  });
+  
+  // Highlight hovered
+  if (hoveredNode) {
+    const n = hoveredNode;
+    const m = metrics.get(n.id);
+    const isClosed = closedNodes.has(n.id);
+    let radius = 8;
+    
+    if (!isClosed && m.totalPaths > 0) {
+      const criticalityPct = m.pathsThrough / m.totalPaths;
+      radius = 8 + criticalityPct * 25;
+    }
+    
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, radius + 4, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+  }
+}
+
+function getNodeAt(x, y) {
+  const metrics = calculateFlowMetrics();
+  
+  for (let n of nodes) {
+    const m = metrics.get(n.id);
+    const isClosed = closedNodes.has(n.id);
+    let radius = 8;
+    
+    if (!isClosed && m.totalPaths > 0) {
+      const criticalityPct = m.pathsThrough / m.totalPaths;
+      radius = 8 + criticalityPct * 25;
+    }
+    
+    const dx = x - n.x;
+    const dy = y - n.y;
+    if (dx * dx + dy * dy <= radius * radius) {
+      return n;
+    }
+  }
+  return null;
+}
+
+function showTooltip(node, x, y) {
+  const metrics = calculateFlowMetrics();
+  const m = metrics.get(node.id);
+  const isClosed = closedNodes.has(node.id);
+  
+  let html = `<div class="tooltip-title">${node.id}</div>`;
+  
+  if (isClosed) {
+    html += `<div class="warning">⚠ Node Closed</div>`;
+  } else if (m.totalPaths > 0) {
+    const criticalityPct = (m.pathsThrough / m.totalPaths * 100).toFixed(1);
+    html += `<div class="tooltip-row"><span class="tooltip-label">Flow Criticality:</span><span class="tooltip-value ${criticalityPct > 50 ? 'warning' : ''}">${criticalityPct}%</span></div>`;
+    html += `<div class="tooltip-row"><span class="tooltip-label">Paths Through:</span><span class="tooltip-value">${m.pathsThrough}</span></div>`;
+    html += `<div class="tooltip-row"><span class="tooltip-label">Total Paths:</span><span class="tooltip-value">${m.totalPaths}</span></div>`;
+  }
+  
+  html += `<div class="tooltip-row"><span class="tooltip-label">Incoming:</span><span class="tooltip-value">${m.inDegree}</span></div>`;
+  html += `<div class="tooltip-row"><span class="tooltip-label">Outgoing:</span><span class="tooltip-value">${m.outDegree}</span></div>`;
+  
+  tooltip.innerHTML = html;
+  tooltip.style.left = (x + 20) + 'px';
+  tooltip.style.top = (y - 20) + 'px';
+  tooltip.classList.add('show');
+}
+
+function hideTooltip() {
+  tooltip.classList.remove('show');
+}
+
+function updateClosedList() {
+  if (closedNodes.size === 0) {
+    closedSection.style.display = 'none';
+    return;
+  }
+  
+  closedSection.style.display = 'block';
+  closedList.innerHTML = '';
+  
+  closedNodes.forEach(nodeId => {
+    const div = document.createElement('div');
+    div.className = 'closed-node';
+    div.innerHTML = `
+      <span>${nodeId}</span>
+      <button onclick="reopenNode('${nodeId}')">Reopen</button>
+    `;
+    closedList.appendChild(div);
+  });
+}
+
+function reopenNode(nodeId) {
+  closedNodes.delete(nodeId);
+  layoutNodes();
+  updateClosedList();
+  render();
+}
+
+canvas.addEventListener('mousemove', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  
+  const node = getNodeAt(x, y);
+  
+  if (node !== hoveredNode) {
+    hoveredNode = node;
+    if (node) {
+      showTooltip(node, e.clientX - rect.left, e.clientY - rect.top);
+    } else {
+      hideTooltip();
+    }
+    render();
+  } else if (node) {
+    tooltip.style.left = (e.clientX - rect.left + 20) + 'px';
+    tooltip.style.top = (e.clientY - rect.top - 20) + 'px';
+  }
+});
+
+canvas.addEventListener('mouseleave', () => {
+  hoveredNode = null;
+  hideTooltip();
+  render();
+});
+
+canvas.addEventListener('click', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  
+  const node = getNodeAt(x, y);
+  if (node) {
+    if (closedNodes.has(node.id)) {
+      closedNodes.delete(node.id);
+    } else {
+      closedNodes.add(node.id);
+    }
+    layoutNodes();
+    updateClosedList();
+    render();
+    
+    if (hoveredNode) {
+      showTooltip(hoveredNode, x, y);
+    }
+  }
+});
+
+parseBtn.addEventListener('click', () => {
+  buildGraph(input.value);
+});
+
+resetBtn.addEventListener('click', () => {
+  closedNodes.clear();
+  layoutNodes();
+  updateClosedList();
+  render();
+});
+
+// Initial parse
+buildGraph(input.value);
+</script>
+</body>
+</html>

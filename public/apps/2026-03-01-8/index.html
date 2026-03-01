@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RateRadar - Currency Timing Tool — Daily AI Gen</title>
+  <meta name="description" content="A currency conversion timing tool that analyzes 90 days of exchange rate data to tell you whether to convert now or wait for a better rate.">
+  <meta property="og:title" content="RateRadar — Daily AI Gen">
+  <meta property="og:description" content="A currency conversion timing tool that analyzes 90 days of exchange rate data to tell you whether to convert now or wait for a better rate.">
+  <meta property="og:url" content="https://dailyaigen.com/apps/2026-03-01-8/">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="https://dailyaigen.com/apps/2026-03-01-8/">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .tagline {
+            font-size: 1.1em;
+            opacity: 0.95;
+        }
+
+        .input-section {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            flex: 1;
+            min-width: 150px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .target-currencies {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+
+        .currency-tag {
+            padding: 8px 15px;
+            background: #f0f0f0;
+            border: 2px solid #ddd;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .currency-tag.selected {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .currency-tag:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+            width: 100%;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .results {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
+        .currency-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            animation: slideIn 0.4s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .currency-name {
+            font-size: 1.5em;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .current-rate {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 80px;
+            margin-bottom: 20px;
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .metric {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .metric-label {
+            font-size: 0.85em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .metric-value {
+            font-size: 1.2em;
+            font-weight: 700;
+        }
+
+        .percentile {
+            grid-column: 1 / -1;
+        }
+
+        .percentile-bar {
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            margin-top: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .percentile-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4caf50, #8bc34a);
+            border-radius: 4px;
+            transition: width 0.6s ease-out;
+        }
+
+        .recommendation {
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 1.1em;
+            margin-top: 15px;
+        }
+
+        .recommendation.buy {
+            background: linear-gradient(135deg, #4caf50, #8bc34a);
+            color: white;
+        }
+
+        .recommendation.wait {
+            background: linear-gradient(135deg, #ff9800, #ff5722);
+            color: white;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #ff5252;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .converted-amount {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+            font-weight: 700;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2em;
+            }
+
+            .results {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>💹 RateRadar</h1>
+            <p class="tagline">Smart currency conversion timing</p>
+        </header>
+
+        <div class="input-section">
+            <div class="input-row">
+                <div class="input-group">
+                    <label for="amount">Amount</label>
+                    <input type="number" id="amount" value="1000" min="0" step="0.01">
+                </div>
+                <div class="input-group">
+                    <label for="source">From Currency</label>
+                    <select id="source">
+                        <option value="USD">USD - US Dollar</option>
+                        <option value="EUR">EUR - Euro</option>
+                        <option value="GBP">GBP - British Pound</option>
+                        <option value="JPY">JPY - Japanese Yen</option>
+                        <option value="CHF">CHF - Swiss Franc</option>
+                        <option value="CAD">CAD - Canadian Dollar</option>
+                        <option value="AUD">AUD - Australian Dollar</option>
+                        <option value="NZD">NZD - New Zealand Dollar</option>
+                    </select>
+                </div>
+            </div>
+
+            <label>Select Target Currencies (up to 4)</label>
+            <div class="target-currencies">
+                <div class="currency-tag" data-currency="EUR">EUR</div>
+                <div class="currency-tag" data-currency="USD">USD</div>
+                <div class="currency-tag" data-currency="GBP">GBP</div>
+                <div class="currency-tag" data-currency="JPY">JPY</div>
+                <div class="currency-tag" data-currency="CHF">CHF</div>
+                <div class="currency-tag" data-currency="CAD">CAD</div>
+                <div class="currency-tag" data-currency="AUD">AUD</div>
+                <div class="currency-tag" data-currency="NZD">NZD</div>
+                <div class="currency-tag" data-currency="SEK">SEK</div>
+                <div class="currency-tag" data-currency="NOK">NOK</div>
+            </div>
+
+            <button id="analyzeBtn">Analyze Rates</button>
+        </div>
+
+        <div id="error"></div>
+        <div id="loading"></div>
+        <div id="results" class="results"></div>
+    </div>
+
+    <script>
+        const selectedCurrencies = new Set();
+        const currencyTags = document.querySelectorAll('.currency-tag');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const sourceSelect = document.getElementById('source');
+        const amountInput = document.getElementById('amount');
+        const loadingDiv = document.getElementById('loading');
+        const resultsDiv = document.getElementById('results');
+        const errorDiv = document.getElementById('error');
+
+        currencyTags.forEach(tag => {
+            tag.addEventListener('click', () => {
+                const currency = tag.dataset.currency;
+                const sourceCurrency = sourceSelect.value;
+
+                if (currency === sourceCurrency) {
+                    return;
+                }
+
+                if (selectedCurrencies.has(currency)) {
+                    selectedCurrencies.delete(currency);
+                    tag.classList.remove('selected');
+                } else if (selectedCurrencies.size < 4) {
+                    selectedCurrencies.add(currency);
+                    tag.classList.add('selected');
+                }
+            });
+        });
+
+        sourceSelect.addEventListener('change', () => {
+            const sourceCurrency = sourceSelect.value;
+            currencyTags.forEach(tag => {
+                if (tag.dataset.currency === sourceCurrency && selectedCurrencies.has(sourceCurrency)) {
+                    selectedCurrencies.delete(sourceCurrency);
+                    tag.classList.remove('selected');
+                }
+            });
+        });
+
+        analyzeBtn.addEventListener('click', analyzeCurrencies);
+
+        async function analyzeCurrencies() {
+            if (selectedCurrencies.size === 0) {
+                showError('Please select at least one target currency');
+                return;
+            }
+
+            const amount = parseFloat(amountInput.value);
+            const source = sourceSelect.value;
+            const targets = Array.from(selectedCurrencies);
+
+            errorDiv.innerHTML = '';
+            resultsDiv.innerHTML = '';
+            showLoading(true);
+
+            try {
+                const today = new Date();
+                const ninetyDaysAgo = new Date(today);
+                ninetyDaysAgo.setDate(today.getDate() - 90);
+
+                const startDate = ninetyDaysAgo.toISOString().split('T')[0];
+                const endDate = today.toISOString().split('T')[0];
+
+                const url = `https://api.frankfurter.app/${startDate}..${endDate}?from=${source}&to=${targets.join(',')}`;
+                const response = await fetch(url);
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch exchange rates');
+                }
+
+                const data = await response.json();
+                showLoading(false);
+
+                targets.forEach(target => {
+                    const analysis = analyzeRate(data, target, amount);
+                    renderCurrencyCard(target, analysis);
+                });
+
+            } catch (error) {
+                showLoading(false);
+                showError(error.message);
+            }
+        }
+
+        function analyzeRate(data, targetCurrency, amount) {
+            const rates = [];
+            const dates = [];
+
+            Object.keys(data.rates).sort().forEach(date => {
+                if (data.rates[date][targetCurrency]) {
+                    rates.push(data.rates[date][targetCurrency]);
+                    dates.push(date);
+                }
+            });
+
+            const currentRate = rates[rates.length - 1];
+            const convertedAmount = amount * currentRate;
+
+            const mean = rates.reduce((a, b) => a + b, 0) / rates.length;
+            const variance = rates.reduce((sum, rate) => sum + Math.pow(rate - mean, 2), 0) / rates.length;
+            const stdDev = Math.sqrt(variance);
+            const volatility = (stdDev / mean) * 100;
+
+            const sortedRates = [...rates].sort((a, b) => a - b);
+            const currentIndex = sortedRates.indexOf(currentRate);
+            const percentile = (currentIndex / (sortedRates.length - 1)) * 100;
+
+            const recentRates = rates.slice(-10);
+            const recentMean = recentRates.reduce((a, b) => a + b, 0) / recentRates.length;
+            const trend = currentRate > recentMean ? 'up' : 'down';
+
+            let recommendation;
+            if (percentile >= 70) {
+                recommendation = trend === 'down' ? 'BUY NOW' : 'WAIT';
+            } else if (percentile <= 30) {
+                recommendation = 'WAIT';
+            } else {
+                recommendation = trend === 'down' ? 'BUY NOW' : 'WAIT';
+            }
+
+            const buyNow = recommendation === 'BUY NOW';
+
+            return {
+                currentRate,
+                convertedAmount,
+                volatility,
+                percentile,
+                recommendation,
+                buyNow,
+                rates,
+                dates,
+                min: Math.min(...rates),
+                max: Math.max(...rates)
+            };
+        }
+
+        function renderCurrencyCard(currency, analysis) {
+            const card = document.createElement('div');
+            card.className = 'currency-card';
+
+            card.innerHTML = `
+                <div class="card-header">
+                    <div class="currency-name">${currency}</div>
+                    <div class="current-rate">${analysis.currentRate.toFixed(4)}</div>
+                </div>
+
+                <div class="converted-amount">
+                    ${analysis.convertedAmount.toFixed(2)} ${currency}
+                </div>
+
+                <div class="chart-container">
+                    <canvas id="chart-${currency}"></canvas>
+                </div>
+
+                <div class="metrics">
+                    <div class="metric">
+                        <div class="metric-label">Volatility</div>
+                        <div class="metric-value">${analysis.volatility.toFixed(2)}%</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">90-Day Range</div>
+                        <div class="metric-value">${analysis.min.toFixed(4)} - ${analysis.max.toFixed(4)}</div>
+                    </div>
+                    <div class="metric percentile">
+                        <div class="metric-label">Current Rate Percentile</div>
+                        <div class="metric-value">${analysis.percentile.toFixed(0)}th percentile</div>
+                        <div class="percentile-bar">
+                            <div class="percentile-fill" style="width: ${analysis.percentile}%"></div>
+                        </div>
+                        <div style="font-size: 0.9em; margin-top: 5px; color: #666;">
+                            Better than ${analysis.percentile.toFixed(0)}% of last 90 days
+                        </div>
+                    </div>
+                </div>
+
+                <div class="recommendation ${analysis.buyNow ? 'buy' : 'wait'}">
+                    ${analysis.recommendation}
+                    <div style="font-size: 0.85em; margin-top: 5px; opacity: 0.9;">
+                        ${analysis.buyNow ? 
+                            'Current rate is favorable - good time to convert' : 
+                            'Rate could improve - consider waiting'}
+                    </div>
+                </div>
+            `;
+
+            resultsDiv.appendChild(card);
+
+            const ctx = document.getElementById(`chart-${currency}`).getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: analysis.dates,
+                    datasets: [{
+                        data: analysis.rates,
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0,
+                        pointHoverRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                label: (context) => `Rate: ${context.parsed.y.toFixed(4)}`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { display: false },
+                        y: {
+                            display: true,
+                            grid: { display: false },
+                            ticks: {
+                                font: { size: 10 },
+                                callback: (value) => value.toFixed(4)
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function showLoading(show) {
+            if (show) {
+                loadingDiv.innerHTML = `
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>Fetching 90 days of exchange rate data...</p>
+                    </div>
+                `;
+            } else {
+                loadingDiv.innerHTML = '';
+            }
+        }
+
+        function showError(message) {
+            errorDiv.innerHTML = `<div class="error">${message}</div>`;
+        }
+    </script>
+</body>
+</html>

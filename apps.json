@@ -1,6 +1,43 @@
 [
   {
     "date": "2026-03-01",
+    "id": "2026-03-01-9",
+    "name": "Innerquorum",
+    "description": "A structured debate tool where you write as four inner voices in timed rounds, then see your arguments mapped with tension lines and hidden agreements revealed.",
+    "inspiration": "Grok 4.20's architecture where four specialized AI agents (fact-checker, logician, creative reasoner, coordinator) debate internally before producing a unified answer.",
+    "connection": "The idea of invisible internal debate producing a single output inspired a tool where YOU become the debating agents — splitting your own thinking into competing perspectives that argue visibly before you commit to a decision.",
+    "source_url": "https://designforonline.com/the-best-ai-models-so-far-in-2026/",
+    "emoji": "🗣️",
+    "category": "AI-inspired",
+    "image": true
+  },
+  {
+    "date": "2026-03-01",
+    "id": "2026-03-01-8",
+    "name": "RateRadar",
+    "description": "A currency conversion timing tool that analyzes 90 days of exchange rate data to tell you whether to convert now or wait for a better rate.",
+    "inspiration": "The Strait of Hormuz closure and Iran-US conflict are causing massive oil price volatility and currency instability across Gulf and emerging-market economies. Businesses, freelancers, and travelers dealing in multiple currencies need to quickly understand whether to convert now or wait — not just today's rate, but how current rates compare to recent historical trends and volatility.",
+    "connection": "Frankfurter provides both live and historical ECB exchange rates, enabling trend analysis and volatility scoring across any currency pair without authentication.",
+    "source_url": "https://www.opb.org/article/2026/03/01/u-s-israeli-strikes-in-iran-continue-into-2nd-day/",
+    "emoji": "📡",
+    "category": "API tool",
+    "api": "Frankfurter",
+    "image": true
+  },
+  {
+    "date": "2026-03-01",
+    "id": "2026-03-01-7",
+    "name": "Chokeflow",
+    "description": "Paste any network graph and watch it transform into a river delta where node size reveals bottleneck severity and cascading failures spread like droughts through the watershed.",
+    "inspiration": "Iran closed the Strait of Hormuz and threatened shipping after reprisal strikes, choking one of the world's most critical maritime passages.",
+    "connection": "A narrow chokepoint controlling massive flow made me think about visualizing any system's hidden bottlenecks — the single points where everything could collapse.",
+    "source_url": "https://www.opb.org/article/2026/03/01/u-s-israeli-strikes-in-iran-continue-into-2nd-day/",
+    "emoji": "🌊",
+    "category": "Data/visual",
+    "image": true
+  },
+  {
+    "date": "2026-03-01",
     "id": "2026-03-01-6",
     "name": "Marginalia",
     "description": "Draw barriers in a glowing energy gradient to manage autonomous organisms that evolve and adapt their behavior, trying to sustain biodiversity against collapse.",

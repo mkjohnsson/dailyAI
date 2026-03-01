@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Innerquorum — Daily AI Gen</title>
+  <meta name="description" content="A structured debate tool where you write as four inner voices in timed rounds, then see your arguments mapped with tension lines and hidden agreements revealed.">
+  <meta property="og:title" content="Innerquorum — Daily AI Gen">
+  <meta property="og:description" content="A structured debate tool where you write as four inner voices in timed rounds, then see your arguments mapped with tension lines and hidden agreements revealed.">
+  <meta property="og:url" content="https://dailyaigen.com/apps/2026-03-01-9/">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="https://dailyaigen.com/apps/2026-03-01-9/">
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    color: #eee;
+    min-height: 100vh;
+    padding: 20px;
+  }
+  
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  
+  h1 {
+    text-align: center;
+    margin-bottom: 10px;
+    font-size: 2.5em;
+    background: linear-gradient(45deg, #6dd5ed, #2193b0);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .subtitle {
+    text-align: center;
+    color: #aaa;
+    margin-bottom: 30px;
+    font-size: 0.9em;
+  }
+  
+  .phase {
+    display: none;
+  }
+  
+  .phase.active {
+    display: block;
+  }
+  
+  #setup-phase {
+    text-align: center;
+  }
+  
+  #decision-input {
+    width: 100%;
+    max-width: 600px;
+    padding: 15px;
+    font-size: 1.1em;
+    background: rgba(255,255,255,0.1);
+    border: 2px solid #6dd5ed;
+    border-radius: 8px;
+    color: #fff;
+    margin: 20px auto;
+    display: block;
+  }
+  
+  #decision-input::placeholder {
+    color: #888;
+  }
+  
+  button {
+    padding: 12px 30px;
+    font-size: 1em;
+    background: linear-gradient(45deg, #6dd5ed, #2193b0);
+    border: none;
+    border-radius: 25px;
+    color: white;
+    cursor: pointer;
+    transition: transform 0.2s;
+    font-weight: 600;
+  }
+  
+  button:hover {
+    transform: scale(1.05);
+  }
+  
+  button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  
+  .voice-card {
+    background: rgba(255,255,255,0.05);
+    border: 2px solid;
+    border-radius: 12px;
+    padding: 20px;
+    margin: 20px 0;
+  }
+  
+  .voice-card.advocate {
+    border-color: #4ecca3;
+  }
+  
+  .voice-card.saboteur {
+    border-color: #ff6b6b;
+  }
+  
+  .voice-card.archivist {
+    border-color: #ffd93d;
+  }
+  
+  .voice-card.wildcard {
+    border-color: #a29bfe;
+  }
+  
+  .voice-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+  }
+  
+  .voice-name {
+    font-size: 1.3em;
+    font-weight: 600;
+  }
+  
+  .timer {
+    font-size: 1.5em;
+    font-weight: 700;
+    font-family: 'Courier New', monospace;
+  }
+  
+  .timer.warning {
+    color: #ff6b6b;
+    animation: pulse 0.5s infinite;
+  }
+  
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+  
+  .voice-description {
+    color: #aaa;
+    margin-bottom: 15px;
+    font-style: italic;
+  }
+  
+  textarea {
+    width: 100%;
+    min-height: 120px;
+    padding: 12px;
+    font-size: 1em;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 6px;
+    color: #fff;
+    font-family: inherit;
+    resize: vertical;
+  }
+  
+  textarea::placeholder {
+    color: #666;
+  }
+  
+  #debate-map {
+    position: relative;
+    margin: 30px 0;
+  }
+  
+  canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+  }
+  
+  .debate-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    position: relative;
+  }
+  
+  .argument-card {
+    background: rgba(255,255,255,0.05);
+    border: 2px solid;
+    border-radius: 8px;
+    padding: 15px;
+    min-height: 100px;
+  }
+  
+  .argument-title {
+    font-weight: 600;
+    margin-bottom: 8px;
+    font-size: 1.1em;
+  }
+  
+  .argument-text {
+    color: #ccc;
+    line-height: 1.5;
+  }
+  
+  .synthesis-section {
+    background: rgba(255,255,255,0.08);
+    border: 2px solid #6dd5ed;
+    border-radius: 12px;
+    padding: 25px;
+    margin: 30px 0;
+  }
+  
+  .synthesis-section h2 {
+    margin-bottom: 15px;
+    color: #6dd5ed;
+  }
+  
+  .agreement-item {
+    background: rgba(77, 204, 163, 0.2);
+    padding: 12px;
+    margin: 10px 0;
+    border-radius: 6px;
+    border-left: 4px solid #4ecca3;
+  }
+  
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin: 20px 0;
+  }
+  
+  .stat-card {
+    background: rgba(255,255,255,0.05);
+    padding: 15px;
+    border-radius: 8px;
+    text-align: center;
+  }
+  
+  .stat-value {
+    font-size: 2em;
+    font-weight: 700;
+    margin: 10px 0;
+  }
+  
+  .stat-label {
+    color: #aaa;
+    font-size: 0.9em;
+  }
+  
+  .nudge {
+    background: rgba(255, 107, 107, 0.2);
+    border: 2px solid #ff6b6b;
+    border-radius: 8px;
+    padding: 15px;
+    margin: 20px 0;
+    text-align: center;
+  }
+  
+  .progress-bar {
+    width: 100%;
+    height: 8px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 10px 0;
+  }
+  
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #6dd5ed, #2193b0);
+    transition: width 0.3s;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Innerquorum</h1>
+  <div class="subtitle">Multi-perspective decision architecture</div>
+  
+  <div id="setup-phase" class="phase active">
+    <p style="margin: 20px 0; color: #aaa;">Enter a difficult decision you're facing:</p>
+    <input type="text" id="decision-input" placeholder="Should I quit my job to start a business?">
+    <button onclick="startDebate()">Begin Inner Debate</button>
+  </div>
+  
+  <div id="debate-phase" class="phase">
+    <div id="decision-display" style="text-align: center; font-size: 1.2em; margin-bottom: 30px; color: #6dd5ed;"></div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="overall-progress"></div>
+    </div>
+    <div id="current-voice"></div>
+  </div>
+  
+  <div id="map-phase" class="phase">
+    <h2 style="text-align: center; margin-bottom: 20px;">Debate Map</h2>
+    <div id="debate-map">
+      <canvas id="tension-canvas"></canvas>
+      <div class="debate-grid" id="debate-grid"></div>
+    </div>
+    <button onclick="showSynthesis()" style="display: block; margin: 20px auto;">Reveal Synthesis</button>
+  </div>
+  
+  <div id="synthesis-phase" class="phase">
+    <div class="synthesis-section">
+      <h2>🎯 Hidden Consensus</h2>
+      <div id="agreements"></div>
+    </div>
+    
+    <div class="stats" id="stats"></div>
+    
+    <div id="nudge-section"></div>
+    
+    <button onclick="reset()" style="display: block; margin: 20px auto;">New Decision</button>
+  </div>
+</div>
+
+<script>
+const voices = [
+  {
+    id: 'advocate',
+    name: 'The Advocate',
+    description: 'Best case scenario — why this could be amazing',
+    color: '#4ecca3',
+    prompt: 'What\'s the most optimistic, exciting outcome?'
+  },
+  {
+    id: 'saboteur',
+    name: 'The Saboteur',
+    description: 'Worst case scenario — what could go catastrophically wrong',
+    color: '#ff6b6b',
+    prompt: 'What are you most afraid of?'
+  },
+  {
+    id: 'archivist',
+    name: 'The Archivist',
+    description: 'What history and data tell us',
+    color: '#ffd93d',
+    prompt: 'What does your experience or evidence say?'
+  },
+  {
+    id: 'wildcard',
+    name: 'The Wildcard',
+    description: 'The option you haven\'t considered',
+    color: '#a29bfe',
+    prompt: 'What\'s a completely different approach?'
+  }
+];
+
+let currentVoiceIndex = 0;
+let timerInterval = null;
+let timeRemaining = 60;
+let arguments = {};
+let history = JSON.parse(localStorage.getItem('innerquorum_history') || '[]');
+let currentDecision = '';
+
+function startDebate() {
+  currentDecision = document.getElementById('decision-input').value.trim();
+  if (!currentDecision) return;
+  
+  document.getElementById('decision-display').textContent = `"${currentDecision}"`;
+  document.getElementById('setup-phase').classList.remove('active');
+  document.getElementById('debate-phase').classList.add('active');
+  
+  arguments = {};
+  currentVoiceIndex = 0;
+  showVoice(0);
+}
+
+function showVoice(index) {
+  const voice = voices[index];
+  timeRemaining = 60;
+  
+  const progress = ((index) / voices.length) * 100;
+  document.getElementById('overall-progress').style.width = progress + '%';
+  
+  document.getElementById('current-voice').innerHTML = `
+    <div class="voice-card ${voice.id}">
+      <div class="voice-header">
+        <div class="voice-name">${voice.name}</div>
+        <div class="timer" id="timer">1:00</div>
+      </div>
+      <div class="voice-description">${voice.description}</div>
+      <p style="margin-bottom: 10px; color: #ccc;">${voice.prompt}</p>
+      <textarea id="voice-input" placeholder="Start writing..."></textarea>
+      <button onclick="nextVoice()" style="margin-top: 15px;">Submit & Continue</button>
+    </div>
+  `;
+  
+  startTimer();
+}
+
+function startTimer() {
+  const timerEl = document.getElementById('timer');
+  
+  timerInterval = setInterval(() => {
+    timeRemaining--;
+    const mins = Math.floor(timeRemaining / 60);
+    const secs = timeRemaining % 60;
+    timerEl.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+    
+    if (timeRemaining <= 10) {
+      timerEl.classList.add('warning');
+    }
+    
+    if (timeRemaining <= 0) {
+      clearInterval(timerInterval);
+      nextVoice();
+    }
+  }, 1000);
+}
+
+function nextVoice() {
+  clearInterval(timerInterval);
+  
+  const input = document.getElementById('voice-input').value.trim();
+  arguments[voices[currentVoiceIndex].id] = input || '(No argument provided)';
+  
+  currentVoiceIndex++;
+  
+  if (currentVoiceIndex < voices.length) {
+    showVoice(currentVoiceIndex);
+  } else {
+    showDebateMap();
+  }
+}
+
+function showDebateMap() {
+  document.getElementById('debate-phase').classList.remove('active');
+  document.getElementById('map-phase').classList.add('active');
+  
+  const grid = document.getElementById('debate-grid');
+  grid.innerHTML = '';
+  
+  voices.forEach(voice => {
+    const card = document.createElement('div');
+    card.className = `argument-card ${voice.id}`;
+    card.style.borderColor = voice.color;
+    card.innerHTML = `
+      <div class="argument-title" style="color: ${voice.color}">${voice.name}</div>
+      <div class="argument-text">${arguments[voice.id]}</div>
+    `;
+    grid.appendChild(card);
+  });
+  
+  drawTensionLines();
+}
+
+function drawTensionLines() {
+  const canvas = document.getElementById('tension-canvas');
+  const grid = document.getElementById('debate-grid');
+  canvas.width = grid.offsetWidth;
+  canvas.height = grid.offsetHeight;
+  
+  const ctx = canvas.getContext('2d');
+  const cards = Array.from(document.querySelectorAll('.argument-card'));
+  
+  // Draw tension lines between Advocate/Saboteur and random others
+  const connections = [
+    [0, 1], // Advocate to Saboteur
+    [2, 3], // Archivist to Wildcard
+    [0, 2], // Advocate to Archivist
+  ];
+  
+  connections.forEach(([i, j]) => {
+    const rect1 = cards[i].getBoundingClientRect();
+    const rect2 = cards[j].getBoundingClientRect();
+    const gridRect = grid.getBoundingClientRect();
+    
+    const x1 = rect1.left - gridRect.left + rect1.width / 2;
+    const y1 = rect1.top - gridRect.top + rect1.height / 2;
+    const x2 = rect2.left - gridRect.left + rect2.width / 2;
+    const y2 = rect2.top - gridRect.top + rect2.height / 2;
+    
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 5]);
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+  });
+}
+
+function showSynthesis() {
+  document.getElementById('map-phase').classList.remove('active');
+  document.getElementById('synthesis-phase').classList.add('active');
+  
+  // Find common themes (simplified keyword matching)
+  const allWords = Object.values(arguments).join(' ').toLowerCase().split(/\s+/);
+  const wordFreq = {};
+  allWords.forEach(word => {
+    if (word.length > 5) {
+      wordFreq[word] = (wordFreq[word] || 0) + 1;
+    }
+  });
+  
+  const commonWords = Object.entries(wordFreq)
+    .filter(([_, count]) => count >= 2)
+    .map(([word, _]) => word)
+    .slice(0, 3);
+  
+  const agreementsEl = document.getElementById('agreements');
+  if (commonWords.length > 0) {
+    agreementsEl.innerHTML = commonWords.map(word => 
+      `<div class="agreement-item">All voices mention: <strong>${word}</strong></div>`
+    ).join('');
+  } else {
+    agreementsEl.innerHTML = `<div class="agreement-item">Each voice offers a unique perspective — integration needed</div>`;
+  }
+  
+  // Calculate stats
+  const wordCounts = {};
+  voices.forEach(voice => {
+    wordCounts[voice.id] = arguments[voice.id].split(/\s+/).length;
+  });
+  
+  const minVoice = Object.entries(wordCounts).reduce((min, [id, count]) => 
+    count < min.count ? {id, count} : min, {id: '', count: Infinity}
+  );
+  
+  const statsEl = document.getElementById('stats');
+  statsEl.innerHTML = voices.map(voice => `
+    <div class="stat-card">
+      <div class="stat-label">${voice.name}</div>
+      <div class="stat-value" style="color: ${voice.color}">${wordCounts[voice.id]}</div>
+      <div class="stat-label">words</div>
+    </div>
+  `).join('');
+  
+  // Nudge for silenced voice
+  const silencedVoice = voices.find(v => v.id === minVoice.id);
+  const nudgeEl = document.getElementById('nudge-section');
+  nudgeEl.innerHTML = `
+    <div class="nudge">
+      <strong>⚠️ Pattern Detected</strong><br>
+      You tend to silence <strong style="color: ${silencedVoice.color}">${silencedVoice.name}</strong><br>
+      Next time, try giving this voice more space.
+    </div>
+  `;
+  
+  // Save to history
+  history.push({
+    decision: currentDecision,
+    date: new Date().toISOString(),
+    wordCounts: wordCounts
+  });
+  localStorage.setItem('innerquorum_history', JSON.stringify(history.slice(-10)));
+}
+
+function reset() {
+  document.getElementById('synthesis-phase').classList.remove('active');
+  document.getElementById('setup-phase').classList.add('active');
+  document.getElementById('decision-input').value = '';
+}
+
+// Resize canvas on window resize
+window.addEventListener('resize', () => {
+  if (document.getElementById('map-phase').classList.contains('active')) {
+    drawTensionLines();
+  }
+});
+</script>
+</body>
+</html>
