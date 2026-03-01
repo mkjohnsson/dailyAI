@@ -1,5 +1,39 @@
 [
   {
+    "date": "2026-03-01",
+    "id": "2026-03-01-3",
+    "name": "Voidparse",
+    "description": "Decode corrupted alien AI transmissions by assembling glyphs, waveforms, and spectrograms before time runs out — each wrong answer permanently corrupts the shared narrative.",
+    "inspiration": "The search results themselves failed to return structured information, producing an incomplete fragment about AI model releases it couldn't identify.",
+    "connection": "The idea of a system that reaches out for knowledge but gets back only garbled, incomplete fragments inspired a game about reconstructing meaning from broken transmissions in deep space.",
+    "source_url": "",
+    "emoji": "📡",
+    "category": "AI-inspired"
+  },
+  {
+    "date": "2026-03-01",
+    "id": "2026-03-01-2",
+    "name": "LabCast",
+    "description": "A lab environmental monitoring tool that fetches 7-day hourly weather forecasts and alerts you when conditions threaten sensitive experiments, samples, or equipment.",
+    "inspiration": "Researchers, lab managers, and biotech workers handling sensitive biological samples (cell cultures, reagents, protein assays) need to know if upcoming weather swings — especially humidity spikes, pressure drops, or temperature extremes — could compromise storage, transport, or experimental conditions, especially in facilities without full climate control.",
+    "connection": "Open-Meteo provides hourly forecasts for temperature, humidity, and pressure, which are exactly the environmental variables that affect sample stability and lab reproducibility.",
+    "source_url": "https://www.drugtargetreview.com/article/192243/2026-the-year-ai-stops-being-optional-in-drug-discovery/",
+    "emoji": "🧪",
+    "category": "API tool",
+    "api": "Open-Meteo"
+  },
+  {
+    "date": "2026-03-01",
+    "id": "2026-03-01",
+    "name": "Brainbrine",
+    "description": "You drag a net through a murky ocean of floating 3D thought-fragments from strangers, assembling them on a lab bench to hatch bizarre deep-sea creatures for your aquarium, or creating feeling-trash that pollutes the shared waters.",
+    "inspiration": "LGC Standards released the world's first range of 24 microplastic reference materials for precise water testing.",
+    "connection": "The idea of invisible tiny particles contaminating everything became: what if your thoughts were literal microplastics polluting a shared emotional ocean, and you had to fish out other people's weird brain-debris to decode their feelings?",
+    "source_url": "https://www.lgcstandards.com/GB/en/Resources/Articles/science-stories-to-watch-2026",
+    "emoji": "🧠",
+    "category": "Weird/absurd"
+  },
+  {
     "date": "2026-02-28",
     "id": "2026-02-28-6",
     "name": "Trustscar",

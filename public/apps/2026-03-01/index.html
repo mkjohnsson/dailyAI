@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brainbrine — Daily AI Gen</title>
+  <meta name="description" content="You drag a net through a murky ocean of floating 3D thought-fragments from strangers, assembling them on a lab bench to hatch bizarre deep-sea creatures for your aquarium, or creating feeling-trash that pollutes the shared waters.">
+  <meta property="og:title" content="Brainbrine — Daily AI Gen">
+  <meta property="og:description" content="You drag a net through a murky ocean of floating 3D thought-fragments from strangers, assembling them on a lab bench to hatch bizarre deep-sea creatures for your aquarium, or creating feeling-trash that pollutes the shared waters.">
+  <meta property="og:url" content="https://dailyaigen.com/apps/2026-03-01/">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="https://dailyaigen.com/apps/2026-03-01/">
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  body {
+    font-family: 'Courier New', monospace;
+    background: #0a1a1f;
+    color: #8fbc8f;
+    overflow: hidden;
+    cursor: crosshair;
+  }
+  
+  #container {
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+  }
+  
+  canvas {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+  
+  #ui {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: rgba(10, 26, 31, 0.8);
+    padding: 15px;
+    border: 2px solid #2a4a4f;
+    z-index: 100;
+    max-width: 300px;
+  }
+  
+  #ui h1 {
+    font-size: 18px;
+    margin-bottom: 10px;
+    color: #5f9ea0;
+  }
+  
+  #ui p {
+    font-size: 11px;
+    line-height: 1.4;
+    margin-bottom: 8px;
+  }
+  
+  #bench {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(47, 79, 79, 0.9);
+    border: 3px solid #5f9ea0;
+    padding: 20px;
+    width: 600px;
+    height: 150px;
+    z-index: 99;
+    border-radius: 5px;
+  }
+  
+  #bench h3 {
+    font-size: 14px;
+    margin-bottom: 10px;
+    color: #add8e6;
+  }
+  
+  #benchSlots {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  
+  .slot {
+    width: 80px;
+    height: 60px;
+    border: 2px dashed #5f9ea0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    color: #5f9ea0;
+    text-align: center;
+    position: relative;
+  }
+  
+  .slot.filled {
+    border-color: #add8e6;
+    background: rgba(95, 158, 160, 0.2);
+  }
+  
+  button {
+    background: #2a4a4f;
+    border: 2px solid #5f9ea0;
+    color: #add8e6;
+    padding: 8px 16px;
+    cursor: pointer;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    margin-right: 10px;
+  }
+  
+  button:hover {
+    background: #3a5a5f;
+  }
+  
+  button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  
+  #aquarium {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 200px;
+    height: 250px;
+    background: rgba(10, 26, 31, 0.9);
+    border: 2px solid #2a4a4f;
+    z-index: 100;
+    padding: 10px;
+  }
+  
+  #aquarium h3 {
+    font-size: 12px;
+    color: #5f9ea0;
+    margin-bottom: 8px;
+  }
+  
+  #creatureList {
+    font-size: 10px;
+    max-height: 220px;
+    overflow-y: auto;
+  }
+  
+  .creature {
+    margin-bottom: 6px;
+    padding: 4px;
+    background: rgba(47, 79, 79, 0.5);
+    border-left: 2px solid #5f9ea0;
+  }
+  
+  #netIndicator {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    border: 3px solid rgba(173, 216, 230, 0.6);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 98;
+    display: none;
+  }
+  
+  .netActive {
+    display: block !important;
+    animation: pulse 0.5s ease-in-out infinite;
+  }
+  
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+  }
+</style>
+</head>
+<body>
+<div id="container">
+  <canvas id="ocean"></canvas>
+  <div id="netIndicator"></div>
+  
+  <div id="ui">
+    <h1>BRAINBRINE</h1>
+    <p>DRAG to sweep net</p>
+    <p>Collect 3 fragments</p>
+    <p>Assemble on bench</p>
+    <p>Ocean pollution: <span id="pollution">12%</span></p>
+  </div>
+  
+  <div id="aquarium">
+    <h3>YOUR AQUARIUM</h3>
+    <div id="creatureList">
+      <p style="color: #5f9ea0; font-size: 9px;">Empty. Assemble creatures...</p>
+    </div>
+  </div>
+  
+  <div id="bench">
+    <h3>EMOTION LAB BENCH</h3>
+    <div id="benchSlots">
+      <div class="slot" data-slot="0">empty</div>
+      <div class="slot" data-slot="1">empty</div>
+      <div class="slot" data-slot="2">empty</div>
+    </div>
+    <button id="assembleBtn" disabled>ASSEMBLE FEELING</button>
+    <button id="clearBtn">CLEAR BENCH</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// === GLOBAL STATE ===
+const thoughtFragments = [];
+const benchSlots = [null, null, null];
+const creatures = [];
+let pollutionLevel = 12;
+let isDragging = false;
+let netPos = { x: 0, y: 0 };
+
+// === EMOTION DATA ===
+const emotions = [
+  'regret', 'nostalgia', 'dread', 'yearning', 'spite', 'glee', 
+  'ennui', 'unease', 'defiance', 'melancholy', 'awe', 'contempt'
+];
+
+const shapes = ['cube', 'sphere', 'pyramid', 'torus'];
+
+const creatureRecipes = {
+  'regret-nostalgia-yearning': { name: 'Sighing Lamprey', emoji: '🐍' },
+  'dread-unease-melancholy': { name: 'Anxiety Urchin', emoji: '🦔' },
+  'spite-contempt-defiance': { name: 'Vengeful Crab', emoji: '🦀' },
+  'glee-awe-nostalgia': { name: 'Wonder Jellyfish', emoji: '🎐' },
+  'ennui-melancholy-regret': { name: 'Bored Eel', emoji: '〰️' },
+  'yearning-awe-glee': { name: 'Hope Nautilus', emoji: '🐚' }
+};
+
+// === THREE.JS SETUP ===
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('ocean'), alpha: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+camera.position.z = 15;
+
+const ambientLight = new THREE.AmbientLight(0x5f9ea0, 0.4);
+scene.add(ambientLight);
+
+const directionalLight = new THREE.DirectionalLight(0xadd8e6, 0.6);
+directionalLight.position.set(5, 5, 5);
+scene.add(directionalLight);
+
+scene.fog = new THREE.Fog(0x0a1a1f, 10, 30);
+
+// === CREATE THOUGHT FRAGMENTS ===
+function createFragment() {
+  const emotion = emotions[Math.floor(Math.random() * emotions.length)];
+  const shapeType = shapes[Math.floor(Math.random() * shapes.length)];
+  
+  let geometry;
+  if (shapeType === 'cube') geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+  else if (shapeType === 'sphere') geometry = new THREE.SphereGeometry(0.3, 8, 8);
+  else if (shapeType === 'pyramid') geometry = new THREE.ConeGeometry(0.3, 0.6, 4);
+  else geometry = new THREE.TorusGeometry(0.3, 0.1, 8, 12);
+  
+  const material = new THREE.MeshPhongMaterial({ 
+    color: Math.random() * 0xffffff,
+    opacity: 0.7 + Math.random() * 0.3,
+    transparent: true
+  });
+  
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.position.set(
+    (Math.random() - 0.5) * 30,
+    (Math.random() - 0.5) * 20,
+    (Math.random() - 0.5) * 20
+  );
+  
+  mesh.rotation.set(
+    Math.random() * Math.PI,
+    Math.random() * Math.PI,
+    Math.random() * Math.PI
+  );
+  
+  const fragment = {
+    mesh,
+    emotion,
+    shapeType,
+    velocity: {
+      x: (Math.random() - 0.5) * 0.02,
+      y: (Math.random() - 0.5) * 0.02,
+      z: (Math.random() - 0.5) * 0.02
+    },
+    rotation: {
+      x: (Math.random() - 0.5) * 0.02,
+      y: (Math.random() - 0.5) * 0.02,
+      z: (Math.random() - 0.5) * 0.02
+    }
+  };
+  
+  scene.add(mesh);
+  thoughtFragments.push(fragment);
+}
+
+// Initialize fragments
+for (let i = 0; i < 40; i++) {
+  createFragment();
+}
+
+// === POLLUTION FRAGMENTS (TRASH) ===
+function createTrash(x, y, z) {
+  const geometry = new THREE.OctahedronGeometry(0.3);
+  const material = new THREE.MeshPhongMaterial({ 
+    color: 0x4a3a2a,
+    opacity: 0.6,
+    transparent: true
+  });
+  
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.position.set(x, y, z);
+  
+  const fragment = {
+    mesh,
+    emotion: 'trash',
+    shapeType: 'trash',
+    velocity: {
+      x: (Math.random() - 0.5) * 0.01,
+      y: (Math.random() - 0.5) * 0.01,
+      z: (Math.random() - 0.5) * 0.01
+    },
+    rotation: {
+      x: (Math.random() - 0.5) * 0.03,
+      y: (Math.random() - 0.5) * 0.03,
+      z: (Math.random() - 0.5) * 0.03
+    }
+  };
+  
+  scene.add(mesh);
+  thoughtFragments.push(fragment);
+  pollutionLevel++;
+  updatePollution();
+}
+
+// === MOUSE INTERACTION ===
+const mouse = new THREE.Vector2();
+const raycaster = new THREE.Raycaster();
+const netIndicator = document.getElementById('netIndicator');
+
+document.addEventListener('mousedown', (e) => {
+  isDragging = true;
+  netIndicator.classList.add('netActive');
+});
+
+document.addEventListener('mouseup', () => {
+  isDragging = false;
+  netIndicator.classList.remove('netActive');
+});
+
+document.addEventListener('mousemove', (e) => {
+  mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+  
+  netIndicator.style.left = (e.clientX - 50) + 'px';
+  netIndicator.style.top = (e.clientY - 50) + 'px';
+  
+  if (isDragging) {
+    raycaster.setFromCamera(mouse, camera);
+    
+    const meshes = thoughtFragments.map(f => f.mesh);
+    const intersects = raycaster.intersectObjects(meshes);
+    
+    if (intersects.length > 0) {
+      const captured = thoughtFragments.find(f => f.mesh === intersects[0].object);
+      if (captured && captured.emotion !== 'trash') {
+        captureFragment(captured);
+      }
+    }
+  }
+});
+
+// === BENCH MANAGEMENT ===
+function captureFragment(fragment) {
+  const emptySlot = benchSlots.findIndex(s => s === null);
+  if (emptySlot === -1) return;
+  
+  benchSlots[emptySlot] = {
+    emotion: fragment.emotion,
+    shape: fragment.shapeType
+  };
+  
+  // Remove from ocean
+  scene.remove(fragment.mesh);
+  const index = thoughtFragments.indexOf(fragment);
+  thoughtFragments.splice(index, 1);
+  
+  updateBench();
+}
+
+function updateBench() {
+  benchSlots.forEach((slot, i) => {
+    const slotEl = document.querySelector(`.slot[data-slot="${i}"]`);
+    if (slot) {
+      slotEl.textContent = `${slot.emotion}\n(${slot.shape})`;
+      slotEl.classList.add('filled');
+    } else {
+      slotEl.textContent = 'empty';
+      slotEl.classList.remove('filled');
+    }
+  });
+  
+  const assembleBtn = document.getElementById('assembleBtn');
+  assembleBtn.disabled = !benchSlots.every(s => s !== null);
+}
+
+function updatePollution() {
+  document.getElementById('pollution').textContent = pollutionLevel + '%';
+}
+
+// === ASSEMBLY ===
+document.getElementById('assembleBtn').addEventListener('click', () => {
+  const emotions = benchSlots.map(s => s.emotion).sort().join('-');
+  const recipe = creatureRecipes[emotions];
+  
+  if (recipe) {
+    // SUCCESS - Create creature
+    creatures.push({
+      name: recipe.name,
+      emoji: recipe.emoji,
+      timestamp: Date.now()
+    });
+    updateAquarium();
+  } else {
+    // FAILURE - Create trash
+    const avgX = 0;
+    const avgY = Math.random() * 10 - 5;
+    const avgZ = Math.random() * 10 - 5;
+    createTrash(avgX, avgY, avgZ);
+  }
+  
+  // Clear bench
+  benchSlots.fill(null);
+  updateBench();
+});
+
+document.getElementById('clearBtn').addEventListener('click', () => {
+  // Return fragments to ocean
+  benchSlots.forEach((slot, i) => {
+    if (slot) {
+      createFragment(); // Just create new ones
+    }
+  });
+  benchSlots.fill(null);
+  updateBench();
+});
+
+function updateAquarium() {
+  const list = document.getElementById('creatureList');
+  list.innerHTML = creatures.map(c => 
+    `<div class="creature">${c.emoji} ${c.name}</div>`
+  ).join('');
+}
+
+// === ANIMATION LOOP ===
+function animate() {
+  requestAnimationFrame(animate);
+  
+  // Update all fragments
+  thoughtFragments.forEach(frag => {
+    frag.mesh.position.x += frag.velocity.x;
+    frag.mesh.position.y += frag.velocity.y;
+    frag.mesh.position.z += frag.velocity.z;
+    
+    frag.mesh.rotation.x += frag.rotation.x;
+    frag.mesh.rotation.y += frag.rotation.y;
+    frag.mesh.rotation.z += frag.rotation.z;
+    
+    // Boundary wrap
+    if (Math.abs(frag.mesh.position.x) > 15) frag.velocity.x *= -1;
+    if (Math.abs(frag.mesh.position.y) > 10) frag.velocity.y *= -1;
+    if (Math.abs(frag.mesh.position.z) > 10) frag.velocity.z *= -1;
+  });
+  
+  // Slowly rotate camera
+  camera.position.x = Math.sin(Date.now() * 0.0001) * 2;
+  camera.lookAt(0, 0, 0);
+  
+  renderer.render(scene, camera);
+}
+
+animate();
+
+// Spawn new fragments occasionally
+setInterval(() => {
+  if (thoughtFragments.length < 50) {
+    createFragment();
+  }
+}, 3000);
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
+</body>
+</html>

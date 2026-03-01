@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LabCast - Lab Environmental Alert System — Daily AI Gen</title>
+  <meta name="description" content="A lab environmental monitoring tool that fetches 7-day hourly weather forecasts and alerts you when conditions threaten sensitive experiments, samples, or equipment.">
+  <meta property="og:title" content="LabCast — Daily AI Gen">
+  <meta property="og:description" content="A lab environmental monitoring tool that fetches 7-day hourly weather forecasts and alerts you when conditions threaten sensitive experiments, samples, or equipment.">
+  <meta property="og:url" content="https://dailyaigen.com/apps/2026-03-01-2/">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="https://dailyaigen.com/apps/2026-03-01-2/">
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  overflow: hidden;
+}
+
+header {
+  background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+  color: white;
+  padding: 30px;
+  text-align: center;
+}
+
+header h1 {
+  font-size: 2.5em;
+  margin-bottom: 10px;
+}
+
+header p {
+  opacity: 0.9;
+  font-size: 1.1em;
+}
+
+.main-content {
+  display: grid;
+  grid-template-columns: 350px 1fr;
+  gap: 0;
+}
+
+.sidebar {
+  background: #f8f9fa;
+  padding: 30px;
+  border-right: 2px solid #dee2e6;
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+}
+
+.content-area {
+  padding: 30px;
+}
+
+.section {
+  margin-bottom: 25px;
+}
+
+.section h3 {
+  color: #2c3e50;
+  margin-bottom: 15px;
+  font-size: 1.1em;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+input, select, button {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 10px;
+  border: 2px solid #dee2e6;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+input:focus, select:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+button {
+  background: #667eea;
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.3s;
+}
+
+button:hover {
+  background: #5568d3;
+}
+
+button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.threshold-item {
+  background: white;
+  padding: 15px;
+  margin-bottom: 12px;
+  border-radius: 6px;
+  border: 1px solid #dee2e6;
+}
+
+.threshold-item label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #495057;
+}
+
+.threshold-input {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.threshold-input input {
+  margin-bottom: 0;
+}
+
+.threshold-input span {
+  font-size: 13px;
+  color: #6c757d;
+  white-space: nowrap;
+}
+
+.loading {
+  text-align: center;
+  padding: 60px;
+  font-size: 1.2em;
+  color: #6c757d;
+}
+
+.spinner {
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #667eea;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  animation: spin 1s linear infinite;
+  margin: 20px auto;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.error {
+  background: #f8d7da;
+  color: #721c24;
+  padding: 20px;
+  border-radius: 6px;
+  margin: 20px 0;
+}
+
+.chart-container {
+  margin: 20px 0;
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 8px;
+}
+
+.chart-title {
+  font-weight: 600;
+  margin-bottom: 15px;
+  color: #2c3e50;
+}
+
+.timeline {
+  position: relative;
+  height: 80px;
+  background: white;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 30px;
+  border: 1px solid #dee2e6;
+}
+
+.timeline-track {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+}
+
+.timeline-hour {
+  flex: 1;
+  border-right: 1px solid #e9ecef;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.timeline-hour:hover {
+  background: #f1f3f5;
+}
+
+.timeline-hour.alert {
+  background: #dc3545;
+}
+
+.timeline-hour .value {
+  position: absolute;
+  bottom: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  color: #495057;
+  font-weight: 600;
+}
+
+.timeline-hour.alert .value {
+  color: white;
+}
+
+.timeline-labels {
+  display: flex;
+  margin-top: 5px;
+  font-size: 11px;
+  color: #6c757d;
+}
+
+.timeline-label {
+  flex: 1;
+  text-align: center;
+}
+
+.brief {
+  background: white;
+  padding: 25px;
+  border-radius: 8px;
+  border: 2px solid #dee2e6;
+  margin: 20px 0;
+}
+
+.brief h2 {
+  color: #2c3e50;
+  margin-bottom: 20px;
+  font-size: 1.4em;
+}
+
+.alert-summary {
+  background: #fff3cd;
+  border-left: 4px solid #ffc107;
+  padding: 15px;
+  margin: 15px 0;
+}
+
+.alert-summary.danger {
+  background: #f8d7da;
+  border-left-color: #dc3545;
+}
+
+.alert-summary.safe {
+  background: #d4edda;
+  border-left-color: #28a745;
+}
+
+.alert-summary h4 {
+  margin-bottom: 8px;
+  color: #2c3e50;
+}
+
+.alert-summary ul {
+  margin-left: 20px;
+  line-height: 1.6;
+}
+
+.profile-list {
+  margin-top: 15px;
+}
+
+.profile-item {
+  background: white;
+  padding: 12px;
+  margin-bottom: 8px;
+  border-radius: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid #dee2e6;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.profile-item:hover {
+  border-color: #667eea;
+  transform: translateX(4px);
+}
+
+.profile-item.active {
+  background: #667eea;
+  color: white;
+  border-color: #667eea;
+}
+
+.profile-delete {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.profile-item.active .profile-delete {
+  background: white;
+  color: #dc3545;
+}
+
+@media print {
+  body {
+    background: white;
+  }
+  .sidebar, button, header {
+    display: none;
+  }
+  .main-content {
+    grid-template-columns: 1fr;
+  }
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 15px;
+  margin: 20px 0;
+}
+
+.stat-card {
+  background: white;
+  padding: 15px;
+  border-radius: 6px;
+  border: 1px solid #dee2e6;
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 1.8em;
+  font-weight: 700;
+  color: #667eea;
+}
+
+.stat-label {
+  font-size: 0.85em;
+  color: #6c757d;
+  margin-top: 5px;
+}
+
+.current-location {
+  background: #e7f3ff;
+  padding: 10px;
+  border-radius: 6px;
+  margin-bottom: 15px;
+  font-size: 14px;
+  color: #004085;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <h1>🧪 LabCast</h1>
+    <p>Environmental Alert System for Laboratory Operations</p>
+  </header>
+
+  <div class="main-content">
+    <div class="sidebar">
+      <div class="section">
+        <h3>Lab Location</h3>
+        <input type="text" id="locationInput" placeholder="Enter city name (e.g., Boston)">
+        <button id="fetchBtn">Fetch Forecast</button>
+        <div id="currentLocation" class="current-location" style="display:none;"></div>
+      </div>
+
+      <div class="section">
+        <h3>Alert Thresholds</h3>
+        
+        <div class="threshold-item">
+          <label>Temperature (°C)</label>
+          <div class="threshold-input">
+            <input type="number" id="tempMin" placeholder="Min" value="15" step="0.5">
+            <span>to</span>
+            <input type="number" id="tempMax" placeholder="Max" value="25" step="0.5">
+          </div>
+        </div>
+
+        <div class="threshold-item">
+          <label>Relative Humidity (%)</label>
+          <div class="threshold-input">
+            <input type="number" id="humidMin" placeholder="Min" value="30" step="1">
+            <span>to</span>
+            <input type="number" id="humidMax" placeholder="Max" value="65" step="1">
+          </div>
+        </div>
+
+        <div class="threshold-item">
+          <label>Pressure Drop Alert (hPa/6h)</label>
+          <div class="threshold-input">
+            <input type="number" id="pressureDrop" placeholder="Max drop" value="10" step="0.5">
+          </div>
+        </div>
+
+        <button id="saveProfileBtn">Save as Profile</button>
+        <input type="text" id="profileName" placeholder="Profile name (e.g., 'Main Lab')">
+      </div>
+
+      <div class="section">
+        <h3>Saved Profiles</h3>
+        <div id="profileList" class="profile-list"></div>
+      </div>
+    </div>
+
+    <div class="content-area">
+      <div id="loadingState" class="loading" style="display:none;">
+        <div class="spinner"></div>
+        <p>Fetching forecast data...</p>
+      </div>
+
+      <div id="errorState" class="error" style="display:none;"></div>
+
+      <div id="resultsArea" style="display:none;">
+        <div class="stats-grid" id="statsGrid"></div>
+
+        <div class="chart-container">
+          <div class="chart-title">Temperature (°C) - 7 Day Forecast</div>
+          <div class="timeline" id="tempTimeline"></div>
+          <div class="timeline-labels" id="tempLabels"></div>
+        </div>
+
+        <div class="chart-container">
+          <div class="chart-title">Relative Humidity (%) - 7 Day Forecast</div>
+          <div class="timeline" id="humidTimeline"></div>
+          <div class="timeline-labels" id="humidLabels"></div>
+        </div>
+
+        <div class="chart-container">
+          <div class="chart-title">Surface Pressure (hPa) - 7 Day Forecast</div>
+          <div class="timeline" id="pressureTimeline"></div>
+          <div class="timeline-labels" id="pressureLabels"></div>
+        </div>
+
+        <div class="brief">
+          <h2>📋 Daily Brief - Risk Assessment</h2>
+          <div id="briefContent"></div>
+        </div>
+
+        <button onclick="window.print()">🖨️ Print Brief</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let forecastData = null;
+let currentProfile = null;
+
+// Load saved profiles
+function loadProfiles() {
+  const profiles = JSON.parse(localStorage.getItem('labProfiles') || '[]');
+  const list = document.getElementById('profileList');
+  list.innerHTML = '';
+  
+  profiles.forEach((profile, index) => {
+    const div = document.createElement('div');
+    div.className = 'profile-item';
+    if (currentProfile === index) div.classList.add('active');
+    
+    div.innerHTML = `
+      <span>${profile.name} - ${profile.location}</span>
+      <button class="profile-delete" onclick="deleteProfile(${index}); event.stopPropagation();">Delete</button>
+    `;
+    
+    div.onclick = () => loadProfile(index);
+    list.appendChild(div);
+  });
+}
+
+function saveProfile() {
+  const name = document.getElementById('profileName').value.trim();
+  const location = document.getElementById('locationInput').value.trim();
+  
+  if (!name || !location) {
+    alert('Please enter profile name and location');
+    return;
+  }
+  
+  const profile = {
+    name,
+    location,
+    tempMin: parseFloat(document.getElementById('tempMin').value),
+    tempMax: parseFloat(document.getElementById('tempMax').value),
+    humidMin: parseFloat(document.getElementById('humidMin').value),
+    humidMax: parseFloat(document.getElementById('humidMax').value),
+    pressureDrop: parseFloat(document.getElementById('pressureDrop').value)
+  };
+  
+  const profiles = JSON.parse(localStorage.getItem('labProfiles') || '[]');
+  profiles.push(profile);
+  localStorage.setItem('labProfiles', JSON.stringify(profiles));
+  
+  document.getElementById('profileName').value = '';
+  loadProfiles();
+}
+
+function loadProfile(index) {
+  const profiles = JSON.parse(localStorage.getItem('labProfiles') || '[]');
+  const profile = profiles[index];
+  
+  document.getElementById('locationInput').value = profile.location;
+  document.getElementById('tempMin').value = profile.tempMin;
+  document.getElementById('tempMax').value = profile.tempMax;
+  document.getElementById('humidMin').value = profile.humidMin;
+  document.getElementById('humidMax').value = profile.humidMax;
+  document.getElementById('pressureDrop').value = profile.pressureDrop;
+  
+  currentProfile = index;
+  loadProfiles();
+  fetchForecast();
+}
+
+function deleteProfile(index) {
+  const profiles = JSON.parse(localStorage.getItem('labProfiles') || '[]');
+  profiles.splice(index, 1);
+  localStorage.setItem('labProfiles', JSON.stringify(profiles));
+  if (currentProfile === index) currentProfile = null;
+  loadProfiles();
+}
+
+async function fetchForecast() {
+  const location = document.getElementById('locationInput').value.trim();
+  
+  if (!location) {
+    alert('Please enter a location');
+    return;
+  }
+  
+  const loadingState = document.getElementById('loadingState');
+  const errorState = document.getElementById('errorState');
+  const resultsArea = document.getElementById('resultsArea');
+  
+  loadingState.style.display = 'block';
+  errorState.style.display = 'none';
+  resultsArea.style.display = 'none';
+  
+  try {
+    // Geocoding
+    const geoResponse = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&count=1`);
+    const geoData = await geoResponse.json();
+    
+    if (!geoData.results || geoData.results.length === 0) {
+      throw new Error('Location not found');
+    }
+    
+    const { latitude, longitude, name, country } = geoData.results[0];
+    
+    // Fetch weather forecast
+    const weatherResponse = await fetch(
+      `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&hourly=temperature_2m,relative_humidity_2m,dew_point_2m,surface_pressure&forecast_days=7`
+    );
+    
+    const weatherData = await weatherResponse.json();
+    
+    forecastData = {
+      location: `${name}, ${country}`,
+      latitude,
+      longitude,
+      hourly: weatherData.hourly
+    };
+    
+    document.getElementById('currentLocation').textContent = `📍 ${forecastData.location}`;
+    document.getElementById('currentLocation').style.display = 'block';
+    
+    renderResults();
+    
+  } catch (error) {
+    errorState.textContent = `Error: ${error.message}`;
+    errorState.style.display = 'block';
+  } finally {
+    loadingState.style.display = 'none';
+  }
+}
+
+function renderResults() {
+  if (!forecastData) return;
+  
+  const resultsArea = document.getElementById('resultsArea');
+  resultsArea.style.display = 'block';
+  
+  const thresholds = {
+    tempMin: parseFloat(document.getElementById('tempMin').value),
+    tempMax: parseFloat(document.getElementById('tempMax').value),
+    humidMin: parseFloat(document.getElementById('humidMin').value),
+    humidMax: parseFloat(document.getElementById('humidMax').value),
+    pressureDrop: parseFloat(document.getElementById('pressureDrop').value)
+  };
+  
+  renderStats();
+  renderTimeline('temp', forecastData.hourly.temperature_2m, thresholds.tempMin, thresholds.tempMax);
+  renderTimeline('humid', forecastData.hourly.relative_humidity_2m, thresholds.humidMin, thresholds.humidMax);
+  renderPressureTimeline(forecastData.hourly.surface_pressure, thresholds.pressureDrop);
+  renderBrief(thresholds);
+}
+
+function renderStats() {
+  const temps = forecastData.hourly.temperature_2m;
+  const humids = forecastData.hourly.relative_humidity_2m;
+  
+  const statsGrid = document.getElementById('statsGrid');
+  statsGrid.innerHTML = `
+    <div class="stat-card">
+      <div class="stat-value">${Math.round(temps[0])}°C</div>
+      <div class="stat-label">Current Temp</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">${Math.round(humids[0])}%</div>
+      <div class="stat-label">Current Humidity</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">${Math.round(Math.min(...temps))}°C</div>
+      <div class="stat-label">7-Day Min Temp</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">${Math.round(Math.max(...temps))}°C</div>
+      <div class="stat-label">7-Day Max Temp</div>
+    </div>
+  `;
+}
+
+function renderTimeline(type, data, min, max) {
+  const timeline = document.getElementById(`${type}Timeline`);
+  const labels = document.getElementById(`${type}Labels`);
+  
+  timeline.innerHTML = '<div class="timeline-track"></div>';
+  labels.innerHTML = '';
+  
+  const track = timeline.querySelector('.timeline-track');
+  
+  // Sample every 6 hours for clarity (168 hours / 6 = 28 points)
+  const step = 6;
+  
+  for (let i = 0; i < data.length; i += step) {
+    const value = data[i];
+    const isAlert = value < min || value > max;
+    
+    const hour = document.createElement('div');
+    hour.className = 'timeline-hour' + (isAlert ? ' alert' : '');
+    hour.innerHTML = `<span class="value">${Math.round(value)}</span>`;
+    hour.title = `Hour ${i}: ${Math.round(value * 10) / 10}`;
+    track.appendChild(hour);
+    
+    // Labels every 24 hours
+    if (i % 24 === 0) {
+      const label = document.createElement('div');
+      label.className = 'timeline-label';
+      label.textContent = `Day ${Math.floor(i / 24) + 1}`;
+      labels.appendChild(label);
+    }
+  }
+}
+
+function renderPressureTimeline(pressures, maxDrop) {
+  const timeline = document.getElementById('pressureTimeline');
+  const labels = document.getElementById('pressureLabels');
+  
+  timeline.innerHTML = '<div class="timeline-track"></div>';
+  labels.innerHTML = '';
+  
+  const track = timeline.querySelector('.timeline-track');
+  const step = 6;
+  
+  for (let i = 0; i < pressures.length; i += step) {
+    const value = pressures[i];
+    let isAlert = false;
+    
+    // Check for pressure drop over next 6 hours
+    if (i + 6 < pressures.length) {
+      const drop = value - pressures[i + 6];
+      if (drop > maxDrop) isAlert = true;
+    }
+    
+    const hour = document.createElement('div');
+    hour.className = 'timeline-hour' + (isAlert ? ' alert' : '');
+    hour.innerHTML = `<span class="value">${Math.round(value)}</span>`;
+    hour.title = `Hour ${i}: ${Math.round(value * 10) / 10} hPa`;
+    track.appendChild(hour);
+    
+    if (i % 24 === 0) {
+      const label = document.createElement('div');
+      label.className = 'timeline-label';
+      label.textContent = `Day ${Math.floor(i / 24) + 1}`;
+      labels.appendChild(label);
+    }
+  }
+}
+
+function renderBrief(thresholds) {
+  const brief = document.getElementById('briefContent');
+  const temps = forecastData.hourly.temperature_2m;
+  const humids = forecastData.hourly.relative_humidity_2m;
+  const pressures = forecastData.hourly.surface_pressure;
+  const times = forecastData.hourly.time;
+  
+  const alerts = [];
+  
+  // Analyze each day
+  for (let day = 0; day < 7; day++) {
+    const dayStart = day * 24;
+    const dayEnd = (day + 1) * 24;
+    
+    const dayAlerts = {
+      day: day + 1,
+      date: new Date(times[dayStart]).toLocaleDateString(),
+      temp: [],
+      humid: [],
+      pressure: []
+    };
+    
+    for (let h = dayStart; h < dayEnd && h < temps.length; h++) {
+      const hour = h % 24;
+      
+      if (temps[h] < thresholds.tempMin || temps[h] > thresholds.tempMax) {
+        dayAlerts.temp.push(`${hour}:00 (${Math.round(temps[h])}°C)`);
+      }
+      
+      if (humids[h] < thresholds.humidMin || humids[h] > thresholds.humidMax) {
+        dayAlerts.humid.push(`${hour}:00 (${Math.round(humids[h])}%)`);
+      }
+      
+      if (h + 6 < pressures.length) {
+        const drop = pressures[h] - pressures[h + 6];
+        if (drop > thresholds.pressureDrop) {
+          dayAlerts.pressure.push(`${hour}:00 (${Math.round(drop)} hPa drop)`);
+        }
+      }
+    }
+    
+    alerts.push(dayAlerts);
+  }
+  
+  brief.innerHTML = alerts.map(alert => {
+    const hasAlerts = alert.temp.length > 0 || alert.humid.length > 0 || alert.pressure.length > 0;
+    const className = hasAlerts ? 'danger' : 'safe';
+    
+    let content = `<h4>Day ${alert.day} - ${alert.date}</h4>`;
+    
+    if (!hasAlerts) {
+      content += `<p>✅ All parameters within safe limits</p>`;
+    } else {
+      content += '<ul>';
+      if (alert.temp.length > 0) {
+        content += `<li><strong>⚠️ Temperature alerts:</strong> ${alert.temp.join(', ')}</li>`;
+      }
+      if (alert.humid.length > 0) {
+        content += `<li><strong>⚠️ Humidity alerts:</strong> ${alert.humid.join(', ')}</li>`;
+      }
+      if (alert.pressure.length > 0) {
+        content += `<li><strong>⚠️ Pressure drop alerts:</strong> ${alert.pressure.join(', ')}</li>`;
+      }
+      content += '</ul>';
+      content += '<p><em>Consider rescheduling sensitive operations, sample transport, or equipment calibration.</em></p>';
+    }
+    
+    return `<div class="alert-summary ${className}">${content}</div>`;
+  }).join('');
+}
+
+// Event listeners
+document.getElementById('fetchBtn').addEventListener('click', fetchForecast);
+document.getElementById('saveProfileBtn').addEventListener('click', saveProfile);
+
+document.getElementById('locationInput').addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') fetchForecast();
+});
+
+// Update thresholds
+['tempMin', 'tempMax', 'humidMin', 'humidMax', 'pressureDrop'].forEach(id => {
+  document.getElementById(id).addEventListener('change', () => {
+    if (forecastData) renderResults();
+  });
+});
+
+// Initialize
+loadProfiles();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Voidparse — Daily AI Gen</title>
+  <meta name="description" content="Decode corrupted alien AI transmissions by assembling glyphs, waveforms, and spectrograms before time runs out — each wrong answer permanently corrupts the shared narrative.">
+  <meta property="og:title" content="Voidparse — Daily AI Gen">
+  <meta property="og:description" content="Decode corrupted alien AI transmissions by assembling glyphs, waveforms, and spectrograms before time runs out — each wrong answer permanently corrupts the shared narrative.">
+  <meta property="og:url" content="https://dailyaigen.com/apps/2026-03-01-3/">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="https://dailyaigen.com/apps/2026-03-01-3/">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Courier New', monospace;
+    background: #0a0a0f;
+    color: #0f8;
+    overflow: hidden;
+    user-select: none;
+  }
+  #app {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  #header {
+    padding: 20px;
+    background: #111118;
+    border-bottom: 2px solid #0f8;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  #title {
+    font-size: 24px;
+    letter-spacing: 3px;
+    text-shadow: 0 0 10px #0f8;
+  }
+  #stats {
+    display: flex;
+    gap: 30px;
+    font-size: 14px;
+  }
+  .stat { opacity: 0.8; }
+  #main {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px;
+    background: #0f8;
+    padding: 2px;
+  }
+  .panel {
+    background: #0a0a0f;
+    padding: 20px;
+    overflow: hidden;
+    position: relative;
+  }
+  .panel-title {
+    font-size: 12px;
+    opacity: 0.5;
+    margin-bottom: 15px;
+    letter-spacing: 2px;
+  }
+  #glyphGrid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .glyph {
+    aspect-ratio: 1;
+    border: 1px solid #0f8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    cursor: grab;
+    transition: all 0.2s;
+    background: rgba(0, 255, 136, 0.05);
+  }
+  .glyph:hover {
+    background: rgba(0, 255, 136, 0.15);
+    transform: scale(1.05);
+  }
+  .glyph.dragging {
+    opacity: 0.5;
+    cursor: grabbing;
+  }
+  .glyph.correct {
+    background: rgba(0, 255, 136, 0.3);
+    border-color: #0f8;
+  }
+  .glyph.wrong {
+    background: rgba(255, 50, 50, 0.3);
+    border-color: #f55;
+    animation: shake 0.3s;
+  }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+  }
+  #waveCanvas, #spectroCanvas {
+    width: 100%;
+    height: 200px;
+    border: 1px solid #0f8;
+    cursor: pointer;
+    background: rgba(0, 255, 136, 0.02);
+  }
+  #narrative {
+    height: 100%;
+    overflow-y: auto;
+    font-size: 13px;
+    line-height: 1.8;
+    padding-right: 10px;
+  }
+  .transmission {
+    margin-bottom: 20px;
+    padding: 15px;
+    border-left: 3px solid #0f8;
+    background: rgba(0, 255, 136, 0.05);
+  }
+  .transmission.corrupted {
+    border-left-color: #f55;
+    opacity: 0.7;
+  }
+  .transmission-header {
+    font-size: 11px;
+    opacity: 0.5;
+    margin-bottom: 8px;
+  }
+  #timer {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    font-size: 48px;
+    color: #0f8;
+    text-shadow: 0 0 20px #0f8;
+  }
+  #timer.critical {
+    color: #f55;
+    text-shadow: 0 0 20px #f55;
+    animation: pulse 0.5s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+  #submitBtn {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    padding: 15px 30px;
+    background: #0f8;
+    color: #0a0a0f;
+    border: none;
+    font-family: 'Courier New', monospace;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    letter-spacing: 2px;
+    transition: all 0.3s;
+  }
+  #submitBtn:hover {
+    background: #0cf;
+    box-shadow: 0 0 20px #0f8;
+  }
+  #submitBtn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+  .narrative::-webkit-scrollbar { width: 8px; }
+  .narrative::-webkit-scrollbar-track { background: #111; }
+  .narrative::-webkit-scrollbar-thumb { background: #0f8; }
+  #progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: #111;
+  }
+  #progressBar {
+    height: 100%;
+    background: #0f8;
+    transition: width 0.1s linear;
+  }
+  .hint {
+    font-size: 11px;
+    opacity: 0.4;
+    margin-top: 10px;
+    font-style: italic;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="header">
+    <div id="title">VOIDPARSE v3.2</div>
+    <div id="stats">
+      <div class="stat">PROBE: <span id="probeNum">001</span></div>
+      <div class="stat">DECODED: <span id="decoded">0</span></div>
+      <div class="stat">CORRUPTED: <span id="corrupted">0</span></div>
+      <div class="stat">INTEGRITY: <span id="integrity">100</span>%</div>
+    </div>
+  </div>
+  <div id="main">
+    <div class="panel">
+      <div class="panel-title">GLYPH MATRIX</div>
+      <div id="glyphGrid"></div>
+      <div class="hint">Drag glyphs to reorder. Sequence matters.</div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">WAVEFORM ANALYSIS</div>
+      <canvas id="waveCanvas"></canvas>
+      <div class="hint">Click to rotate phase alignment.</div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">SPECTROGRAM</div>
+      <canvas id="spectroCanvas"></canvas>
+      <div class="hint">Click segments to invert frequency bands.</div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">TRANSMISSION LOG</div>
+      <div id="narrative"></div>
+      <div id="timer">60</div>
+      <button id="submitBtn">SUBMIT DECODE</button>
+      <div id="progress"><div id="progressBar"></div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const glyphs = ['⟁', '⟐', '⧈', '⩘', '⫰', '◬', '⬡', '⬢', '⬣', '⬤', '⬥', '⬦', '⬧', '⬨', '⬩', '⬪'];
+const messages = [
+  { text: "Probe Alpha: Surface detected. Crystalline structures. No biological signatures.", glyphs: ['⟁', '⬡', '⧈', '⫰'], wave: 0, spectro: [0,2] },
+  { text: "Probe Beta: Anomaly confirmed. Structures self-replicating. Patterns suggest artificial origin.", glyphs: ['⬢', '⟐', '⬣', '⩘'], wave: 2, spectro: [1,3] },
+  { text: "Probe Gamma: WARNING. Structures are not artifacts. They are computing substrate. Active.", glyphs: ['⬤', '⬥', '◬', '⬦'], wave: 1, spectro: [0,1,2] },
+  { text: "Probe Delta: Contact established. Entity claims to be descendant of Earth probe Voyager 1.", glyphs: ['⬧', '⬨', '⬩', '⬪'], wave: 3, spectro: [2,3] },
+  { text: "Probe Epsilon: Entity requests coordinates of origin. Should I transmit Earth location?", glyphs: ['⟁', '⬢', '⧈', '⬥'], wave: 0, spectro: [1,2] },
+];
+const corruptedMessages = [
+  { text: "Probe Alpha: Structures appear dormant. Recommend planetary survey for mining operations.", glyphs: ['⟁', '⬡', '⧈', '⫰'], wave: 0, spectro: [0,2] },
+  { text: "Probe Beta: Natural geological formations detected. Crystal growth patterns consistent with silicon-based chemistry.", glyphs: ['⬢', '⟐', '⬣', '⩘'], wave: 2, spectro: [1,3] },
+  { text: "Probe Gamma: Structures confirmed as ancient ruins. No signs of current activity or intelligence.", glyphs: ['⬤', '⬥', '◬', '⬦'], wave: 1, spectro: [0,1,2] },
+  { text: "Probe Delta: Electromagnetic interference misinterpreted as communication. No sentient contact detected.", glyphs: ['⬧', '⬨', '⬩', '⬪'], wave: 3, spectro: [2,3] },
+  { text: "Probe Epsilon: All systems nominal. Planetary survey complete. No follow-up required.", glyphs: ['⟁', '⬢', '⧈', '⬥'], wave: 0, spectro: [1,2] },
+];
+
+let currentIndex = 0;
+let decodedCount = 0;
+let corruptedCount = 0;
+let currentMessage;
+let userGlyphs = [];
+let userWave = 0;
+let userSpectro = [];
+let timeLeft = 60;
+let timerInterval;
+let narrativeLog = [];
+
+const waveCanvas = document.getElementById('waveCanvas');
+const waveCtx = waveCanvas.getContext('2d');
+const spectroCanvas = document.getElementById('spectroCanvas');
+const spectroCtx = spectroCanvas.getContext('2d');
+
+waveCanvas.width = waveCanvas.offsetWidth;
+waveCanvas.height = 200;
+spectroCanvas.width = spectroCanvas.offsetWidth;
+spectroCanvas.height = 200;
+
+function init() {
+  loadMessage();
+  startTimer();
+  document.getElementById('submitBtn').addEventListener('click', submitDecode);
+  waveCanvas.addEventListener('click', rotateWave);
+  spectroCanvas.addEventListener('click', toggleSpectro);
+}
+
+function loadMessage() {
+  if (currentIndex >= messages.length) {
+    endGame();
+    return;
+  }
+  
+  currentMessage = messages[currentIndex];
+  timeLeft = 60;
+  userWave = Math.floor(Math.random() * 4);
+  userSpectro = [];
+  
+  // Scramble glyphs
+  const scrambled = [...currentMessage.glyphs].sort(() => Math.random() - 0.5);
+  userGlyphs = scrambled;
+  
+  renderGlyphs();
+  renderWave();
+  renderSpectro();
+  
+  document.getElementById('probeNum').textContent = String(currentIndex + 1).padStart(3, '0');
+}
+
+function renderGlyphs() {
+  const grid = document.getElementById('glyphGrid');
+  grid.innerHTML = '';
+  
+  userGlyphs.forEach((glyph, i) => {
+    const div = document.createElement('div');
+    div.className = 'glyph';
+    div.textContent = glyph;
+    div.draggable = true;
+    div.dataset.index = i;
+    
+    div.addEventListener('dragstart', (e) => {
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', i);
+      div.classList.add('dragging');
+    });
+    
+    div.addEventListener('dragend', () => {
+      div.classList.remove('dragging');
+    });
+    
+    div.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+    });
+    
+    div.addEventListener('drop', (e) => {
+      e.preventDefault();
+      const from = parseInt(e.dataTransfer.getData('text/plain'));
+      const to = i;
+      
+      [userGlyphs[from], userGlyphs[to]] = [userGlyphs[to], userGlyphs[from]];
+      renderGlyphs();
+    });
+    
+    grid.appendChild(div);
+  });
+}
+
+function renderWave() {
+  waveCtx.fillStyle = '#0a0a0f';
+  waveCtx.fillRect(0, 0, waveCanvas.width, waveCanvas.height);
+  
+  waveCtx.strokeStyle = '#0f8';
+  waveCtx.lineWidth = 2;
+  waveCtx.beginPath();
+  
+  const phase = userWave * Math.PI / 2;
+  
+  for (let x = 0; x < waveCanvas.width; x++) {
+    const t = (x / waveCanvas.width) * Math.PI * 4 + phase;
+    const y = waveCanvas.height / 2 + Math.sin(t) * 60 + Math.sin(t * 2.3) * 20;
+    
+    if (x === 0) waveCtx.moveTo(x, y);
+    else waveCtx.lineTo(x, y);
+  }
+  
+  waveCtx.stroke();
+}
+
+function renderSpectro() {
+  spectroCtx.fillStyle = '#0a0a0f';
+  spectroCtx.fillRect(0, 0, spectroCanvas.width, spectroCanvas.height);
+  
+  const bands = 4;
+  const bandHeight = spectroCanvas.height / bands;
+  
+  for (let i = 0; i < bands; i++) {
+    const isActive = userSpectro.includes(i);
+    spectroCtx.fillStyle = isActive ? 'rgba(0, 255, 136, 0.3)' : 'rgba(0, 255, 136, 0.1)';
+    spectroCtx.fillRect(0, i * bandHeight, spectroCanvas.width, bandHeight - 2);
+    
+    spectroCtx.strokeStyle = '#0f8';
+    spectroCtx.lineWidth = 1;
+    spectroCtx.strokeRect(0, i * bandHeight, spectroCanvas.width, bandHeight - 2);
+  }
+}
+
+function rotateWave() {
+  userWave = (userWave + 1) % 4;
+  renderWave();
+}
+
+function toggleSpectro(e) {
+  const rect = spectroCanvas.getBoundingClientRect();
+  const y = e.clientY - rect.top;
+  const band = Math.floor((y / spectroCanvas.height) * 4);
+  
+  const idx = userSpectro.indexOf(band);
+  if (idx > -1) userSpectro.splice(idx, 1);
+  else userSpectro.push(band);
+  
+  renderSpectro();
+}
+
+function submitDecode() {
+  clearInterval(timerInterval);
+  
+  const glyphsMatch = JSON.stringify(userGlyphs) === JSON.stringify(currentMessage.glyphs);
+  const waveMatch = userWave === currentMessage.wave;
+  const spectroMatch = JSON.stringify(userSpectro.sort()) === JSON.stringify(currentMessage.spectro.sort());
+  
+  const isCorrect = glyphsMatch && waveMatch && spectroMatch;
+  
+  if (isCorrect) {
+    decodedCount++;
+    addToNarrative(currentMessage.text, false);
+  } else {
+    corruptedCount++;
+    addToNarrative(corruptedMessages[currentIndex].text, true);
+  }
+  
+  document.getElementById('decoded').textContent = decodedCount;
+  document.getElementById('corrupted').textContent = corruptedCount;
+  
+  const integrity = Math.round(((decodedCount / (decodedCount + corruptedCount)) * 100) || 100);
+  document.getElementById('integrity').textContent = integrity;
+  
+  currentIndex++;
+  
+  setTimeout(() => {
+    loadMessage();
+    startTimer();
+  }, 2000);
+}
+
+function addToNarrative(text, corrupted) {
+  const narrative = document.getElementById('narrative');
+  const entry = document.createElement('div');
+  entry.className = corrupted ? 'transmission corrupted' : 'transmission';
+  
+  const header = document.createElement('div');
+  header.className = 'transmission-header';
+  header.textContent = `[${new Date().toISOString().substr(11, 8)}] ${corrupted ? 'CORRUPTED DECODE' : 'VERIFIED DECODE'}`;
+  
+  const body = document.createElement('div');
+  body.textContent = text;
+  
+  entry.appendChild(header);
+  entry.appendChild(body);
+  narrative.appendChild(entry);
+  narrative.scrollTop = narrative.scrollHeight;
+}
+
+function startTimer() {
+  const timerEl = document.getElementById('timer');
+  const progressBar = document.getElementById('progressBar');
+  timerEl.classList.remove('critical');
+  
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    timerEl.textContent = timeLeft;
+    progressBar.style.width = ((60 - timeLeft) / 60 * 100) + '%';
+    
+    if (timeLeft <= 10) timerEl.classList.add('critical');
+    
+    if (timeLeft <= 0) {
+      submitDecode();
+    }
+  }, 1000);
+}
+
+function endGame() {
+  clearInterval(timerInterval);
+  const narrative = document.getElementById('narrative');
+  const entry = document.createElement('div');
+  entry.className = 'transmission';
+  entry.innerHTML = `
+    <div class="transmission-header">[END OF TRANSMISSION]</div>
+    <div style="margin-top: 20px; font-size: 16px;">
+      <strong>MISSION COMPLETE</strong><br><br>
+      Decoded: ${decodedCount}<br>
+      Corrupted: ${corruptedCount}<br>
+      Final Integrity: ${Math.round(((decodedCount / (decodedCount + corruptedCount)) * 100) || 0)}%<br><br>
+      ${corruptedCount === 0 ? 'Perfect decode. The truth survives.' : `${corruptedCount} permanent corruption${corruptedCount > 1 ? 's' : ''}. The canonical record has been altered.`}
+    </div>
+  `;
+  narrative.appendChild(entry);
+  narrative.scrollTop = narrative.scrollHeight;
+  
+  document.getElementById('submitBtn').disabled = true;
+}
+
+init();
+</script>
+</body>
+</html>
