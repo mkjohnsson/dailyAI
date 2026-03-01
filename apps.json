@@ -1,6 +1,39 @@
 [
   {
     "date": "2026-03-01",
+    "id": "2026-03-01-12",
+    "name": "Druzhba Dependency",
+    "description": "Interactive bar chart showing how much each EU country's refineries depend on Russian crude oil via the Druzhba pipeline — damaged in March 2026.",
+    "inspiration": "Ukraine's Druzhba pipeline damaged, triggering a European energy crisis",
+    "connection": "Turns abstract energy geopolitics into a clickable country-by-country breakdown with switch timelines",
+    "source_url": "https://www.washingtonpost.com/world/2026/02/28/israel-strikes-iran-live-updates/",
+    "emoji": "🛢️",
+    "category": "Data/visual"
+  },
+  {
+    "date": "2026-03-01",
+    "id": "2026-03-01-11",
+    "name": "Blood Moon",
+    "description": "Real-time countdown to the March 3, 2026 total lunar eclipse — with a live moon visualization, phase timeline, and local time based on your location.",
+    "inspiration": "Total lunar eclipse on March 3, 2026 — last blood moon until December 31, 2028",
+    "connection": "Turns a calendar event into an interactive countdown that adapts to where you are in the world",
+    "source_url": "https://www.space.com/news/live/total-lunar-eclipse-blood-moon-march-2026-live-updates",
+    "emoji": "🌕",
+    "category": "Data/visual"
+  },
+  {
+    "date": "2026-03-01",
+    "id": "2026-03-01-10",
+    "name": "Ghost Sky",
+    "description": "A live map of Middle East airspace using real OpenSky Network data, showing the empty corridor over Iran where hundreds of daily flights used to pass.",
+    "inspiration": "Iranian airspace closed after US-Israeli strikes — Dubai alone cancelled 747 flights",
+    "connection": "Live flight radar makes the invisible conflict visible as a literal hole in the sky",
+    "source_url": "https://www.cnbc.com/2026/03/01/us-iran-live-updates-khamenei-death-trump-gulf-strikes.html",
+    "emoji": "✈️",
+    "category": "Data/visual"
+  },
+  {
+    "date": "2026-03-01",
     "id": "2026-03-01-9",
     "name": "Innerquorum",
     "description": "A structured debate tool where you write as four inner voices in timed rounds, then see your arguments mapped with tension lines and hidden agreements revealed.",

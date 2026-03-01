@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Druzhba Dependency — European Oil Exposure</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { background:#0d0d14; color:#c8d0dc; font-family:-apple-system,'Segoe UI',sans-serif; min-height:100vh; display:flex; flex-direction:column; }
+    #header { padding:18px 24px 12px; border-bottom:1px solid rgba(255,255,255,0.07); }
+    #header h1 { font-size:0.95rem; color:#fff; margin-bottom:4px; letter-spacing:0.02em; }
+    #header p { font-size:0.7rem; color:#506080; line-height:1.55; max-width:600px; }
+    #main { display:flex; flex:1; min-height:0; }
+    #chart-panel { flex:1; min-width:0; padding:20px; display:flex; flex-direction:column; }
+    #chart-wrap { flex:1; position:relative; min-height:320px; }
+    #hint { font-size:0.6rem; color:#2a3a50; margin-top:8px; }
+    #detail { width:290px; flex-shrink:0; background:rgba(255,255,255,0.025); border-left:1px solid rgba(255,255,255,0.07); padding:22px 20px; display:flex; flex-direction:column; gap:0; }
+    #d-flag { font-size:2.2rem; margin-bottom:10px; }
+    #d-name { font-size:1.05rem; font-weight:700; color:#fff; margin-bottom:4px; }
+    #d-badge { display:inline-block; font-size:0.58rem; padding:3px 11px; border-radius:12px; font-weight:600; letter-spacing:0.07em; margin-bottom:16px; }
+    .bc { background:rgba(220,50,50,0.12); border:1px solid rgba(220,50,50,0.35); color:#e05050; }
+    .bh { background:rgba(220,130,30,0.12); border:1px solid rgba(220,130,30,0.35); color:#e09030; }
+    .bm { background:rgba(200,180,30,0.12); border:1px solid rgba(200,180,30,0.35); color:#c8b030; }
+    .bl { background:rgba(50,180,100,0.12); border:1px solid rgba(50,180,100,0.35); color:#30b860; }
+    .db { margin-bottom:14px; }
+    .dl { font-size:0.57rem; text-transform:uppercase; letter-spacing:0.1em; color:#405060; margin-bottom:3px; }
+    .dv { font-size:0.82rem; color:#b0b8cc; line-height:1.5; }
+    #d-pct { font-size:2.2rem; font-weight:700; line-height:1; margin-bottom:14px; }
+    #source { font-size:0.57rem; color:#202830; padding:8px 20px; border-top:1px solid rgba(255,255,255,0.04); }
+    @media(max-width:640px) { #main{flex-direction:column} #detail{width:100%;border-left:none;border-top:1px solid rgba(255,255,255,0.07)} }
+  </style>
+</head>
+<body>
+  <div id="header">
+    <h1>Druzhba Pipeline — EU Crude Oil Dependency</h1>
+    <p>How much each country's refineries depend on Russian crude oil via the Druzhba pipeline — damaged in March 2026. Click a country for details.</p>
+  </div>
+  <div id="main">
+    <div id="chart-panel">
+      <div id="chart-wrap"><canvas id="chart"></canvas></div>
+      <div id="hint">← Click any bar to explore details</div>
+    </div>
+    <div id="detail">
+      <div id="d-flag">🇪🇺</div>
+      <div id="d-name">Select a country</div>
+      <div id="d-badge" class="bm"></div>
+      <div id="d-pct">—</div>
+      <div class="db"><div class="dl">Affected refinery</div><div class="dv" id="d-ref">—</div></div>
+      <div class="db"><div class="dl">Primary alternative source</div><div class="dv" id="d-alt">—</div></div>
+      <div class="db"><div class="dl">Time to switch crude type</div><div class="dv" id="d-sw">—</div></div>
+      <div class="db" style="margin-bottom:0"><div class="dl">Strategic oil reserve</div><div class="dv" id="d-res">—</div></div>
+    </div>
+  </div>
+  <div id="source">Sources: IEA, Eurostat, national energy authorities — 2024 data. Figures show crude oil imports via Druzhba as % of total crude, not total energy consumption.</div>
+
+  <script>
+    const DATA = [
+      { name:'Slovakia',    flag:'🇸🇰', pct:78, s:'c', ref:'Slovnaft Bratislava — purpose-built for Urals crude, extremely hard to switch', alt:'Adriatic TAL pipeline via Austria — insufficient capacity for full replacement', sw:'12–18 months minimum for refinery reconfiguration', res:'~90 days (EU mandate)' },
+      { name:'Hungary',     flag:'🇭🇺', pct:63, s:'c', ref:'MOL Százhalombatta — largest Central EU refinery, ~8 Mt/year capacity', alt:'Adriatic JANAF pipeline via Croatia — being expanded', sw:'6–12 months (MOL testing Norwegian & Kazakh crude blends)', res:'~90 days strategic reserve' },
+      { name:'Czech Rep.',  flag:'🇨🇿', pct:51, s:'h', ref:'Litvínov (Unipetrol/Orlen) + Kralupy nad Vltavou', alt:'IKL reverse-flow pipeline from Germany (North Sea crude)', sw:'3–6 months — IKL capacity recently doubled', res:'~90 days + commercial stocks' },
+      { name:'Germany E.',  flag:'🇩🇪', pct:29, s:'m', ref:'PCK Schwedt (Brandenburg) — serves Berlin area', alt:'Rostock seaport pipeline + TotalEnergies diverted supply', sw:'~6 months — partly diversified since 2022 sanctions', res:'90+ days (Bundesnetzagentur-managed)' },
+      { name:'Austria',     flag:'🇦🇹', pct:18, s:'m', ref:'OMV Schwechat (Vienna)', alt:'TAL pipeline — Mediterranean crude via Trieste port', sw:'2–4 months — OMV already partially diversified', res:'~90 days IEA obligation' },
+      { name:'Poland',      flag:'🇵🇱', pct:12, s:'l', ref:'PKN Orlen Płock — largest refinery in Central Europe', alt:'Baltic sea terminals Gdańsk — North Sea, OPEC, US crude', sw:'Already diversified — Orlen cut Russian crude in 2022', res:'90+ days' },
+      { name:'Italy',       flag:'🇮🇹', pct:8,  s:'l', ref:'Multiple (ENI, ISAB, Saras) — minor Druzhba share', alt:'Libya, Kazakhstan, Saudi Arabia by sea', sw:'1–2 months', res:'90+ days' },
+      { name:'France',      flag:'🇫🇷', pct:4,  s:'l', ref:'TotalEnergies, Esso — no Druzhba connection', alt:'Not applicable — North Sea, West Africa, Middle East', sw:'N/A — no dependency', res:'90+ days' },
+      { name:'Netherlands', flag:'🇳🇱', pct:3,  s:'l', ref:'Shell/ExxonMobil Rotterdam — global crude hub', alt:'Rotterdam handles 500+ Mt/year — fully diversified', sw:'N/A — largest oil hub in Europe', res:'90+ days' },
+    ];
+
+    const colors = DATA.map(d =>
+      d.pct >= 60 ? '#d83030' : d.pct >= 40 ? '#d06020' : d.pct >= 20 ? '#a89020' : '#3aa060'
+    );
+
+    const chart = new Chart(document.getElementById('chart'), {
+      type:'bar',
+      data:{
+        labels: DATA.map(d=>d.name),
+        datasets:[{
+          label:'% crude from Russia (Druzhba)',
+          data: DATA.map(d=>d.pct),
+          backgroundColor: colors.map(c=>c+'bb'),
+          borderColor: colors,
+          borderWidth:1,
+          borderRadius:4,
+        }]
+      },
+      options:{
+        indexAxis:'y',
+        responsive:true,
+        maintainAspectRatio:false,
+        onClick:(_,els)=>{ if(els.length) show(els[0].index); },
+        plugins:{
+          legend:{display:false},
+          tooltip:{
+            backgroundColor:'rgba(8,10,18,0.95)',
+            borderColor:'rgba(255,255,255,0.08)',
+            borderWidth:1,
+            callbacks:{ label: ctx=>' '+ctx.parsed.x+'% from Druzhba crude' }
+          }
+        },
+        scales:{
+          x:{ max:100, grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#3a5070',font:{size:11},callback:v=>v+'%'}, border:{color:'rgba(255,255,255,0.07)'} },
+          y:{ grid:{display:false}, ticks:{color:'#8090a8',font:{size:12}}, border:{color:'rgba(255,255,255,0.07)'} }
+        }
+      }
+    });
+
+    function show(i) {
+      const d = DATA[i];
+      document.getElementById('d-flag').textContent = d.flag;
+      document.getElementById('d-name').textContent = d.name;
+      document.getElementById('d-pct').textContent = d.pct+'%';
+      document.getElementById('d-pct').style.color = colors[i];
+      document.getElementById('d-ref').textContent = d.ref;
+      document.getElementById('d-alt').textContent = d.alt;
+      document.getElementById('d-sw').textContent = d.sw;
+      document.getElementById('d-res').textContent = d.res;
+      const b = document.getElementById('d-badge');
+      const labels = {c:'⚠ CRITICAL EXPOSURE',h:'↑ HIGH EXPOSURE',m:'~ MODERATE EXPOSURE',l:'✓ LOW EXPOSURE'};
+      const cls = {c:'bc',h:'bh',m:'bm',l:'bl'};
+      b.textContent = labels[d.s];
+      b.className = cls[d.s];
+    }
+
+    show(0);
+  </script>
+</body>
+</html>

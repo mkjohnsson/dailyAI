@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ghost Sky — Live Middle East Airspace</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { background:#060d1f; color:#c8d8f0; font-family:'Courier New',monospace; height:100vh; display:flex; flex-direction:column; overflow:hidden; }
+    #header { padding:10px 16px; background:rgba(6,13,31,0.97); border-bottom:1px solid rgba(200,216,240,0.1); display:flex; align-items:center; gap:12px; flex-shrink:0; }
+    #live-dot { width:7px; height:7px; border-radius:50%; background:#00e5ff; box-shadow:0 0 6px #00e5ff; animation:blink 2s ease-in-out infinite; flex-shrink:0; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+    h1 { font-size:0.82rem; letter-spacing:0.12em; color:#e0e8ff; flex:1; }
+    #status { font-size:0.65rem; color:#3a5a7a; }
+    #map { flex:1; position:relative; }
+    #stats { position:absolute; top:12px; right:12px; z-index:1000; background:rgba(6,13,31,0.93); border:1px solid rgba(200,216,240,0.12); border-radius:6px; padding:14px 18px; }
+    .srow { margin-bottom:12px; }
+    .srow:last-child { margin-bottom:0; }
+    .slabel { font-size:0.57rem; text-transform:uppercase; letter-spacing:0.1em; color:#3a5a7a; margin-bottom:2px; }
+    .sval { font-size:1.6rem; font-weight:bold; line-height:1; }
+    .sval-cyan { color:#00e5ff; }
+    .sval-red { color:#ff4040; }
+    .sval-orange { color:#ff8800; }
+    .ssub { font-size:0.58rem; color:#3a5a7a; margin-top:1px; }
+    #legend { position:absolute; bottom:12px; left:12px; z-index:1000; background:rgba(6,13,31,0.93); border:1px solid rgba(200,216,240,0.12); border-radius:6px; padding:10px 14px; font-size:0.62rem; }
+    .lrow { display:flex; align-items:center; gap:8px; margin-bottom:5px; color:#6080a0; }
+    .lrow:last-child { margin-bottom:0; }
+    .lswatch { width:14px; height:9px; border-radius:2px; flex-shrink:0; }
+    #banner { position:absolute; bottom:12px; left:50%; transform:translateX(-50%); z-index:1000; background:rgba(255,60,60,0.1); border:1px solid rgba(255,60,60,0.3); border-radius:6px; padding:7px 16px; font-size:0.65rem; color:#e07070; white-space:nowrap; }
+    @media(max-width:600px) { #banner { display:none; } }
+  </style>
+</head>
+<body>
+  <div id="header">
+    <div id="live-dot"></div>
+    <h1>GHOST SKY — LIVE MIDDLE EAST AIRSPACE</h1>
+    <span id="status">Connecting...</span>
+  </div>
+  <div id="map">
+    <div id="stats">
+      <div class="srow">
+        <div class="slabel">Aircraft in region</div>
+        <div class="sval sval-cyan" id="v-total">—</div>
+      </div>
+      <div class="srow">
+        <div class="slabel">Over Iran airspace</div>
+        <div class="sval sval-red" id="v-iran">—</div>
+        <div class="ssub">normally ~50–80</div>
+      </div>
+      <div class="srow">
+        <div class="slabel">Estimated diverted</div>
+        <div class="sval sval-orange" id="v-div">—</div>
+      </div>
+    </div>
+    <div id="legend">
+      <div class="lrow"><div class="lswatch" style="background:#00e5ff"></div>Live aircraft</div>
+      <div class="lrow"><div class="lswatch" style="background:rgba(255,50,50,0.25);border:1px dashed #ff3232"></div>Iran — closed airspace</div>
+      <div class="lrow"><div class="lswatch" style="background:rgba(255,140,0,0.2);border:1px dashed #ff8800"></div>Elevated risk zone</div>
+    </div>
+    <div id="banner">⚠ Iranian airspace closed March 1, 2026 — Dubai alone cancelled 747+ flights. The void below is real.</div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const map = L.map('map', { center:[31,51], zoom:5 });
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution:'© OpenStreetMap © CARTO', maxZoom:19
+    }).addTo(map);
+
+    const iranCoords = [
+      [39.8,44.1],[37.2,44.2],[36.6,43.8],[35.0,45.4],[33.6,45.9],
+      [31.0,47.5],[30.1,48.6],[29.9,50.1],[28.7,50.6],[27.2,53.0],
+      [25.2,57.3],[25.8,59.6],[28.0,61.0],[30.5,61.7],[33.0,61.5],
+      [36.6,59.6],[37.4,56.4],[38.2,53.7],[37.5,50.5],[38.6,48.2],
+      [39.0,47.0],[39.8,44.1]
+    ];
+    L.polygon(iranCoords, { color:'#ff3232', weight:1.5, dashArray:'6,5', fillColor:'#ff0000', fillOpacity:0.09 })
+      .addTo(map).bindTooltip('🚫 Iran — CLOSED TO CIVIL AVIATION', { sticky:true });
+
+    const iraqCoords = [
+      [37.2,42.2],[35.5,41.2],[34.0,40.7],[32.5,39.6],[29.3,40.0],
+      [29.5,43.5],[29.8,46.5],[30.2,47.7],[31.0,47.6],[33.1,46.0],
+      [35.0,45.5],[36.5,43.9],[37.2,42.2]
+    ];
+    L.polygon(iraqCoords, { color:'#ff8800', weight:1, dashArray:'4,5', fillColor:'#ff6600', fillOpacity:0.07 })
+      .addTo(map).bindTooltip('⚠ Iraq — Elevated Risk Zone', { sticky:true });
+
+    const gulfCoords = [
+      [26.5,50.5],[25.5,50.0],[23.5,51.5],[22.5,55.0],[23.5,56.5],
+      [25.5,56.5],[26.5,55.0],[26.5,50.5]
+    ];
+    L.polygon(gulfCoords, { color:'#ff8800', weight:1, dashArray:'3,5', fillColor:'#ff6600', fillOpacity:0.05 })
+      .addTo(map).bindTooltip('⚠ UAE/Gulf — Active Missile Alerts', { sticky:true });
+
+    L.marker([32.5,53], {
+      icon: L.divIcon({
+        className:'',
+        html:'<div style="color:#ff4444;font-size:9px;font-family:Courier New;font-weight:bold;letter-spacing:0.15em;background:rgba(0,0,0,0.85);padding:3px 8px;border:1px solid rgba(255,50,50,0.5);border-radius:3px;white-space:nowrap;">GHOST ZONE</div>',
+        iconAnchor:[38,10]
+      })
+    }).addTo(map);
+
+    const flightGroup = L.layerGroup().addTo(map);
+
+    function isOverIran(lat, lon) {
+      return lat >= 25 && lat <= 40 && lon >= 44 && lon <= 63;
+    }
+    function isWarningZone(lat, lon) {
+      return (lat >= 29 && lat <= 38 && lon >= 39 && lon <= 50) ||
+             (lat >= 22 && lat <= 27 && lon >= 50 && lon <= 57);
+    }
+
+    async function fetchFlights() {
+      try {
+        const r = await fetch('https://opensky-network.org/api/states/all?lamin=20&lomin=30&lamax=48&lomax=75');
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        const data = await r.json();
+        flightGroup.clearLayers();
+        let total = 0, overIran = 0;
+        (data.states || []).forEach(s => {
+          const lon = s[5], lat = s[6], onGround = s[8], heading = s[10];
+          const callsign = (s[1]||'').trim(), country = s[2]||'';
+          const speed = Math.round((s[9]||0)*1.944), alt = Math.round((s[7]||0)*3.281);
+          if (!lat || !lon || onGround) return;
+          total++;
+          const inIran = isOverIran(lat, lon);
+          if (inIran) overIran++;
+          const inWarn = !inIran && isWarningZone(lat, lon);
+          const color = inIran ? '#ff6600' : inWarn ? '#ffaa00' : '#00e5ff';
+          const icon = L.divIcon({
+            className:'',
+            html:`<div style="transform:rotate(${heading||0}deg);color:${color};font-size:11px;line-height:1;text-shadow:0 0 4px ${color};">▲</div>`,
+            iconSize:[11,11], iconAnchor:[5.5,5.5]
+          });
+          L.marker([lat,lon],{icon}).bindPopup(`<b>${callsign||'Unknown'}</b><br>${country}<br>Alt: ${alt.toLocaleString()} ft<br>Speed: ${speed} kts`)
+            .addTo(flightGroup);
+        });
+        document.getElementById('v-total').textContent = total;
+        document.getElementById('v-iran').textContent = overIran;
+        document.getElementById('v-div').textContent = '~' + Math.max(0, 65 - overIran);
+        document.getElementById('status').textContent = 'Live · ' + new Date().toUTCString().slice(17,25) + ' UTC · refreshes in 30s';
+      } catch(e) {
+        document.getElementById('status').textContent = 'Rate limited — retrying in 30s';
+      }
+    }
+
+    fetchFlights();
+    setInterval(fetchFlights, 30000);
+  </script>
+</body>
+</html>
