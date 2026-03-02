@@ -1,6 +1,43 @@
 [
   {
     "date": "2026-03-02",
+    "id": "2026-03-02-6",
+    "name": "Ringworld",
+    "description": "A city-building puzzle on a 3D torus where you strategically place microscopic structures that radiate influence along curved surfaces, discovering how AI-like constraints breed emergent complexity from simple adjacency rules.",
+    "inspiration": "Qualcomm's Snapdragon Wear Elite processes AI locally on tiny wearable devices, enabling personalized edge computing on rings, watches, and glasses.",
+    "connection": "The idea of powerful intelligence compressed into something tiny inspired a game where you manage a miniature civilization that must fit all its complexity — farms, libraries, factories — onto an impossibly small surface, like etching a world onto a grain of rice.",
+    "source_url": "https://www.qualcomm.com/news/releases/2026/03/qualcomm-powers-the-rise-of-personal-ai-with-new-snapdragon-wear",
+    "emoji": "💍",
+    "category": "AI-inspired",
+    "image": true
+  },
+  {
+    "date": "2026-03-02",
+    "id": "2026-03-02-5",
+    "name": "CurrencyQuake",
+    "description": "A live currency volatility dashboard that ranks global currencies by their strength or weakness against a chosen base, revealing safe havens and crisis pairs through color-coded bars and sparkline charts.",
+    "inspiration": "With Iran closing the Strait of Hormuz and oil prices spiking, currencies of oil-importing vs oil-exporting nations are diverging sharply. Traders, travelers, and analysts need to quickly see which currencies are crashing or surging relative to each other during this crisis — not just one pair, but a full matrix of movement.",
+    "connection": "Frankfurter provides free historical ECB exchange rate data for 30+ currencies, enabling computation of cross-currency performance rankings over any recent window.",
+    "source_url": "https://www.aa.com.tr/en/world/morning-briefing-march-2-2026/3845909",
+    "emoji": "📉",
+    "category": "API tool",
+    "api": "Frankfurter",
+    "image": true
+  },
+  {
+    "date": "2026-03-02",
+    "id": "2026-03-02-4",
+    "name": "Coralith",
+    "description": "A living coral reef that grows in 3D based on temperature, light, and currents, revealing hidden bioluminescent chambers and symbiotic life when you slice through it.",
+    "inspiration": "A mother-daughter duo discovered unknown marine structures at the Great Barrier Reef, revealing hidden life within a fragile ecosystem.",
+    "connection": "The idea of unseen structures hiding inside something vast and alive sparked a simulation where you tend a living reef that grows its own secret interior architecture you can only discover by careful observation.",
+    "source_url": "https://www.youtube.com/watch?v=lojCspTCpAA",
+    "emoji": "🪸",
+    "category": "Simulation",
+    "image": true
+  },
+  {
+    "date": "2026-03-02",
     "id": "2026-03-02-3",
     "name": "Latencia",
     "description": "A branching decision game where your hesitation and speed shape a living bonsai tree of consequences, inspired by how AI inference windows constrain decision-making under time pressure.",

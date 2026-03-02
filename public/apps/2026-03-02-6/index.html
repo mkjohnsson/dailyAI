@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ringworld — Daily AI Gen</title>
+  <meta name="description" content="A city-building puzzle on a 3D torus where you strategically place microscopic structures that radiate influence along curved surfaces, discovering how AI-like constraints breed emergent complexity from simple adjacency rules.">
+  <meta property="og:title" content="Ringworld — Daily AI Gen">
+  <meta property="og:description" content="A city-building puzzle on a 3D torus where you strategically place microscopic structures that radiate influence along curved surfaces, discovering how AI-like constraints breed emergent complexity from simple adjacency rules.">
+  <meta property="og:url" content="https://dailyaigen.com/apps/2026-03-02-6/">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="https://dailyaigen.com/apps/2026-03-02-6/">
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  body {
+    font-family: 'Courier New', monospace;
+    background: #0a0a0a;
+    color: #e0e0e0;
+    overflow: hidden;
+    height: 100vh;
+  }
+  
+  #container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+  }
+  
+  #ui {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    background: rgba(0, 0, 0, 0.8);
+    padding: 20px;
+    border: 1px solid #333;
+    border-radius: 4px;
+    z-index: 10;
+    max-width: 280px;
+  }
+  
+  h1 {
+    font-size: 18px;
+    margin-bottom: 10px;
+    color: #4fc3f7;
+  }
+  
+  .stat {
+    font-size: 12px;
+    margin: 8px 0;
+    display: flex;
+    justify-content: space-between;
+  }
+  
+  .stat-label {
+    color: #888;
+  }
+  
+  .stat-value {
+    color: #4fc3f7;
+    font-weight: bold;
+  }
+  
+  .building-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin: 15px 0;
+  }
+  
+  .building-btn {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    color: #e0e0e0;
+    padding: 12px 8px;
+    cursor: pointer;
+    font-size: 11px;
+    transition: all 0.2s;
+    border-radius: 3px;
+  }
+  
+  .building-btn:hover {
+    background: #2a2a2a;
+    border-color: #4fc3f7;
+  }
+  
+  .building-btn.selected {
+    background: #4fc3f7;
+    color: #000;
+    border-color: #4fc3f7;
+  }
+  
+  .building-btn.disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+  
+  .building-info {
+    font-size: 10px;
+    color: #666;
+    margin-top: 3px;
+  }
+  
+  #message {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.9);
+    padding: 15px 30px;
+    border: 1px solid #4fc3f7;
+    border-radius: 4px;
+    font-size: 14px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+    z-index: 10;
+  }
+  
+  #message.show {
+    opacity: 1;
+  }
+  
+  .controls {
+    font-size: 10px;
+    color: #666;
+    margin-top: 15px;
+    line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+
+<div id="container"></div>
+
+<div id="ui">
+  <h1>RINGWORLD</h1>
+  <div class="stat">
+    <span class="stat-label">Complexity:</span>
+    <span class="stat-value" id="complexity">0</span>
+  </div>
+  <div class="stat">
+    <span class="stat-label">Buildings:</span>
+    <span class="stat-value" id="buildings">0/50</span>
+  </div>
+  <div class="stat">
+    <span class="stat-label">Stability:</span>
+    <span class="stat-value" id="stability">100%</span>
+  </div>
+  
+  <div class="building-grid">
+    <button class="building-btn" data-type="market">
+      MARKET<br>
+      <div class="building-info">+trade</div>
+    </button>
+    <button class="building-btn" data-type="temple">
+      TEMPLE<br>
+      <div class="building-info">+culture</div>
+    </button>
+    <button class="building-btn" data-type="aqueduct">
+      AQUEDUCT<br>
+      <div class="building-info">+flow</div>
+    </button>
+    <button class="building-btn" data-type="plaza">
+      PLAZA<br>
+      <div class="building-info">+synergy</div>
+    </button>
+    <button class="building-btn" data-type="library">
+      LIBRARY<br>
+      <div class="building-info">+knowledge</div>
+    </button>
+    <button class="building-btn" data-type="garden">
+      GARDEN<br>
+      <div class="building-info">+stability</div>
+    </button>
+  </div>
+  
+  <div class="controls">
+    Click ring to place building<br>
+    Drag to rotate • Scroll to zoom<br>
+    Right-click building to remove
+  </div>
+</div>
+
+<div id="message"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// Scene setup
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setClearColor(0x0a0a0a);
+document.getElementById('container').appendChild(renderer.domElement);
+
+camera.position.set(0, 3, 8);
+camera.lookAt(0, 0, 0);
+
+// Lighting
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+scene.add(ambientLight);
+const pointLight = new THREE.PointLight(0x4fc3f7, 1, 100);
+pointLight.position.set(5, 5, 5);
+scene.add(pointLight);
+
+// Create torus
+const torusGeometry = new THREE.TorusGeometry(3, 0.8, 32, 100);
+const torusMaterial = new THREE.MeshPhongMaterial({ 
+  color: 0x1a1a1a,
+  wireframe: false,
+  transparent: true,
+  opacity: 0.6
+});
+const torus = new THREE.Mesh(torusGeometry, torusMaterial);
+scene.add(torus);
+
+// Wireframe overlay
+const wireframeGeometry = new THREE.TorusGeometry(3, 0.8, 32, 100);
+const wireframeMaterial = new THREE.MeshBasicMaterial({ 
+  color: 0x333333,
+  wireframe: true,
+  transparent: true,
+  opacity: 0.3
+});
+const wireframe = new THREE.Mesh(wireframeGeometry, wireframeMaterial);
+scene.add(wireframe);
+
+// Building types
+const buildingTypes = {
+  market: { color: 0xffeb3b, influence: 2, bonus: ['temple', 'plaza'] },
+  temple: { color: 0x9c27b0, influence: 3, bonus: ['library', 'market'] },
+  aqueduct: { color: 0x03a9f4, influence: 2.5, bonus: ['garden', 'plaza'] },
+  plaza: { color: 0xff5722, influence: 2, bonus: ['market', 'temple', 'library'] },
+  library: { color: 0x4caf50, influence: 3, bonus: ['temple', 'plaza'] },
+  garden: { color: 0x8bc34a, influence: 1.5, bonus: ['aqueduct', 'library'] }
+};
+
+// Game state
+let buildings = [];
+let selectedType = null;
+let maxBuildings = 50;
+let complexity = 0;
+let stability = 100;
+
+// Raycaster for interaction
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+let isDragging = false;
+let previousMousePosition = { x: 0, y: 0 };
+
+// Building placement
+function placeBuilding(point, normal) {
+  if (buildings.length >= maxBuildings) {
+    showMessage('Maximum buildings reached!');
+    return;
+  }
+  
+  if (!selectedType) {
+    showMessage('Select a building type first');
+    return;
+  }
+  
+  // Check if too close to another building
+  const minDistance = 0.3;
+  for (let b of buildings) {
+    if (point.distanceTo(b.position) < minDistance) {
+      showMessage('Too close to another building!');
+      return;
+    }
+  }
+  
+  const type = buildingTypes[selectedType];
+  const geometry = new THREE.BoxGeometry(0.15, 0.15, 0.15);
+  const material = new THREE.MeshPhongMaterial({ 
+    color: type.color,
+    emissive: type.color,
+    emissiveIntensity: 0.3
+  });
+  const cube = new THREE.Mesh(geometry, material);
+  
+  cube.position.copy(point);
+  cube.lookAt(point.clone().add(normal));
+  
+  scene.add(cube);
+  
+  buildings.push({
+    mesh: cube,
+    type: selectedType,
+    position: point.clone(),
+    influenceRadius: type.influence
+  });
+  
+  updateStats();
+  calculateComplexity();
+}
+
+// Remove building
+function removeBuilding(building) {
+  scene.remove(building.mesh);
+  buildings = buildings.filter(b => b !== building);
+  updateStats();
+  calculateComplexity();
+}
+
+// Calculate complexity based on adjacency and synergies
+function calculateComplexity() {
+  let score = buildings.length * 10;
+  let crowding = 0;
+  
+  for (let i = 0; i < buildings.length; i++) {
+    const b1 = buildings[i];
+    let adjacentBonus = 0;
+    let tooClose = 0;
+    
+    for (let j = 0; j < buildings.length; j++) {
+      if (i === j) continue;
+      const b2 = buildings[j];
+      const dist = b1.position.distanceTo(b2.position);
+      
+      // Adjacency bonus
+      if (dist < b1.influenceRadius) {
+        const type1 = buildingTypes[b1.type];
+        if (type1.bonus.includes(b2.type)) {
+          adjacentBonus += 15;
+        } else {
+          adjacentBonus += 5;
+        }
+      }
+      
+      // Crowding penalty
+      if (dist < 0.5) {
+        tooClose++;
+      }
+    }
+    
+    score += adjacentBonus;
+    crowding += tooClose;
+  }
+  
+  // Stability calculation
+  const crowdingPenalty = Math.min(crowding * 2, 80);
+  stability = Math.max(20, 100 - crowdingPenalty);
+  
+  // Reduce complexity if unstable
+  if (stability < 50) {
+    score *= (stability / 100);
+  }
+  
+  complexity = Math.floor(score);
+  
+  // Update visual feedback
+  updateBuildingGlow();
+}
+
+// Update building glow based on synergies
+function updateBuildingGlow() {
+  for (let i = 0; i < buildings.length; i++) {
+    const b1 = buildings[i];
+    let synergyCount = 0;
+    
+    for (let j = 0; j < buildings.length; j++) {
+      if (i === j) continue;
+      const b2 = buildings[j];
+      const dist = b1.position.distanceTo(b2.position);
+      
+      if (dist < b1.influenceRadius) {
+        const type1 = buildingTypes[b1.type];
+        if (type1.bonus.includes(b2.type)) {
+          synergyCount++;
+        }
+      }
+    }
+    
+    const intensity = Math.min(0.3 + synergyCount * 0.15, 0.9);
+    b1.mesh.material.emissiveIntensity = intensity;
+  }
+}
+
+// Update UI stats
+function updateStats() {
+  document.getElementById('complexity').textContent = complexity;
+  document.getElementById('buildings').textContent = `${buildings.length}/${maxBuildings}`;
+  document.getElementById('stability').textContent = `${stability}%`;
+  
+  const stabilityEl = document.getElementById('stability');
+  if (stability < 50) {
+    stabilityEl.style.color = '#ff5722';
+  } else if (stability < 75) {
+    stabilityEl.style.color = '#ffeb3b';
+  } else {
+    stabilityEl.style.color = '#4fc3f7';
+  }
+}
+
+// Show message
+function showMessage(text) {
+  const msg = document.getElementById('message');
+  msg.textContent = text;
+  msg.classList.add('show');
+  setTimeout(() => msg.classList.remove('show'), 2000);
+}
+
+// Mouse events
+renderer.domElement.addEventListener('mousedown', (e) => {
+  if (e.button === 0) {
+    isDragging = true;
+    previousMousePosition = { x: e.clientX, y: e.clientY };
+  }
+});
+
+renderer.domElement.addEventListener('mousemove', (e) => {
+  if (isDragging) {
+    const deltaX = e.clientX - previousMousePosition.x;
+    const deltaY = e.clientY - previousMousePosition.y;
+    
+    torus.rotation.y += deltaX * 0.01;
+    wireframe.rotation.y += deltaX * 0.01;
+    torus.rotation.x += deltaY * 0.01;
+    wireframe.rotation.x += deltaY * 0.01;
+    
+    buildings.forEach(b => {
+      b.mesh.rotation.y += deltaX * 0.01;
+      b.mesh.rotation.x += deltaY * 0.01;
+    });
+    
+    previousMousePosition = { x: e.clientX, y: e.clientY };
+  }
+});
+
+renderer.domElement.addEventListener('mouseup', () => {
+  isDragging = false;
+});
+
+renderer.domElement.addEventListener('click', (e) => {
+  if (isDragging) return;
+  
+  mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+  
+  raycaster.setFromCamera(mouse, camera);
+  const intersects = raycaster.intersectObject(torus);
+  
+  if (intersects.length > 0) {
+    const point = intersects[0].point;
+    const normal = intersects[0].face.normal;
+    placeBuilding(point, normal);
+  }
+});
+
+renderer.domElement.addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+  
+  mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+  
+  raycaster.setFromCamera(mouse, camera);
+  const meshes = buildings.map(b => b.mesh);
+  const intersects = raycaster.intersectObjects(meshes);
+  
+  if (intersects.length > 0) {
+    const building = buildings.find(b => b.mesh === intersects[0].object);
+    if (building) {
+      removeBuilding(building);
+    }
+  }
+});
+
+// Zoom
+renderer.domElement.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  camera.position.z += e.deltaY * 0.01;
+  camera.position.z = Math.max(4, Math.min(15, camera.position.z));
+});
+
+// Building selection
+document.querySelectorAll('.building-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (buildings.length >= maxBuildings) return;
+    
+    document.querySelectorAll('.building-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    selectedType = btn.dataset.type;
+  });
+});
+
+// Animation loop
+function animate() {
+  requestAnimationFrame(animate);
+  
+  // Subtle auto-rotation
+  torus.rotation.y += 0.001;
+  wireframe.rotation.y += 0.001;
+  
+  renderer.render(scene, camera);
+}
+
+animate();
+
+// Window resize
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// Initial message
+setTimeout(() => showMessage('Build your civilization on the ring'), 500);
+</script>
+
+</body>
+</html>
