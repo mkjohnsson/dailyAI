@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Duskwatch — Daily AI Gen</title>
+  <meta name="description" content="A synchronized daylight timeline tracking sunrise, sunset, and twilight across Iranian and regional cities with a live clock sweeping through 24 hours, showing which locations are in golden hour, twilight, or darkness at any moment.">
+  <meta property="og:title" content="Duskwatch — Daily AI Gen">
+  <meta property="og:description" content="A synchronized daylight timeline tracking sunrise, sunset, and twilight across Iranian and regional cities with a live clock sweeping through 24 hours, showing which locations are in golden hour, twilight, or darkness at any moment.">
+  <meta property="og:url" content="https://dailyaigen.com/apps/2026-03-02-2/">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="https://dailyaigen.com/apps/2026-03-02-2/">
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Courier New', monospace;
+  background: #0a0e1a;
+  color: #e0e6ed;
+  padding: 20px;
+  overflow-x: hidden;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+h1 {
+  font-size: 2.5em;
+  letter-spacing: 3px;
+  color: #ff6b35;
+  margin-bottom: 5px;
+}
+
+.subtitle {
+  color: #7a8a99;
+  font-size: 0.9em;
+}
+
+.risk-banner {
+  background: linear-gradient(135deg, #1a2332 0%, #2d3f54 100%);
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 30px;
+  border: 1px solid #3a4d66;
+  text-align: center;
+  transition: all 0.5s ease;
+}
+
+.risk-banner.high-risk {
+  background: linear-gradient(135deg, #4a2c1a 0%, #6b3d1f 100%);
+  border-color: #ff6b35;
+}
+
+.risk-time {
+  font-size: 3em;
+  font-weight: bold;
+  color: #ff6b35;
+  margin: 10px 0;
+}
+
+.risk-label {
+  font-size: 0.9em;
+  color: #b0c0d0;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.controls {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 30px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.control-group {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+input, button {
+  background: #1a2332;
+  border: 1px solid #3a4d66;
+  color: #e0e6ed;
+  padding: 10px 15px;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9em;
+}
+
+input {
+  width: 120px;
+}
+
+button {
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+button:hover {
+  background: #2d3f54;
+  border-color: #ff6b35;
+}
+
+.timeline-container {
+  position: relative;
+  margin-bottom: 40px;
+}
+
+.timeline-header {
+  display: flex;
+  position: relative;
+  height: 40px;
+  margin-bottom: 10px;
+  border-bottom: 2px solid #3a4d66;
+}
+
+.hour-marker {
+  position: absolute;
+  top: 0;
+  width: 1px;
+  height: 100%;
+  border-left: 1px solid #2d3f54;
+  color: #7a8a99;
+  font-size: 0.8em;
+  padding-left: 3px;
+}
+
+.city-row {
+  position: relative;
+  height: 60px;
+  margin-bottom: 15px;
+  background: #0f1621;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid #1a2332;
+}
+
+.city-name {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-weight: bold;
+  z-index: 10;
+  background: rgba(10, 14, 26, 0.9);
+  padding: 5px 10px;
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+
+.phase {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  transition: all 0.3s ease;
+}
+
+.phase.night { background: #0a0e1a; }
+.phase.nautical { background: #1a2845; }
+.phase.civil { background: #2d4566; }
+.phase.golden { background: #ff9f5a; opacity: 0.6; }
+.phase.day { background: #4a90e2; opacity: 0.4; }
+
+.now-line {
+  position: absolute;
+  top: 0;
+  width: 2px;
+  height: 100%;
+  background: #ff6b35;
+  z-index: 100;
+  pointer-events: none;
+  box-shadow: 0 0 10px #ff6b35;
+}
+
+.now-time {
+  position: absolute;
+  top: -30px;
+  left: -20px;
+  background: #ff6b35;
+  color: #0a0e1a;
+  padding: 4px 8px;
+  border-radius: 3px;
+  font-size: 0.8em;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: #7a8a99;
+  font-size: 1.2em;
+}
+
+.error {
+  background: #4a1f1f;
+  border: 1px solid #8a3a3a;
+  padding: 15px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+  color: #ffaaaa;
+}
+
+.legend {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 30px;
+  padding: 20px;
+  background: #0f1621;
+  border-radius: 4px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85em;
+}
+
+.legend-color {
+  width: 30px;
+  height: 15px;
+  border-radius: 2px;
+}
+
+.compare-mode {
+  margin-top: 30px;
+  padding: 20px;
+  background: #0f1621;
+  border-radius: 4px;
+  border: 1px solid #1a2332;
+}
+
+.date-selector {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.tooltip {
+  position: absolute;
+  background: rgba(10, 14, 26, 0.95);
+  border: 1px solid #ff6b35;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 0.8em;
+  pointer-events: none;
+  z-index: 200;
+  display: none;
+  white-space: nowrap;
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>DUSKWATCH</h1>
+  <div class="subtitle">Live Multi-City Daylight Surveillance</div>
+</div>
+
+<div class="risk-banner" id="riskBanner">
+  <div class="risk-label">NEXT REGIONAL DUSK</div>
+  <div class="risk-time" id="riskTime">--:--</div>
+  <div class="risk-label" id="riskCity">CALCULATING...</div>
+</div>
+
+<div class="controls">
+  <div class="control-group">
+    <input type="number" id="customLat" placeholder="Latitude" step="0.01">
+    <input type="number" id="customLng" placeholder="Longitude" step="0.01">
+    <input type="text" id="customName" placeholder="City Name">
+    <button onclick="addCustomCity()">Add Location</button>
+  </div>
+  <button onclick="toggleCompareMode()">Compare Dates</button>
+  <button onclick="loadData()">Refresh</button>
+</div>
+
+<div id="errorContainer"></div>
+<div id="loadingContainer"></div>
+
+<div class="timeline-container" id="timelineContainer">
+  <div class="timeline-header" id="timelineHeader"></div>
+  <div id="cityRows"></div>
+  <div class="now-line" id="nowLine">
+    <div class="now-time" id="nowTime"></div>
+  </div>
+</div>
+
+<div class="compare-mode" id="compareMode" style="display: none;">
+  <h3 style="margin-bottom: 15px;">Date Comparison</h3>
+  <div class="date-selector">
+    <div>
+      <label>Date 1: </label>
+      <input type="date" id="date1" value="">
+    </div>
+    <div>
+      <label>Date 2: </label>
+      <input type="date" id="date2" value="">
+    </div>
+    <button onclick="compareData()">Compare</button>
+  </div>
+  <div id="comparisonResult"></div>
+</div>
+
+<div class="legend">
+  <div class="legend-item">
+    <div class="legend-color" style="background: #0a0e1a;"></div>
+    <span>Night</span>
+  </div>
+  <div class="legend-item">
+    <div class="legend-color" style="background: #1a2845;"></div>
+    <span>Nautical Twilight</span>
+  </div>
+  <div class="legend-item">
+    <div class="legend-color" style="background: #2d4566;"></div>
+    <span>Civil Twilight</span>
+  </div>
+  <div class="legend-item">
+    <div class="legend-color" style="background: #ff9f5a; opacity: 0.6;"></div>
+    <span>Golden Hour</span>
+  </div>
+  <div class="legend-item">
+    <div class="legend-color" style="background: #4a90e2; opacity: 0.4;"></div>
+    <span>Daylight</span>
+  </div>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+const DEFAULT_CITIES = [
+  { name: 'Tehran', lat: 35.6892, lng: 51.3890 },
+  { name: 'Isfahan', lat: 32.6546, lng: 51.6680 },
+  { name: 'Bushehr', lat: 28.9684, lng: 50.8385 },
+  { name: 'Baghdad', lat: 33.3152, lng: 44.3661 },
+  { name: 'Tel Aviv', lat: 32.0853, lng: 34.7818 }
+];
+
+let cities = [...DEFAULT_CITIES];
+let cityData = {};
+let compareMode = false;
+
+function showLoading() {
+  document.getElementById('loadingContainer').innerHTML = '<div class="loading">Fetching daylight data...</div>';
+}
+
+function hideLoading() {
+  document.getElementById('loadingContainer').innerHTML = '';
+}
+
+function showError(message) {
+  document.getElementById('errorContainer').innerHTML = `<div class="error">⚠ ${message}</div>`;
+}
+
+function clearError() {
+  document.getElementById('errorContainer').innerHTML = '';
+}
+
+async function fetchSunData(lat, lng, date = null) {
+  let url = `https://api.sunrise-sunset.org/json?lat=${lat}&lng=${lng}&formatted=0`;
+  if (date) {
+    url += `&date=${date}`;
+  }
+  
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`API request failed: ${response.status}`);
+  }
+  
+  const data = await response.json();
+  if (data.status !== 'OK') {
+    throw new Error('API returned error status');
+  }
+  
+  return data.results;
+}
+
+function parseTimeToMinutes(isoString) {
+  const date = new Date(isoString);
+  return date.getHours() * 60 + date.getMinutes();
+}
+
+function formatTime(isoString) {
+  const date = new Date(isoString);
+  return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+}
+
+function getCurrentMinutes() {
+  const now = new Date();
+  return now.getHours() * 60 + now.getMinutes();
+}
+
+async function loadData(date = null) {
+  showLoading();
+  clearError();
+  cityData = {};
+  
+  try {
+    for (const city of cities) {
+      const data = await fetchSunData(city.lat, city.lng, date);
+      
+      cityData[city.name] = {
+        sunrise: parseTimeToMinutes(data.sunrise),
+        sunset: parseTimeToMinutes(data.sunset),
+        civil_twilight_begin: parseTimeToMinutes(data.civil_twilight_begin),
+        civil_twilight_end: parseTimeToMinutes(data.civil_twilight_end),
+        nautical_twilight_begin: parseTimeToMinutes(data.nautical_twilight_begin),
+        nautical_twilight_end: parseTimeToMinutes(data.nautical_twilight_end),
+        raw: data
+      };
+    }
+    
+    renderTimeline();
+    updateRiskBanner();
+  } catch (error) {
+    showError(`Failed to fetch data: ${error.message}`);
+    console.error(error);
+  } finally {
+    hideLoading();
+  }
+}
+
+function renderTimeline() {
+  const header = document.getElementById('timelineHeader');
+  const rows = document.getElementById('cityRows');
+  
+  header.innerHTML = '';
+  rows.innerHTML = '';
+  
+  // Render hour markers
+  for (let h = 0; h <= 24; h++) {
+    const marker = document.createElement('div');
+    marker.className = 'hour-marker';
+    marker.style.left = `${(h / 24) * 100}%`;
+    marker.textContent = h < 24 ? `${h}:00` : '';
+    header.appendChild(marker);
+  }
+  
+  // Render city rows
+  for (const city of cities) {
+    if (!cityData[city.name]) continue;
+    
+    const row = document.createElement('div');
+    row.className = 'city-row';
+    
+    const nameLabel = document.createElement('div');
+    nameLabel.className = 'city-name';
+    nameLabel.textContent = city.name;
+    row.appendChild(nameLabel);
+    
+    const data = cityData[city.name];
+    
+    // Create phases
+    const phases = [
+      { start: 0, end: data.nautical_twilight_begin, type: 'night' },
+      { start: data.nautical_twilight_begin, end: data.civil_twilight_begin, type: 'nautical' },
+      { start: data.civil_twilight_begin, end: data.sunrise, type: 'civil' },
+      { start: data.sunrise, end: data.sunrise + 60, type: 'golden' },
+      { start: data.sunrise + 60, end: data.sunset - 60, type: 'day' },
+      { start: data.sunset - 60, end: data.sunset, type: 'golden' },
+      { start: data.sunset, end: data.civil_twilight_end, type: 'civil' },
+      { start: data.civil_twilight_end, end: data.nautical_twilight_end, type: 'nautical' },
+      { start: data.nautical_twilight_end, end: 1440, type: 'night' }
+    ];
+    
+    phases.forEach(phase => {
+      const div = document.createElement('div');
+      div.className = `phase ${phase.type}`;
+      div.style.left = `${(phase.start / 1440) * 100}%`;
+      div.style.width = `${((phase.end - phase.start) / 1440) * 100}%`;
+      
+      div.addEventListener('mouseenter', (e) => showTooltip(e, city.name, phase));
+      div.addEventListener('mouseleave', hideTooltip);
+      
+      row.appendChild(div);
+    });
+    
+    rows.appendChild(row);
+  }
+}
+
+function showTooltip(e, cityName, phase) {
+  const tooltip = document.getElementById('tooltip');
+  const data = cityData[cityName];
+  
+  let content = '';
+  switch(phase.type) {
+    case 'night':
+      content = 'Full Darkness';
+      break;
+    case 'nautical':
+      content = 'Nautical Twilight';
+      break;
+    case 'civil':
+      content = 'Civil Twilight';
+      break;
+    case 'golden':
+      content = 'Golden Hour';
+      break;
+    case 'day':
+      content = 'Full Daylight';
+      break;
+  }
+  
+  tooltip.textContent = `${cityName}: ${content}`;
+  tooltip.style.display = 'block';
+  tooltip.style.left = e.pageX + 10 + 'px';
+  tooltip.style.top = e.pageY + 10 + 'px';
+}
+
+function hideTooltip() {
+  document.getElementById('tooltip').style.display = 'none';
+}
+
+function updateNowLine() {
+  const nowLine = document.getElementById('nowLine');
+  const nowTime = document.getElementById('nowTime');
+  const currentMinutes = getCurrentMinutes();
+  
+  nowLine.style.left = `${(currentMinutes / 1440) * 100}%`;
+  
+  const now = new Date();
+  nowTime.textContent = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+}
+
+function updateRiskBanner() {
+  const banner = document.getElementById('riskBanner');
+  const riskTime = document.getElementById('riskTime');
+  const riskCity = document.getElementById('riskCity');
+  
+  const currentMinutes = getCurrentMinutes();
+  let nextDusk = null;
+  let duskCity = '';
+  
+  // Find next dusk across all cities
+  for (const city of cities) {
+    if (!cityData[city.name]) continue;
+    
+    const sunset = cityData[city.name].sunset;
+    if (sunset > currentMinutes) {
+      if (!nextDusk || sunset < nextDusk) {
+        nextDusk = sunset;
+        duskCity = city.name;
+      }
+    }
+  }
+  
+  if (nextDusk) {
+    const hoursUntil = (nextDusk - currentMinutes) / 60;
+    const hours = Math.floor(hoursUntil);
+    const minutes = Math.round((hoursUntil - hours) * 60);
+    
+    riskTime.textContent = `${hours}h ${minutes}m`;
+    riskCity.textContent = `Until dusk in ${duskCity}`;
+    
+    // Visual state based on proximity
+    if (hoursUntil < 2) {
+      banner.classList.add('high-risk');
+      banner.style.background = 'linear-gradient(135deg, #1a0f2e 0%, #2d1f54 100%)';
+    } else if (hoursUntil < 4) {
+      banner.classList.add('high-risk');
+    } else {
+      banner.classList.remove('high-risk');
+    }
+  } else {
+    riskTime.textContent = 'N/A';
+    riskCity.textContent = 'All locations in darkness';
+    banner.classList.remove('high-risk');
+  }
+}
+
+function addCustomCity() {
+  const lat = parseFloat(document.getElementById('customLat').value);
+  const lng = parseFloat(document.getElementById('customLng').value);
+  const name = document.getElementById('customName').value.trim();
+  
+  if (!lat || !lng || !name) {
+    showError('Please enter valid coordinates and city name');
+    return;
+  }
+  
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+    showError('Invalid coordinates');
+    return;
+  }
+  
+  cities.push({ name, lat, lng });
+  
+  document.getElementById('customLat').value = '';
+  document.getElementById('customLng').value = '';
+  document.getElementById('customName').value = '';
+  
+  loadData();
+}
+
+function toggleCompareMode() {
+  compareMode = !compareMode;
+  const compareDiv = document.getElementById('compareMode');
+  compareDiv.style.display = compareMode ? 'block' : 'none';
+  
+  if (compareMode) {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('date1').value = today;
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    document.getElementById('date2').value = tomorrow.toISOString().split('T')[0];
+  }
+}
+
+async function compareData() {
+  const date1 = document.getElementById('date1').value;
+  const date2 = document.getElementById('date2').value;
+  
+  if (!date1 || !date2) {
+    showError('Please select both dates');
+    return;
+  }
+  
+  showLoading();
+  clearError();
+  
+  try {
+    const results = [];
+    
+    for (const city of cities) {
+      const data1 = await fetchSunData(city.lat, city.lng, date1);
+      const data2 = await fetchSunData(city.lat, city.lng, date2);
+      
+      const sunrise1 = parseTimeToMinutes(data1.sunrise);
+      const sunrise2 = parseTimeToMinutes(data2.sunrise);
+      const sunset1 = parseTimeToMinutes(data1.sunset);
+      const sunset2 = parseTimeToMinutes(data2.sunset);
+      
+      const dayLength1 = sunset1 - sunrise1;
+      const dayLength2 = sunset2 - sunrise2;
+      const diff = dayLength2 - dayLength1;
+      
+      results.push({
+        city: city.name,
+        date1: date1,
+        date2: date2,
+        dayLength1: Math.round(dayLength1),
+        dayLength2: Math.round(dayLength2),
+        diff: Math.round(diff)
+      });
+    }
+    
+    displayComparison(results);
+  } catch (error) {
+    showError(`Comparison failed: ${error.message}`);
+  } finally {
+    hideLoading();
+  }
+}
+
+function displayComparison(results) {
+  const container = document.getElementById('comparisonResult');
+  
+  let html = '<table style="width: 100%; margin-top: 20px; border-collapse: collapse;">';
+  html += '<tr style="border-bottom: 1px solid #3a4d66;"><th style="padding: 10px; text-align: left;">City</th><th>Date 1 Daylight</th><th>Date 2 Daylight</th><th>Change</th></tr>';
+  
+  results.forEach(r => {
+    const changeColor = r.diff > 0 ? '#4a90e2' : '#ff6b35';
+    const changeSign = r.diff > 0 ? '+' : '';
+    html += `<tr style="border-bottom: 1px solid #1a2332;">
+      <td style="padding: 10px;">${r.city}</td>
+      <td style="padding: 10px; text-align: center;">${Math.floor(r.dayLength1/60)}h ${r.dayLength1%60}m</td>
+      <td style="padding: 10px; text-align: center;">${Math.floor(r.dayLength2/60)}h ${r.dayLength2%60}m</td>
+      <td style="padding: 10px; text-align: center; color: ${changeColor}; font-weight: bold;">${changeSign}${r.diff} min</td>
+    </tr>`;
+  });
+  
+  html += '</table>';
+  container.innerHTML = html;
+}
+
+// Initialize
+loadData();
+setInterval(updateNowLine, 1000);
+setInterval(updateRiskBanner, 60000);
+updateNowLine();
+
+</script>
+
+</body>
+</html>

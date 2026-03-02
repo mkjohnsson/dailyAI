@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Softwreck — Daily AI Gen</title>
+  <meta name="description" content="A fabric inflation and wind-sculpting toy where you create soft billowing shapes, choose their colors and patterns, then use gusts of wind to navigate them through a procedural lattice while realistic cloth physics tear and drape them into beautiful wreckage.">
+  <meta property="og:title" content="Softwreck — Daily AI Gen">
+  <meta property="og:description" content="A fabric inflation and wind-sculpting toy where you create soft billowing shapes, choose their colors and patterns, then use gusts of wind to navigate them through a procedural lattice while realistic cloth physics tear and drape them into beautiful wreckage.">
+  <meta property="og:url" content="https://dailyaigen.com/apps/2026-03-02/">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="https://dailyaigen.com/apps/2026-03-02/">
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Courier New', monospace;
+  background: #0a0a0a;
+  overflow: hidden;
+  color: #fff;
+}
+
+#canvas {
+  display: block;
+  cursor: crosshair;
+}
+
+#controls {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background: rgba(20, 20, 20, 0.9);
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid #333;
+  max-width: 280px;
+}
+
+h1 {
+  font-size: 18px;
+  margin-bottom: 15px;
+  color: #ff6b6b;
+  letter-spacing: 2px;
+}
+
+.control-group {
+  margin-bottom: 15px;
+}
+
+label {
+  display: block;
+  font-size: 11px;
+  margin-bottom: 5px;
+  color: #aaa;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+input[type="color"] {
+  width: 100%;
+  height: 35px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+input[type="range"] {
+  width: 100%;
+  cursor: pointer;
+}
+
+select {
+  width: 100%;
+  padding: 8px;
+  background: #1a1a1a;
+  color: #fff;
+  border: 1px solid #333;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: 'Courier New', monospace;
+}
+
+button {
+  width: 100%;
+  padding: 12px;
+  background: #ff6b6b;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  margin-top: 5px;
+  transition: background 0.2s;
+}
+
+button:hover {
+  background: #ff5252;
+}
+
+button:active {
+  background: #ff3838;
+}
+
+.value-display {
+  font-size: 10px;
+  color: #666;
+  text-align: right;
+  margin-top: 2px;
+}
+
+#info {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  font-size: 10px;
+  color: #666;
+  max-width: 300px;
+  line-height: 1.4;
+}
+
+.divider {
+  height: 1px;
+  background: #333;
+  margin: 15px 0;
+}
+</style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+
+<div id="controls">
+  <h1>SOFTWRECK</h1>
+  
+  <div class="control-group">
+    <label>Fabric Color</label>
+    <input type="color" id="colorPicker" value="#ff6b9d">
+  </div>
+  
+  <div class="control-group">
+    <label>Pattern</label>
+    <select id="patternSelect">
+      <option value="solid">Solid</option>
+      <option value="gradient">Gradient</option>
+      <option value="stripes">Stripes</option>
+      <option value="dots">Dots</option>
+    </select>
+  </div>
+  
+  <div class="control-group">
+    <label>Fabric Size</label>
+    <input type="range" id="sizeSlider" min="20" max="80" value="40">
+    <div class="value-display" id="sizeValue">40</div>
+  </div>
+  
+  <div class="control-group">
+    <label>Inflation Speed</label>
+    <input type="range" id="inflationSlider" min="1" max="10" value="5">
+    <div class="value-display" id="inflationValue">5</div>
+  </div>
+  
+  <button id="inflateBtn">INFLATE FABRIC</button>
+  <button id="clearBtn" style="background: #444; margin-top: 10px;">CLEAR ALL</button>
+</div>
+
+<div id="info">
+  Click & drag to create wind gusts. Watch fabric tear on impact with the lattice.
+</div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+// UI Elements
+const colorPicker = document.getElementById('colorPicker');
+const patternSelect = document.getElementById('patternSelect');
+const sizeSlider = document.getElementById('sizeSlider');
+const inflationSlider = document.getElementById('inflationSlider');
+const inflateBtn = document.getElementById('inflateBtn');
+const clearBtn = document.getElementById('clearBtn');
+const sizeValue = document.getElementById('sizeValue');
+const inflationValue = document.getElementById('inflationValue');
+
+sizeSlider.addEventListener('input', () => {
+  sizeValue.textContent = sizeSlider.value;
+});
+
+inflationSlider.addEventListener('input', () => {
+  inflationValue.textContent = inflationSlider.value;
+});
+
+// Lattice structure
+class Lattice {
+  constructor() {
+    this.structures = [];
+    this.generate();
+  }
+  
+  generate() {
+    const numTowers = 5 + Math.floor(Math.random() * 3);
+    
+    for (let i = 0; i < numTowers; i++) {
+      const x = 200 + Math.random() * (canvas.width - 400);
+      const y = canvas.height - 100 - Math.random() * 300;
+      const height = 200 + Math.random() * 300;
+      const width = 15 + Math.random() * 25;
+      
+      this.structures.push({
+        type: 'tower',
+        x, y, width, height
+      });
+      
+      // Add crossbeams
+      if (Math.random() > 0.4) {
+        this.structures.push({
+          type: 'beam',
+          x1: x - 30,
+          y1: y - height * 0.3,
+          x2: x + width + 30,
+          y2: y - height * 0.3,
+          thickness: 8
+        });
+      }
+    }
+    
+    // Add cables
+    for (let i = 0; i < 8; i++) {
+      this.structures.push({
+        type: 'cable',
+        x1: Math.random() * canvas.width,
+        y1: Math.random() * canvas.height * 0.3,
+        x2: Math.random() * canvas.width,
+        y2: canvas.height * 0.5 + Math.random() * canvas.height * 0.5,
+        thickness: 2
+      });
+    }
+  }
+  
+  draw() {
+    this.structures.forEach(s => {
+      ctx.strokeStyle = '#222';
+      ctx.fillStyle = '#1a1a1a';
+      
+      if (s.type === 'tower') {
+        ctx.fillRect(s.x, s.y - s.height, s.width, s.height);
+        ctx.strokeStyle = '#333';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(s.x, s.y - s.height, s.width, s.height);
+      } else if (s.type === 'beam' || s.type === 'cable') {
+        ctx.strokeStyle = s.type === 'cable' ? '#444' : '#2a2a2a';
+        ctx.lineWidth = s.thickness;
+        ctx.beginPath();
+        ctx.moveTo(s.x1, s.y1);
+        ctx.lineTo(s.x2, s.y2);
+        ctx.stroke();
+      }
+    });
+  }
+  
+  checkCollision(x, y) {
+    for (let s of this.structures) {
+      if (s.type === 'tower') {
+        if (x > s.x && x < s.x + s.width && 
+            y > s.y - s.height && y < s.y) {
+          return true;
+        }
+      } else if (s.type === 'beam' || s.type === 'cable') {
+        const dist = this.pointToLineDistance(x, y, s.x1, s.y1, s.x2, s.y2);
+        if (dist < s.thickness) return true;
+      }
+    }
+    return false;
+  }
+  
+  pointToLineDistance(px, py, x1, y1, x2, y2) {
+    const A = px - x1;
+    const B = py - y1;
+    const C = x2 - x1;
+    const D = y2 - y1;
+    const dot = A * C + B * D;
+    const lenSq = C * C + D * D;
+    let param = -1;
+    if (lenSq !== 0) param = dot / lenSq;
+    
+    let xx, yy;
+    if (param < 0) {
+      xx = x1;
+      yy = y1;
+    } else if (param > 1) {
+      xx = x2;
+      yy = y2;
+    } else {
+      xx = x1 + param * C;
+      yy = y1 + param * D;
+    }
+    
+    const dx = px - xx;
+    const dy = py - yy;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+}
+
+// Fabric particle system
+class FabricPoint {
+  constructor(x, y, fixed = false) {
+    this.x = x;
+    this.y = y;
+    this.px = x;
+    this.py = y;
+    this.fixed = fixed;
+    this.torn = false;
+  }
+  
+  update(dt) {
+    if (this.fixed) return;
+    
+    const vx = this.x - this.px;
+    const vy = this.y - this.py;
+    
+    this.px = this.x;
+    this.py = this.y;
+    
+    this.x += vx * 0.98;
+    this.y += vy * 0.98;
+    
+    // Gravity
+    this.y += 0.3;
+    
+    // Bounds
+    if (this.y > canvas.height) {
+      this.y = canvas.height;
+      this.py = this.y;
+    }
+  }
+  
+  applyForce(fx, fy) {
+    if (this.fixed) return;
+    this.x += fx;
+    this.y += fy;
+  }
+}
+
+class FabricConstraint {
+  constructor(p1, p2) {
+    this.p1 = p1;
+    this.p2 = p2;
+    this.length = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+    this.broken = false;
+  }
+  
+  solve(lattice) {
+    if (this.broken) return;
+    
+    const dx = this.p2.x - this.p1.x;
+    const dy = this.p2.y - this.p1.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    
+    // Break on collision
+    const midX = (this.p1.x + this.p2.x) / 2;
+    const midY = (this.p1.y + this.p2.y) / 2;
+    if (lattice.checkCollision(midX, midY)) {
+      if (Math.random() > 0.7) {
+        this.broken = true;
+        this.p1.torn = true;
+        this.p2.torn = true;
+        return;
+      }
+    }
+    
+    // Tear if stretched too far
+    if (dist > this.length * 2.5) {
+      this.broken = true;
+      this.p1.torn = true;
+      this.p2.torn = true;
+      return;
+    }
+    
+    const diff = (this.length - dist) / dist;
+    const offsetX = dx * diff * 0.5;
+    const offsetY = dy * diff * 0.5;
+    
+    if (!this.p1.fixed) {
+      this.p1.x -= offsetX;
+      this.p1.y -= offsetY;
+    }
+    if (!this.p2.fixed) {
+      this.p2.x += offsetX;
+      this.p2.y += offsetY;
+    }
+  }
+}
+
+class Fabric {
+  constructor(x, y, size, color, pattern, inflationSpeed) {
+    this.points = [];
+    this.constraints = [];
+    this.color = color;
+    this.pattern = pattern;
+    this.inflating = true;
+    this.inflationProgress = 0;
+    this.inflationSpeed = inflationSpeed * 0.01;
+    this.targetSize = size;
+    
+    const res = 12;
+    const currentSize = 5;
+    
+    for (let i = 0; i <= res; i++) {
+      for (let j = 0; j <= res; j++) {
+        const px = x + (i / res - 0.5) * currentSize;
+        const py = y + (j / res - 0.5) * currentSize;
+        this.points.push(new FabricPoint(px, py));
+      }
+    }
+    
+    for (let i = 0; i <= res; i++) {
+      for (let j = 0; j <= res; j++) {
+        const idx = i * (res + 1) + j;
+        if (j < res) {
+          this.constraints.push(new FabricConstraint(
+            this.points[idx], 
+            this.points[idx + 1]
+          ));
+        }
+        if (i < res) {
+          this.constraints.push(new FabricConstraint(
+            this.points[idx], 
+            this.points[idx + res + 1]
+          ));
+        }
+      }
+    }
+  }
+  
+  update(lattice) {
+    if (this.inflating) {
+      this.inflationProgress += this.inflationSpeed;
+      if (this.inflationProgress >= 1) {
+        this.inflationProgress = 1;
+        this.inflating = false;
+      }
+      
+      const scale = 5 + (this.targetSize - 5) * this.inflationProgress;
+      const center = this.getCenter();
+      
+      this.points.forEach(p => {
+        const dx = p.px - center.x;
+        const dy = p.py - center.y;
+        const targetX = center.x + dx * (scale / 5);
+        const targetY = center.y + dy * (scale / 5);
+        p.x += (targetX - p.x) * 0.1;
+        p.y += (targetY - p.y) * 0.1;
+      });
+    }
+    
+    this.points.forEach(p => p.update());
+    
+    for (let i = 0; i < 3; i++) {
+      this.constraints.forEach(c => c.solve(lattice));
+    }
+  }
+  
+  applyWind(x, y, strength, radius) {
+    this.points.forEach(p => {
+      const dx = p.x - x;
+      const dy = p.y - y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < radius && dist > 0) {
+        const force = (1 - dist / radius) * strength;
+        p.applyForce(dx / dist * force, dy / dist * force);
+      }
+    });
+  }
+  
+  getCenter() {
+    let cx = 0, cy = 0;
+    this.points.forEach(p => {
+      cx += p.x;
+      cy += p.y;
+    });
+    return {
+      x: cx / this.points.length,
+      y: cy / this.points.length
+    };
+  }
+  
+  draw() {
+    const activeConstraints = this.constraints.filter(c => !c.broken);
+    
+    activeConstraints.forEach(c => {
+      const gradient = ctx.createLinearGradient(c.p1.x, c.p1.y, c.p2.x, c.p2.y);
+      
+      switch(this.pattern) {
+        case 'gradient':
+          gradient.addColorStop(0, this.color);
+          gradient.addColorStop(1, this.adjustColor(this.color, -40));
+          break;
+        case 'stripes':
+          const stripe = Math.floor((c.p1.x + c.p1.y) / 20) % 2;
+          gradient.addColorStop(0, stripe ? this.color : this.adjustColor(this.color, -30));
+          gradient.addColorStop(1, stripe ? this.color : this.adjustColor(this.color, -30));
+          break;
+        case 'dots':
+          gradient.addColorStop(0, this.color);
+          gradient.addColorStop(1, this.color);
+          break;
+        default:
+          gradient.addColorStop(0, this.color);
+          gradient.addColorStop(1, this.color);
+      }
+      
+      ctx.strokeStyle = gradient;
+      ctx.lineWidth = c.p1.torn || c.p2.torn ? 1 : 2;
+      ctx.globalAlpha = c.p1.torn || c.p2.torn ? 0.6 : 0.9;
+      ctx.beginPath();
+      ctx.moveTo(c.p1.x, c.p1.y);
+      ctx.lineTo(c.p2.x, c.p2.y);
+      ctx.stroke();
+    });
+    
+    ctx.globalAlpha = 1;
+    
+    if (this.pattern === 'dots') {
+      this.points.forEach((p, i) => {
+        if (i % 3 === 0) {
+          ctx.fillStyle = this.adjustColor(this.color, -50);
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      });
+    }
+  }
+  
+  adjustColor(color, amount) {
+    const num = parseInt(color.slice(1), 16);
+    const r = Math.max(0, Math.min(255, (num >> 16) + amount));
+    const g = Math.max(0, Math.min(255, ((num >> 8) & 0x00FF) + amount));
+    const b = Math.max(0, Math.min(255, (num & 0x0000FF) + amount));
+    return '#' + ((r << 16) | (g << 8) | b).toString(16).padStart(6, '0');
+  }
+}
+
+// Main app
+const lattice = new Lattice();
+const fabrics = [];
+let windStart = null;
+let windCurrent = null;
+
+inflateBtn.addEventListener('click', () => {
+  const x = 200 + Math.random() * (canvas.width - 400);
+  const y = 100 + Math.random() * 200;
+  fabrics.push(new Fabric(
+    x, y,
+    parseInt(sizeSlider.value),
+    colorPicker.value,
+    patternSelect.value,
+    parseInt(inflationSlider.value)
+  ));
+});
+
+clearBtn.addEventListener('click', () => {
+  fabrics.length = 0;
+});
+
+canvas.addEventListener('mousedown', (e) => {
+  windStart = { x: e.clientX, y: e.clientY };
+  windCurrent = { x: e.clientX, y: e.clientY };
+});
+
+canvas.addEventListener('mousemove', (e) => {
+  if (windStart) {
+    windCurrent = { x: e.clientX, y: e.clientY };
+  }
+});
+
+canvas.addEventListener('mouseup', () => {
+  windStart = null;
+  windCurrent = null;
+});
+
+function animate() {
+  ctx.fillStyle = '#0a0a0a';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  lattice.draw();
+  
+  fabrics.forEach(fabric => {
+    fabric.update(lattice);
+    
+    if (windStart && windCurrent) {
+      const dx = windCurrent.x - windStart.x;
+      const dy = windCurrent.y - windStart.y;
+      const strength = Math.sqrt(dx * dx + dy * dy) * 0.3;
+      fabric.applyWind(windCurrent.x, windCurrent.y, strength, 200);
+    }
+    
+    fabric.draw();
+  });
+  
+  if (windStart && windCurrent) {
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 5]);
+    ctx.beginPath();
+    ctx.moveTo(windStart.x, windStart.y);
+    ctx.lineTo(windCurrent.x, windCurrent.y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+    ctx.beginPath();
+    ctx.arc(windCurrent.x, windCurrent.y, 200, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  
+  requestAnimationFrame(animate);
+}
+
+animate();
+
+window.addEventListener('resize', () => {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  lattice.structures = [];
+  lattice.generate();
+});
+</script>
+</body>
+</html>

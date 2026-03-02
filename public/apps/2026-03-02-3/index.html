@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Latencia — Daily AI Gen</title>
+  <meta name="description" content="A branching decision game where your hesitation and speed shape a living bonsai tree of consequences, inspired by how AI inference windows constrain decision-making under time pressure.">
+  <meta property="og:title" content="Latencia — Daily AI Gen">
+  <meta property="og:description" content="A branching decision game where your hesitation and speed shape a living bonsai tree of consequences, inspired by how AI inference windows constrain decision-making under time pressure.">
+  <meta property="og:url" content="https://dailyaigen.com/apps/2026-03-02-3/">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="https://dailyaigen.com/apps/2026-03-02-3/">
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%);
+    font-family: 'Georgia', serif;
+    color: #e0e0e0;
+    overflow: hidden;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #game-container {
+    width: 100%;
+    max-width: 1400px;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+  }
+
+  #header {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  #header h1 {
+    font-size: 2.5em;
+    color: #7dd3c0;
+    letter-spacing: 4px;
+    margin-bottom: 5px;
+  }
+
+  #header p {
+    color: #888;
+    font-size: 0.9em;
+    font-style: italic;
+  }
+
+  #main-area {
+    flex: 1;
+    display: flex;
+    gap: 20px;
+  }
+
+  #decision-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+  }
+
+  #scenario-text {
+    font-size: 1.3em;
+    line-height: 1.6;
+    text-align: center;
+    margin-bottom: 40px;
+    max-width: 600px;
+    color: #d0d0d0;
+  }
+
+  #choices {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    width: 100%;
+    max-width: 500px;
+  }
+
+  .choice-btn {
+    padding: 20px 30px;
+    font-size: 1.1em;
+    background: rgba(125, 211, 192, 0.1);
+    border: 2px solid #7dd3c0;
+    color: #e0e0e0;
+    cursor: pointer;
+    transition: all 0.3s;
+    border-radius: 8px;
+    font-family: 'Georgia', serif;
+  }
+
+  .choice-btn:hover {
+    background: rgba(125, 211, 192, 0.2);
+    transform: translateX(5px);
+  }
+
+  #timer-ring {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+
+  #tree-canvas {
+    flex: 1;
+    border: 1px solid rgba(125, 211, 192, 0.3);
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.3);
+  }
+
+  #comparison-view {
+    display: none;
+    width: 100%;
+    height: 100%;
+    gap: 20px;
+  }
+
+  .tree-comparison {
+    flex: 1;
+    border: 1px solid rgba(125, 211, 192, 0.3);
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.3);
+    position: relative;
+  }
+
+  .tree-label {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    color: #7dd3c0;
+    font-size: 0.9em;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 5px 10px;
+    border-radius: 4px;
+  }
+
+  #reset-btn {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    padding: 15px 30px;
+    font-size: 1em;
+    background: rgba(125, 211, 192, 0.2);
+    border: 2px solid #7dd3c0;
+    color: #e0e0e0;
+    cursor: pointer;
+    border-radius: 8px;
+    font-family: 'Georgia', serif;
+    transition: all 0.3s;
+  }
+
+  #reset-btn:hover {
+    background: rgba(125, 211, 192, 0.3);
+  }
+
+  #round-counter {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    color: #7dd3c0;
+    font-size: 1.1em;
+  }
+
+  .hidden {
+    display: none !important;
+  }
+</style>
+</head>
+<body>
+<div id="game-container">
+  <div id="header">
+    <h1>LATENCIA</h1>
+    <p>Your decisions under time pressure grow into consequence</p>
+  </div>
+
+  <div id="round-counter">Round <span id="current-round">1</span>/10</div>
+
+  <div id="main-area">
+    <div id="decision-panel">
+      <canvas id="timer-ring" width="700" height="700"></canvas>
+      <div id="scenario-text"></div>
+      <div id="choices"></div>
+    </div>
+    <canvas id="tree-canvas"></canvas>
+  </div>
+
+  <div id="comparison-view">
+    <canvas class="tree-comparison" id="tree1"></canvas>
+    <canvas class="tree-comparison" id="tree2"></canvas>
+  </div>
+
+  <button id="reset-btn" class="hidden">Grow New Tree</button>
+</div>
+
+<script>
+const scenarios = [
+  {
+    text: "A stranger offers you a map to something you've been searching for, but warns the path will change you.",
+    choices: ["Take the map", "Decline politely"]
+  },
+  {
+    text: "You find a letter addressed to you from someone you don't recognize, sealed with wax.",
+    choices: ["Open it immediately", "Leave it sealed"]
+  },
+  {
+    text: "A voice in a crowd calls your name, but when you turn, everyone is facing away.",
+    choices: ["Call back", "Keep walking"]
+  },
+  {
+    text: "You discover a door in your home that wasn't there yesterday.",
+    choices: ["Open the door", "Ignore it"]
+  },
+  {
+    text: "An old friend asks you to keep a secret that could hurt someone else.",
+    choices: ["Keep the secret", "Speak the truth"]
+  },
+  {
+    text: "You're offered a choice: remember everything or forget your regrets.",
+    choices: ["Remember all", "Forget regrets"]
+  },
+  {
+    text: "A clock in your pocket begins counting down, but you don't know to what.",
+    choices: ["Stop the clock", "Let it run"]
+  },
+  {
+    text: "You can hear a song only you seem to know, coming from somewhere far away.",
+    choices: ["Follow the music", "Stay where you are"]
+  },
+  {
+    text: "Someone offers to trade places with you for a single day.",
+    choices: ["Accept the trade", "Refuse"]
+  },
+  {
+    text: "You find a mirror that shows not your reflection, but what you could become.",
+    choices: ["Step through", "Turn away"]
+  }
+];
+
+let currentRound = 0;
+let decisions = [];
+let trees = [];
+let gameActive = true;
+const DECISION_TIME = 8000; // 8 seconds per decision
+let decisionStartTime = 0;
+let animationFrame;
+
+const timerCanvas = document.getElementById('timer-ring');
+const timerCtx = timerCanvas.getContext('2d');
+const treeCanvas = document.getElementById('tree-canvas');
+const treeCtx = treeCanvas.getContext('2d');
+
+// Resize canvases
+function resizeCanvases() {
+  treeCanvas.width = treeCanvas.offsetWidth;
+  treeCanvas.height = treeCanvas.offsetHeight;
+}
+resizeCanvases();
+window.addEventListener('resize', resizeCanvases);
+
+function shuffleArray(array) {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
+function startRound() {
+  if (currentRound >= 10) {
+    endGame();
+    return;
+  }
+
+  const scenario = scenarios[currentRound];
+  document.getElementById('scenario-text').textContent = scenario.text;
+  document.getElementById('current-round').textContent = currentRound + 1;
+
+  const choicesDiv = document.getElementById('choices');
+  choicesDiv.innerHTML = '';
+
+  scenario.choices.forEach((choice, index) => {
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    btn.textContent = choice;
+    btn.onclick = () => makeDecision(index);
+    choicesDiv.appendChild(btn);
+  });
+
+  decisionStartTime = Date.now();
+  animateTimer();
+}
+
+function animateTimer() {
+  const elapsed = Date.now() - decisionStartTime;
+  const remaining = Math.max(0, DECISION_TIME - elapsed);
+  const progress = remaining / DECISION_TIME;
+
+  timerCtx.clearRect(0, 0, timerCanvas.width, timerCanvas.height);
+
+  const centerX = timerCanvas.width / 2;
+  const centerY = timerCanvas.height / 2;
+  const radius = 200 + (1 - progress) * 100;
+
+  // Outer glow
+  const gradient = timerCtx.createRadialGradient(centerX, centerY, radius - 20, centerX, centerY, radius + 20);
+  gradient.addColorStop(0, 'rgba(125, 211, 192, 0)');
+  gradient.addColorStop(0.5, `rgba(125, 211, 192, ${progress * 0.3})`);
+  gradient.addColorStop(1, 'rgba(125, 211, 192, 0)');
+
+  timerCtx.beginPath();
+  timerCtx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+  timerCtx.strokeStyle = gradient;
+  timerCtx.lineWidth = 40;
+  timerCtx.stroke();
+
+  // Inner ring
+  timerCtx.beginPath();
+  timerCtx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+  timerCtx.strokeStyle = `rgba(125, 211, 192, ${progress * 0.6})`;
+  timerCtx.lineWidth = 3;
+  timerCtx.stroke();
+
+  if (remaining > 0 && gameActive) {
+    animationFrame = requestAnimationFrame(animateTimer);
+  } else if (remaining <= 0 && gameActive) {
+    makeDecision(0); // Default to first choice if time runs out
+  }
+}
+
+function makeDecision(choiceIndex) {
+  if (!gameActive) return;
+
+  cancelAnimationFrame(animationFrame);
+  const elapsed = Date.now() - decisionStartTime;
+  const timeRatio = Math.min(elapsed / DECISION_TIME, 1);
+
+  decisions.push({
+    round: currentRound,
+    choice: choiceIndex,
+    timeRatio: timeRatio,
+    confidence: 1 - timeRatio
+  });
+
+  currentRound++;
+  drawTree();
+  
+  setTimeout(() => {
+    if (gameActive) startRound();
+  }, 500);
+}
+
+class Branch {
+  constructor(x, y, angle, length, thickness, generation, confidence) {
+    this.x = x;
+    this.y = y;
+    this.angle = angle;
+    this.length = length;
+    this.thickness = thickness;
+    this.generation = generation;
+    this.confidence = confidence;
+    this.endX = x + Math.cos(angle) * length;
+    this.endY = y + Math.sin(angle) * length;
+  }
+
+  draw(ctx, alpha = 1) {
+    ctx.strokeStyle = `rgba(125, 211, 192, ${alpha * 0.7})`;
+    ctx.lineWidth = this.thickness;
+    ctx.lineCap = 'round';
+
+    // More wispy for low confidence
+    if (this.confidence < 0.3) {
+      ctx.setLineDash([5, 5]);
+    } else {
+      ctx.setLineDash([]);
+    }
+
+    ctx.beginPath();
+    ctx.moveTo(this.x, this.y);
+    ctx.lineTo(this.endX, this.endY);
+    ctx.stroke();
+
+    // Glow for high confidence
+    if (this.confidence > 0.7) {
+      ctx.strokeStyle = `rgba(125, 211, 192, ${alpha * 0.2})`;
+      ctx.lineWidth = this.thickness + 4;
+      ctx.beginPath();
+      ctx.moveTo(this.x, this.y);
+      ctx.lineTo(this.endX, this.endY);
+      ctx.stroke();
+    }
+  }
+}
+
+function generateTree(decisions) {
+  const branches = [];
+  const startX = treeCanvas.width / 2;
+  const startY = treeCanvas.height - 50;
+
+  let currentX = startX;
+  let currentY = startY;
+  let currentAngle = -Math.PI / 2;
+
+  decisions.forEach((decision, index) => {
+    const confidence = decision.confidence;
+    const length = 40 + confidence * 40;
+    const thickness = 1 + confidence * 8;
+
+    // Create main branch
+    const branch = new Branch(
+      currentX,
+      currentY,
+      currentAngle,
+      length,
+      thickness,
+      index,
+      confidence
+    );
+    branches.push(branch);
+
+    // Fork based on choice
+    const forkAngle = decision.choice === 0 ? -0.4 : 0.4;
+    const newAngle = currentAngle + forkAngle + (Math.random() - 0.5) * 0.3;
+
+    // Add smaller branches for hesitation
+    if (confidence < 0.5) {
+      for (let i = 0; i < 2; i++) {
+        const wobbleAngle = currentAngle + (Math.random() - 0.5) * 0.8;
+        const wobbleBranch = new Branch(
+          currentX,
+          currentY,
+          wobbleAngle,
+          length * 0.4,
+          thickness * 0.3,
+          index,
+          confidence * 0.5
+        );
+        branches.push(wobbleBranch);
+      }
+    }
+
+    currentX = branch.endX;
+    currentY = branch.endY;
+    currentAngle = newAngle;
+  });
+
+  return branches;
+}
+
+function drawTree() {
+  const branches = generateTree(decisions);
+  
+  treeCtx.clearRect(0, 0, treeCanvas.width, treeCanvas.height);
+
+  // Draw base
+  treeCtx.fillStyle = 'rgba(125, 211, 192, 0.1)';
+  treeCtx.fillRect(treeCanvas.width / 2 - 20, treeCanvas.height - 50, 40, 50);
+
+  // Draw branches
+  branches.forEach(branch => branch.draw(treeCtx));
+
+  // Draw end bloom
+  if (decisions.length > 0) {
+    const lastDecision = decisions[decisions.length - 1];
+    const lastBranch = branches[branches.length - 1];
+    
+    treeCtx.fillStyle = `rgba(125, 211, 192, ${lastDecision.confidence * 0.5})`;
+    treeCtx.beginPath();
+    treeCtx.arc(lastBranch.endX, lastBranch.endY, 5 + lastDecision.confidence * 5, 0, Math.PI * 2);
+    treeCtx.fill();
+  }
+}
+
+function endGame() {
+  gameActive = false;
+  cancelAnimationFrame(animationFrame);
+
+  // Store current tree
+  trees.push([...decisions]);
+
+  // Clear decision panel
+  document.getElementById('decision-panel').classList.add('hidden');
+  document.getElementById('tree-canvas').classList.add('hidden');
+  document.getElementById('round-counter').classList.add('hidden');
+
+  // Show comparison if we have trees
+  if (trees.length >= 1) {
+    showComparison();
+  }
+
+  document.getElementById('reset-btn').classList.remove('hidden');
+}
+
+function showComparison() {
+  const comparisonView = document.getElementById('comparison-view');
+  comparisonView.style.display = 'flex';
+
+  const canvas1 = document.getElementById('tree1');
+  const canvas2 = document.getElementById('tree2');
+
+  canvas1.width = canvas1.offsetWidth;
+  canvas1.height = canvas1.offsetHeight;
+  canvas2.width = canvas2.offsetWidth;
+  canvas2.height = canvas2.offsetHeight;
+
+  const ctx1 = canvas1.getContext('2d');
+  const ctx2 = canvas2.getContext('2d');
+
+  if (trees.length >= 1) {
+    drawTreeOnCanvas(ctx1, canvas1, trees[trees.length - 1], 'Current Tree');
+  }
+
+  if (trees.length >= 2) {
+    drawTreeOnCanvas(ctx2, canvas2, trees[trees.length - 2], 'Previous Tree');
+  }
+}
+
+function drawTreeOnCanvas(ctx, canvas, decisions, label) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Draw base
+  ctx.fillStyle = 'rgba(125, 211, 192, 0.1)';
+  ctx.fillRect(canvas.width / 2 - 20, canvas.height - 50, 40, 50);
+
+  // Generate and draw branches
+  const branches = generateTreeForCanvas(canvas, decisions);
+  branches.forEach(branch => branch.draw(ctx, 0.8));
+
+  // Label
+  ctx.fillStyle = 'rgba(125, 211, 192, 0.8)';
+  ctx.font = '14px Georgia';
+  ctx.fillText(label, 15, 30);
+}
+
+function generateTreeForCanvas(canvas, decisions) {
+  const branches = [];
+  const startX = canvas.width / 2;
+  const startY = canvas.height - 50;
+
+  let currentX = startX;
+  let currentY = startY;
+  let currentAngle = -Math.PI / 2;
+
+  decisions.forEach((decision, index) => {
+    const confidence = decision.confidence;
+    const length = 30 + confidence * 30;
+    const thickness = 1 + confidence * 6;
+
+    const branch = new Branch(
+      currentX,
+      currentY,
+      currentAngle,
+      length,
+      thickness,
+      index,
+      confidence
+    );
+    branches.push(branch);
+
+    const forkAngle = decision.choice === 0 ? -0.4 : 0.4;
+    const newAngle = currentAngle + forkAngle + (Math.random() - 0.5) * 0.3;
+
+    if (confidence < 0.5) {
+      for (let i = 0; i < 2; i++) {
+        const wobbleAngle = currentAngle + (Math.random() - 0.5) * 0.8;
+        const wobbleBranch = new Branch(
+          currentX,
+          currentY,
+          wobbleAngle,
+          length * 0.4,
+          thickness * 0.3,
+          index,
+          confidence * 0.5
+        );
+        branches.push(wobbleBranch);
+      }
+    }
+
+    currentX = branch.endX;
+    currentY = branch.endY;
+    currentAngle = newAngle;
+  });
+
+  return branches;
+}
+
+document.getElementById('reset-btn').addEventListener('click', () => {
+  currentRound = 0;
+  decisions = [];
+  gameActive = true;
+
+  document.getElementById('decision-panel').classList.remove('hidden');
+  document.getElementById('tree-canvas').classList.remove('hidden');
+  document.getElementById('round-counter').classList.remove('hidden');
+  document.getElementById('comparison-view').style.display = 'none';
+  document.getElementById('reset-btn').classList.add('hidden');
+
+  treeCtx.clearRect(0, 0, treeCanvas.width, treeCanvas.height);
+  startRound();
+});
+
+// Start the game
+startRound();
+</script>
+</body>
+</html>

@@ -1,5 +1,39 @@
 [
   {
+    "date": "2026-03-02",
+    "id": "2026-03-02-3",
+    "name": "Latencia",
+    "description": "A branching decision game where your hesitation and speed shape a living bonsai tree of consequences, inspired by how AI inference windows constrain decision-making under time pressure.",
+    "inspiration": "Nvidia announced an inference-focused chip optimized for low-latency processing, shifting focus from raw training power to the speed of real-time response.",
+    "connection": "The idea that intelligence isn't about how much you know but how fast you can respond under pressure inspired a game where you sculpt decisions under shrinking time — your 'inference window' — and watch the cascading consequences bloom.",
+    "source_url": "https://blog.mean.ceo/new-ai-model-releases-news-march-2026/",
+    "emoji": "🌿",
+    "category": "AI-inspired"
+  },
+  {
+    "date": "2026-03-02",
+    "id": "2026-03-02-2",
+    "name": "Duskwatch",
+    "description": "A synchronized daylight timeline tracking sunrise, sunset, and twilight across Iranian and regional cities with a live clock sweeping through 24 hours, showing which locations are in golden hour, twilight, or darkness at any moment.",
+    "inspiration": "With US military operations in Iran potentially lasting weeks, journalists, analysts, and concerned families of service members need to understand the operational rhythm dictated by daylight — military strikes historically intensify at dusk and dawn. People following the conflict want to know exactly when darkness falls over Tehran and other Iranian cities to anticipate escalation windows.",
+    "connection": "The Sunrise-Sunset API provides precise dawn, dusk, sunrise, and sunset times for any coordinate and date, enabling a real-time operational daylight tracker for conflict zones.",
+    "source_url": "https://www.youtube.com/watch?v=CzCmEz5muQw",
+    "emoji": "🌒",
+    "category": "API tool",
+    "api": "Sunrise-Sunset"
+  },
+  {
+    "date": "2026-03-02",
+    "id": "2026-03-02",
+    "name": "Softwreck",
+    "description": "A fabric inflation and wind-sculpting toy where you create soft billowing shapes, choose their colors and patterns, then use gusts of wind to navigate them through a procedural lattice while realistic cloth physics tear and drape them into beautiful wreckage.",
+    "inspiration": "A hot air balloon crashed into a communications tower in Texas, requiring a daring rescue that captivated onlookers.",
+    "connection": "The image of a fragile, buoyant thing tangled in rigid infrastructure sparked the idea of a generative art toy where you launch delicate floating forms into a hostile architecture and try to guide them through without destroying their beauty.",
+    "source_url": "https://www.youtube.com/watch?v=CzCmEz5muQw",
+    "emoji": "🎈",
+    "category": "Creative/art"
+  },
+  {
     "date": "2026-03-01",
     "id": "2026-03-01-12",
     "name": "Druzhba Dependency",
