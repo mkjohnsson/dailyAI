@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sandglass - Operational Weather Dashboard — Daily AI Gen</title>
+  <meta name="description" content="A tactical weather dashboard tracking 72-hour operational conditions across Middle Eastern cities with color-coded alerts for sandstorms, heat extremes, and visibility issues that affect air and ground operations.">
+  <meta property="og:title" content="Sandglass — Daily AI Gen">
+  <meta property="og:description" content="A tactical weather dashboard tracking 72-hour operational conditions across Middle Eastern cities with color-coded alerts for sandstorms, heat extremes, and visibility issues that affect air and ground operations.">
+  <meta property="og:url" content="https://dailyaigen.com/apps/2026-03-03-2/">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="https://dailyaigen.com/apps/2026-03-03-2/">
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Courier New', monospace;
+  background: #0a0a0a;
+  color: #e0e0e0;
+  padding: 20px;
+  min-height: 100vh;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 30px;
+  border-bottom: 2px solid #333;
+  padding-bottom: 20px;
+}
+
+.header h1 {
+  color: #ff9800;
+  font-size: 2em;
+  letter-spacing: 3px;
+  margin-bottom: 10px;
+}
+
+.header .subtitle {
+  color: #888;
+  font-size: 0.9em;
+}
+
+.controls {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  margin-bottom: 30px;
+  flex-wrap: wrap;
+}
+
+.controls input {
+  background: #1a1a1a;
+  border: 1px solid #444;
+  color: #e0e0e0;
+  padding: 10px 15px;
+  font-family: inherit;
+  font-size: 0.9em;
+}
+
+.controls button {
+  background: #ff9800;
+  border: none;
+  color: #000;
+  padding: 10px 20px;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: bold;
+  transition: background 0.3s;
+}
+
+.controls button:hover {
+  background: #ffa726;
+}
+
+.controls button:disabled {
+  background: #555;
+  cursor: not-allowed;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: #ff9800;
+  font-size: 1.2em;
+}
+
+.error {
+  background: #3d1515;
+  border: 1px solid #c62828;
+  color: #ff5252;
+  padding: 20px;
+  margin: 20px auto;
+  max-width: 600px;
+  text-align: center;
+  border-radius: 4px;
+}
+
+.dashboard {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.city-card {
+  background: #1a1a1a;
+  border: 1px solid #333;
+  padding: 20px;
+  position: relative;
+}
+
+.city-card.alert-high {
+  border-color: #c62828;
+  box-shadow: 0 0 15px rgba(198, 40, 40, 0.3);
+}
+
+.city-card.alert-medium {
+  border-color: #ff9800;
+  box-shadow: 0 0 15px rgba(255, 152, 0, 0.2);
+}
+
+.city-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #333;
+}
+
+.city-name {
+  font-size: 1.3em;
+  color: #ff9800;
+  font-weight: bold;
+}
+
+.remove-btn {
+  background: #c62828;
+  border: none;
+  color: #fff;
+  padding: 5px 10px;
+  cursor: pointer;
+  font-size: 0.8em;
+}
+
+.current-conditions {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.condition-box {
+  background: #0f0f0f;
+  padding: 10px;
+  border-left: 3px solid #666;
+}
+
+.condition-box.critical {
+  border-left-color: #c62828;
+  background: #1a0f0f;
+}
+
+.condition-box.warning {
+  border-left-color: #ff9800;
+  background: #1a1510;
+}
+
+.condition-box.good {
+  border-left-color: #4caf50;
+  background: #0f1a0f;
+}
+
+.condition-label {
+  font-size: 0.75em;
+  color: #888;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+}
+
+.condition-value {
+  font-size: 1.1em;
+  font-weight: bold;
+}
+
+.forecast-timeline {
+  margin-top: 20px;
+}
+
+.timeline-label {
+  font-size: 0.85em;
+  color: #888;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+}
+
+.timeline-hours {
+  display: flex;
+  gap: 2px;
+  height: 60px;
+  margin-bottom: 5px;
+}
+
+.hour-block {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  position: relative;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.hour-block:hover {
+  opacity: 0.7;
+}
+
+.hour-bar {
+  width: 100%;
+  background: #4caf50;
+  transition: background 0.3s;
+}
+
+.hour-bar.warning {
+  background: #ff9800;
+}
+
+.hour-bar.critical {
+  background: #c62828;
+}
+
+.hour-time {
+  font-size: 0.65em;
+  color: #666;
+  text-align: center;
+  margin-top: 3px;
+}
+
+.sparkline {
+  height: 40px;
+  margin: 10px 0;
+  position: relative;
+}
+
+.sparkline-line {
+  stroke: #ff9800;
+  stroke-width: 2;
+  fill: none;
+}
+
+.operational-windows {
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid #333;
+}
+
+.window-label {
+  font-size: 0.85em;
+  color: #888;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+}
+
+.windows-grid {
+  display: flex;
+  gap: 3px;
+  height: 30px;
+}
+
+.window-slot {
+  flex: 1;
+  background: #c62828;
+}
+
+.window-slot.operational {
+  background: #4caf50;
+}
+
+.legend {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  margin-top: 30px;
+  padding: 20px;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85em;
+}
+
+.legend-color {
+  width: 20px;
+  height: 20px;
+  border: 1px solid #444;
+}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>⏳ SANDGLASS</h1>
+  <div class="subtitle">Operational Weather Intelligence • 72-Hour Forecast</div>
+</div>
+
+<div class="controls">
+  <input type="text" id="customLat" placeholder="Latitude (e.g., 35.6892)" />
+  <input type="text" id="customLon" placeholder="Longitude (e.g., 51.3890)" />
+  <input type="text" id="customName" placeholder="Location Name" />
+  <button id="addCustomBtn">Add Custom Location</button>
+  <button id="refreshBtn">Refresh All</button>
+</div>
+
+<div id="loadingState" class="loading" style="display: none;">
+  ACQUIRING METEOROLOGICAL DATA...
+</div>
+
+<div id="errorState" class="error" style="display: none;"></div>
+
+<div id="dashboard" class="dashboard"></div>
+
+<div class="legend">
+  <div class="legend-item">
+    <div class="legend-color" style="background: #4caf50;"></div>
+    <span>OPERATIONAL (Good Conditions)</span>
+  </div>
+  <div class="legend-item">
+    <div class="legend-color" style="background: #ff9800;"></div>
+    <span>CAUTION (Marginal Conditions)</span>
+  </div>
+  <div class="legend-item">
+    <div class="legend-color" style="background: #c62828;"></div>
+    <span>RESTRICTED (Poor Conditions)</span>
+  </div>
+</div>
+
+<script>
+const DEFAULT_LOCATIONS = [
+  { name: 'Tehran', lat: 35.6892, lon: 51.3890 },
+  { name: 'Isfahan', lat: 32.6546, lon: 51.6680 },
+  { name: 'Bandar Abbas', lat: 27.1865, lon: 56.2808 },
+  { name: 'Baghdad', lat: 33.3152, lon: 44.3661 },
+  { name: 'Doha', lat: 25.2854, lon: 51.5310 },
+  { name: 'Bahrain', lat: 26.0667, lon: 50.5577 }
+];
+
+let locations = [...DEFAULT_LOCATIONS];
+
+async function fetchWeatherData(lat, lon) {
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,precipitation,windspeed_10m,windgusts_10m,visibility&forecast_days=3&timezone=auto`;
+  const response = await fetch(url);
+  if (!response.ok) throw new Error('Weather API request failed');
+  return await response.json();
+}
+
+function calculateVisibilityScore(visibility) {
+  // visibility in meters, lower is worse
+  if (visibility < 1000) return 'critical';
+  if (visibility < 5000) return 'warning';
+  return 'good';
+}
+
+function calculateHeatScore(temp) {
+  if (temp > 45) return 'critical';
+  if (temp > 38) return 'warning';
+  if (temp < 0) return 'warning';
+  return 'good';
+}
+
+function calculateWindScore(windspeed, gusts) {
+  if (gusts > 50 || windspeed > 35) return 'critical';
+  if (gusts > 30 || windspeed > 20) return 'warning';
+  return 'good';
+}
+
+function isOperational(temp, visibility, windspeed, gusts, precip) {
+  const visScore = calculateVisibilityScore(visibility);
+  const heatScore = calculateHeatScore(temp);
+  const windScore = calculateWindScore(windspeed, gusts);
+  
+  if (precip > 5) return false;
+  if (visScore === 'critical' || heatScore === 'critical' || windScore === 'critical') return false;
+  
+  return true;
+}
+
+function createSparkline(values, width = 300, height = 40) {
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  
+  const points = values.map((val, i) => {
+    const x = (i / (values.length - 1)) * width;
+    const y = height - ((val - min) / range) * height;
+    return `${x},${y}`;
+  }).join(' ');
+  
+  return `<svg width="${width}" height="${height}" class="sparkline">
+    <polyline points="${points}" class="sparkline-line"/>
+  </svg>`;
+}
+
+function renderCityCard(location, data) {
+  const hourly = data.hourly;
+  const hoursToShow = 72;
+  
+  const currentTemp = hourly.temperature_2m[0];
+  const currentVis = hourly.visibility[0];
+  const currentWind = hourly.windspeed_10m[0];
+  const currentGusts = hourly.windgusts_10m[0];
+  const currentPrecip = hourly.precipitation[0];
+  
+  const visScore = calculateVisibilityScore(currentVis);
+  const heatScore = calculateHeatScore(currentTemp);
+  const windScore = calculateWindScore(currentWind, currentGusts);
+  
+  let alertLevel = '';
+  if (visScore === 'critical' || heatScore === 'critical' || windScore === 'critical') {
+    alertLevel = 'alert-high';
+  } else if (visScore === 'warning' || heatScore === 'warning' || windScore === 'warning') {
+    alertLevel = 'alert-medium';
+  }
+  
+  const temps = hourly.temperature_2m.slice(0, hoursToShow);
+  const tempSparkline = createSparkline(temps);
+  
+  const visibilityBars = hourly.visibility.slice(0, hoursToShow).map((vis, i) => {
+    const score = calculateVisibilityScore(vis);
+    const height = Math.min((vis / 30000) * 100, 100);
+    const hour = new Date(hourly.time[i]).getHours();
+    return `
+      <div class="hour-block" title="Hour ${hour}: ${(vis/1000).toFixed(1)}km visibility">
+        <div class="hour-bar ${score}" style="height: ${height}%"></div>
+        ${i % 6 === 0 ? `<div class="hour-time">${hour}h</div>` : ''}
+      </div>
+    `;
+  }).join('');
+  
+  const operationalWindows = hourly.temperature_2m.slice(0, hoursToShow).map((temp, i) => {
+    const vis = hourly.visibility[i];
+    const wind = hourly.windspeed_10m[i];
+    const gusts = hourly.windgusts_10m[i];
+    const precip = hourly.precipitation[i];
+    
+    const operational = isOperational(temp, vis, wind, gusts, precip);
+    return `<div class="window-slot ${operational ? 'operational' : ''}"></div>`;
+  }).join('');
+  
+  const isCustom = !DEFAULT_LOCATIONS.find(loc => loc.name === location.name);
+  
+  return `
+    <div class="city-card ${alertLevel}">
+      <div class="city-header">
+        <div class="city-name">${location.name}</div>
+        ${isCustom ? `<button class="remove-btn" onclick="removeLocation('${location.name}')">REMOVE</button>` : ''}
+      </div>
+      
+      <div class="current-conditions">
+        <div class="condition-box ${heatScore}">
+          <div class="condition-label">Temperature</div>
+          <div class="condition-value">${currentTemp.toFixed(1)}°C</div>
+        </div>
+        <div class="condition-box ${visScore}">
+          <div class="condition-label">Visibility</div>
+          <div class="condition-value">${(currentVis/1000).toFixed(1)} km</div>
+        </div>
+        <div class="condition-box ${windScore}">
+          <div class="condition-label">Wind / Gusts</div>
+          <div class="condition-value">${currentWind.toFixed(0)} / ${currentGusts.toFixed(0)} km/h</div>
+        </div>
+        <div class="condition-box ${currentPrecip > 5 ? 'warning' : 'good'}">
+          <div class="condition-label">Precipitation</div>
+          <div class="condition-value">${currentPrecip.toFixed(1)} mm</div>
+        </div>
+      </div>
+      
+      <div class="forecast-timeline">
+        <div class="timeline-label">Temperature Trend (72h)</div>
+        ${tempSparkline}
+      </div>
+      
+      <div class="forecast-timeline">
+        <div class="timeline-label">Visibility Forecast (72h)</div>
+        <div class="timeline-hours">
+          ${visibilityBars}
+        </div>
+      </div>
+      
+      <div class="operational-windows">
+        <div class="window-label">Operational Windows (72h)</div>
+        <div class="windows-grid">
+          ${operationalWindows}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function loadAllLocations() {
+  const dashboard = document.getElementById('dashboard');
+  const loading = document.getElementById('loadingState');
+  const error = document.getElementById('errorState');
+  
+  dashboard.innerHTML = '';
+  loading.style.display = 'block';
+  error.style.display = 'none';
+  
+  try {
+    const weatherPromises = locations.map(loc => fetchWeatherData(loc.lat, loc.lon));
+    const weatherData = await Promise.all(weatherPromises);
+    
+    dashboard.innerHTML = locations.map((loc, i) => 
+      renderCityCard(loc, weatherData[i])
+    ).join('');
+    
+  } catch (err) {
+    error.textContent = `ERROR: ${err.message}`;
+    error.style.display = 'block';
+  } finally {
+    loading.style.display = 'none';
+  }
+}
+
+async function addCustomLocation() {
+  const lat = parseFloat(document.getElementById('customLat').value);
+  const lon = parseFloat(document.getElementById('customLon').value);
+  const name = document.getElementById('customName').value.trim();
+  
+  if (isNaN(lat) || isNaN(lon) || !name) {
+    alert('Please enter valid latitude, longitude, and location name');
+    return;
+  }
+  
+  if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+    alert('Invalid coordinates');
+    return;
+  }
+  
+  locations.push({ name, lat, lon });
+  
+  document.getElementById('customLat').value = '';
+  document.getElementById('customLon').value = '';
+  document.getElementById('customName').value = '';
+  
+  await loadAllLocations();
+}
+
+function removeLocation(name) {
+  locations = locations.filter(loc => loc.name !== name);
+  loadAllLocations();
+}
+
+document.getElementById('addCustomBtn').addEventListener('click', addCustomLocation);
+document.getElementById('refreshBtn').addEventListener('click', loadAllLocations);
+
+// Initial load
+loadAllLocations();
+
+// Auto-refresh every 10 minutes
+setInterval(loadAllLocations, 600000);
+</script>
+</body>
+</html>

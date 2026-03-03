@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Palimpsest — Daily AI Gen</title>
+  <meta name="description" content="A 3D memory palace builder where you place rooms with personal facts, then fight entropy by revisiting them before they fade into ghostly wireframes—architecture determines decay speed.">
+  <meta property="og:title" content="Palimpsest — Daily AI Gen">
+  <meta property="og:description" content="A 3D memory palace builder where you place rooms with personal facts, then fight entropy by revisiting them before they fade into ghostly wireframes—architecture determines decay speed.">
+  <meta property="og:url" content="https://dailyaigen.com/apps/2026-03-03-3/">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="https://dailyaigen.com/apps/2026-03-03-3/">
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  body {
+    font-family: 'Georgia', serif;
+    background: #0a0a0f;
+    color: #d0d0d8;
+    overflow: hidden;
+    user-select: none;
+  }
+  
+  #canvas {
+    display: block;
+    width: 100vw;
+    height: 100vh;
+    cursor: grab;
+  }
+  
+  #canvas:active {
+    cursor: grabbing;
+  }
+  
+  #ui {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    background: rgba(10, 10, 15, 0.85);
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #3a3a4a;
+    max-width: 300px;
+    backdrop-filter: blur(10px);
+  }
+  
+  h1 {
+    font-size: 20px;
+    margin-bottom: 10px;
+    color: #a8a8ff;
+  }
+  
+  .status {
+    font-size: 12px;
+    margin: 8px 0;
+    opacity: 0.8;
+  }
+  
+  button {
+    background: #2a2a3a;
+    color: #d0d0d8;
+    border: 1px solid #4a4a5a;
+    padding: 10px 15px;
+    margin: 5px 5px 5px 0;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.2s;
+  }
+  
+  button:hover {
+    background: #3a3a4a;
+    border-color: #6a6a7a;
+  }
+  
+  button.active {
+    background: #4a4a6a;
+    border-color: #7a7a9a;
+  }
+  
+  input[type="text"] {
+    width: 100%;
+    padding: 8px;
+    margin: 8px 0;
+    background: #1a1a2a;
+    border: 1px solid #3a3a4a;
+    border-radius: 4px;
+    color: #d0d0d8;
+    font-size: 13px;
+  }
+  
+  #modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(20, 20, 30, 0.95);
+    padding: 30px;
+    border-radius: 12px;
+    border: 2px solid #5a5a7a;
+    display: none;
+    z-index: 1000;
+    max-width: 400px;
+    backdrop-filter: blur(15px);
+  }
+  
+  #modal.show {
+    display: block;
+  }
+  
+  .legend {
+    font-size: 11px;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #2a2a3a;
+    opacity: 0.7;
+  }
+  
+  .entropy-bar {
+    width: 100%;
+    height: 6px;
+    background: #1a1a2a;
+    border-radius: 3px;
+    overflow: hidden;
+    margin: 10px 0;
+  }
+  
+  .entropy-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4a9a6a, #9a4a4a);
+    transition: width 0.3s;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+
+<div id="ui">
+  <h1>Palimpsest</h1>
+  <div class="status">Entropy: <span id="entropy-time">0s</span></div>
+  <div class="entropy-bar"><div class="entropy-fill" id="entropy-fill"></div></div>
+  <div class="status">Rooms: <span id="room-count">0</span> | Decayed: <span id="decayed-count">0</span></div>
+  
+  <div style="margin-top: 15px;">
+    <button id="btn-room" class="active">Add Room</button>
+    <button id="btn-corridor">Add Corridor</button>
+  </div>
+  
+  <div class="legend">
+    Click to place • Click rooms to refresh<br>
+    Tight clusters preserve better<br>
+    Isolated rooms decay faster
+  </div>
+</div>
+
+<div id="modal">
+  <h2 style="margin-bottom: 15px; color: #a8a8ff;">Store a Memory</h2>
+  <input type="text" id="memory-input" placeholder="Enter a fact, word, or thought..." maxlength="60">
+  <div style="margin-top: 15px;">
+    <button id="save-memory">Save</button>
+    <button id="cancel-memory">Cancel</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// Scene setup
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0a0a0f);
+scene.fog = new THREE.Fog(0x0a0a0f, 10, 50);
+
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+camera.position.set(8, 8, 8);
+camera.lookAt(0, 0, 0);
+
+const canvas = document.getElementById('canvas');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+
+// Lighting
+const ambient = new THREE.AmbientLight(0x404060, 0.6);
+scene.add(ambient);
+const directional = new THREE.DirectionalLight(0x8080ff, 0.5);
+directional.position.set(5, 10, 5);
+scene.add(directional);
+
+// Grid
+const gridHelper = new THREE.GridHelper(20, 20, 0x2a2a4a, 0x1a1a2a);
+scene.add(gridHelper);
+
+// State
+let mode = 'room'; // 'room' or 'corridor'
+let rooms = [];
+let corridors = [];
+let entropyTime = 0;
+let pendingRoom = null;
+
+const DECAY_RATE = 0.05; // How fast rooms decay per second
+const NEIGHBOR_BONUS = 0.3; // Reduction in decay if near neighbors
+const VISIT_RESTORE = 1.0; // How much clarity is restored on visit
+const MAX_ENTROPY = 30; // Seconds until game gets harder
+
+// Room class
+class Room {
+  constructor(x, z, memory = '') {
+    this.x = x;
+    this.z = z;
+    this.memory = memory;
+    this.clarity = 1.0; // 1.0 = solid, 0.0 = ghost
+    this.lastVisit = Date.now();
+    
+    // Create mesh
+    const geometry = new THREE.BoxGeometry(1, 1.5, 1);
+    const material = new THREE.MeshPhongMaterial({ 
+      color: 0x6a6a9a,
+      transparent: true,
+      opacity: 1
+    });
+    this.mesh = new THREE.Mesh(geometry, material);
+    this.mesh.position.set(x, 0.75, z);
+    this.mesh.userData.room = this;
+    scene.add(this.mesh);
+    
+    // Wireframe ghost
+    const wireGeo = new THREE.EdgesGeometry(geometry);
+    const wireMat = new THREE.LineBasicMaterial({ 
+      color: 0x4a4a6a,
+      transparent: true,
+      opacity: 0
+    });
+    this.wireframe = new THREE.LineSegments(wireGeo, wireMat);
+    this.wireframe.position.copy(this.mesh.position);
+    scene.add(this.wireframe);
+    
+    // Label
+    this.createLabel();
+  }
+  
+  createLabel() {
+    if (this.memory) {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = 256;
+      canvas.height = 64;
+      ctx.fillStyle = '#1a1a2a';
+      ctx.fillRect(0, 0, 256, 64);
+      ctx.fillStyle = '#d0d0d8';
+      ctx.font = '16px Georgia';
+      ctx.textAlign = 'center';
+      ctx.fillText(this.memory.substring(0, 30), 128, 35);
+      
+      const texture = new THREE.CanvasTexture(canvas);
+      const spriteMat = new THREE.SpriteMaterial({ map: texture, transparent: true });
+      this.label = new THREE.Sprite(spriteMat);
+      this.label.scale.set(2, 0.5, 1);
+      this.label.position.set(this.x, 2.5, this.z);
+      scene.add(this.label);
+    }
+  }
+  
+  update(delta, neighbors) {
+    const age = (Date.now() - this.lastVisit) / 1000;
+    let decayRate = DECAY_RATE;
+    
+    // Slower decay if near neighbors
+    if (neighbors < 2) {
+      decayRate *= 1.5; // Isolated = faster decay
+    } else if (neighbors >= 3) {
+      decayRate *= (1 - NEIGHBOR_BONUS); // Well-connected = slower decay
+    }
+    
+    this.clarity = Math.max(0, 1 - (age * decayRate));
+    
+    // Update visuals
+    this.mesh.material.opacity = this.clarity;
+    this.wireframe.material.opacity = 1 - this.clarity;
+    
+    if (this.label) {
+      this.label.material.opacity = this.clarity * 0.8;
+    }
+    
+    // Color shift as decay happens
+    const color = new THREE.Color().lerpColors(
+      new THREE.Color(0x6a6a9a),
+      new THREE.Color(0x3a3a4a),
+      1 - this.clarity
+    );
+    this.mesh.material.color = color;
+  }
+  
+  visit() {
+    this.lastVisit = Date.now();
+    this.clarity = 1.0;
+    
+    // Visual feedback
+    this.mesh.scale.set(1.2, 1.2, 1.2);
+    setTimeout(() => {
+      this.mesh.scale.set(1, 1, 1);
+    }, 150);
+  }
+  
+  getNeighborCount() {
+    let count = 0;
+    const NEIGHBOR_DIST = 2.5;
+    rooms.forEach(other => {
+      if (other !== this) {
+        const dist = Math.sqrt((this.x - other.x) ** 2 + (this.z - other.z) ** 2);
+        if (dist < NEIGHBOR_DIST) count++;
+      }
+    });
+    return count;
+  }
+}
+
+// Corridor class
+class Corridor {
+  constructor(x1, z1, x2, z2) {
+    const dx = x2 - x1;
+    const dz = z2 - z1;
+    const length = Math.sqrt(dx * dx + dz * dz);
+    const angle = Math.atan2(dz, dx);
+    
+    const geometry = new THREE.BoxGeometry(length, 0.3, 0.5);
+    const material = new THREE.MeshPhongMaterial({ color: 0x4a4a6a, transparent: true, opacity: 0.6 });
+    this.mesh = new THREE.Mesh(geometry, material);
+    this.mesh.position.set((x1 + x2) / 2, 0.15, (z1 + z2) / 2);
+    this.mesh.rotation.y = angle;
+    scene.add(this.mesh);
+  }
+}
+
+// Camera controls
+let isDragging = false;
+let previousMousePosition = { x: 0, y: 0 };
+let cameraAngle = Math.PI / 4;
+let cameraDistance = 12;
+
+canvas.addEventListener('mousedown', (e) => {
+  if (e.button === 2 || e.button === 1) {
+    isDragging = true;
+    previousMousePosition = { x: e.clientX, y: e.clientY };
+  }
+});
+
+canvas.addEventListener('mousemove', (e) => {
+  if (isDragging) {
+    const deltaX = e.clientX - previousMousePosition.x;
+    cameraAngle -= deltaX * 0.01;
+    previousMousePosition = { x: e.clientX, y: e.clientY };
+    
+    camera.position.x = Math.cos(cameraAngle) * cameraDistance;
+    camera.position.z = Math.sin(cameraAngle) * cameraDistance;
+    camera.lookAt(0, 0, 0);
+  }
+});
+
+canvas.addEventListener('mouseup', () => {
+  isDragging = false;
+});
+
+canvas.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  cameraDistance += e.deltaY * 0.01;
+  cameraDistance = Math.max(5, Math.min(20, cameraDistance));
+  camera.position.x = Math.cos(cameraAngle) * cameraDistance;
+  camera.position.z = Math.sin(cameraAngle) * cameraDistance;
+  camera.position.y = cameraDistance * 0.6;
+  camera.lookAt(0, 0, 0);
+});
+
+canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
+// Raycasting for clicks
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+
+canvas.addEventListener('click', (e) => {
+  if (isDragging) return;
+  
+  mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+  
+  raycaster.setFromCamera(mouse, camera);
+  
+  // Check if clicking existing room
+  const roomMeshes = rooms.map(r => r.mesh);
+  const roomIntersects = raycaster.intersectObjects(roomMeshes);
+  
+  if (roomIntersects.length > 0) {
+    const room = roomIntersects[0].object.userData.room;
+    room.visit();
+    return;
+  }
+  
+  // Place new object
+  const intersects = raycaster.intersectObject(gridHelper);
+  if (intersects.length > 0) {
+    const point = intersects[0].point;
+    const x = Math.round(point.x);
+    const z = Math.round(point.z);
+    
+    if (mode === 'room') {
+      pendingRoom = { x, z };
+      showMemoryModal();
+    } else if (mode === 'corridor' && rooms.length > 0) {
+      // Find nearest room
+      let nearest = rooms[0];
+      let minDist = Infinity;
+      rooms.forEach(r => {
+        const dist = Math.sqrt((r.x - x) ** 2 + (r.z - z) ** 2);
+        if (dist < minDist) {
+          minDist = dist;
+          nearest = r;
+        }
+      });
+      corridors.push(new Corridor(nearest.x, nearest.z, x, z));
+    }
+  }
+});
+
+// UI controls
+document.getElementById('btn-room').addEventListener('click', () => {
+  mode = 'room';
+  document.getElementById('btn-room').classList.add('active');
+  document.getElementById('btn-corridor').classList.remove('active');
+});
+
+document.getElementById('btn-corridor').addEventListener('click', () => {
+  mode = 'corridor';
+  document.getElementById('btn-corridor').classList.add('active');
+  document.getElementById('btn-room').classList.remove('active');
+});
+
+// Memory modal
+const modal = document.getElementById('modal');
+const memoryInput = document.getElementById('memory-input');
+
+function showMemoryModal() {
+  modal.classList.add('show');
+  memoryInput.value = '';
+  memoryInput.focus();
+}
+
+function hideMemoryModal() {
+  modal.classList.remove('show');
+}
+
+document.getElementById('save-memory').addEventListener('click', () => {
+  if (pendingRoom) {
+    const memory = memoryInput.value.trim() || 'Empty room';
+    rooms.push(new Room(pendingRoom.x, pendingRoom.z, memory));
+    pendingRoom = null;
+    hideMemoryModal();
+    updateUI();
+  }
+});
+
+document.getElementById('cancel-memory').addEventListener('click', () => {
+  pendingRoom = null;
+  hideMemoryModal();
+});
+
+memoryInput.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') {
+    document.getElementById('save-memory').click();
+  }
+});
+
+// Update UI
+function updateUI() {
+  document.getElementById('room-count').textContent = rooms.length;
+  const decayed = rooms.filter(r => r.clarity < 0.3).length;
+  document.getElementById('decayed-count').textContent = decayed;
+  document.getElementById('entropy-time').textContent = Math.floor(entropyTime) + 's';
+  
+  const entropyProgress = Math.min(1, entropyTime / MAX_ENTROPY);
+  document.getElementById('entropy-fill').style.width = (entropyProgress * 100) + '%';
+}
+
+// Animation loop
+let lastTime = Date.now();
+
+function animate() {
+  requestAnimationFrame(animate);
+  
+  const now = Date.now();
+  const delta = (now - lastTime) / 1000;
+  lastTime = now;
+  
+  entropyTime += delta;
+  
+  // Update all rooms
+  rooms.forEach(room => {
+    const neighbors = room.getNeighborCount();
+    room.update(delta, neighbors);
+  });
+  
+  updateUI();
+  renderer.render(scene, camera);
+}
+
+// Resize handler
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// Start
+animate();
+</script>
+
+</body>
+</html>

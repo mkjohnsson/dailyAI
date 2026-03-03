@@ -1,5 +1,42 @@
 [
   {
+    "date": "2026-03-03",
+    "id": "2026-03-03-3",
+    "name": "Palimpsest",
+    "description": "A 3D memory palace builder where you place rooms with personal facts, then fight entropy by revisiting them before they fade into ghostly wireframes—architecture determines decay speed.",
+    "inspiration": "OpenAI's GPT-5.3 'Garlic' emphasizes 'cognitive density' — 6x more knowledge per byte — and Perfect Recall across a 400,000-token context window.",
+    "connection": "The idea of 'perfect recall' across a vast window made me think of human memory palaces — what if you could build a literal architecture of memory, where density and recall degrade beautifully under pressure, and you sculpt spaces to fight forgetting?",
+    "source_url": "https://blog.mean.ceo/new-ai-model-releases-news-march-2026/",
+    "emoji": "🏛️",
+    "category": "AI-inspired",
+    "image": true
+  },
+  {
+    "date": "2026-03-03",
+    "id": "2026-03-03-2",
+    "name": "Sandglass",
+    "description": "A tactical weather dashboard tracking 72-hour operational conditions across Middle Eastern cities with color-coded alerts for sandstorms, heat extremes, and visibility issues that affect air and ground operations.",
+    "inspiration": "With active US military operations in Iran and the Middle East, deployed service members' families, journalists, and analysts need to understand real operational weather conditions — sandstorms, extreme heat, visibility, and wind — that directly affect military operations, flight sorties, and humanitarian logistics in the region.",
+    "connection": "Open-Meteo provides hourly forecasts including temperature, wind speed, visibility, dust concentration, and precipitation for any coordinates — perfect for rendering a tactical weather overlay across Middle Eastern operational zones.",
+    "source_url": "https://www.golocalprov.com/news/5-big-news-stories-overnight-tuesday-march-3-2026",
+    "emoji": "🏜️",
+    "category": "API tool",
+    "api": "Open-Meteo",
+    "image": true
+  },
+  {
+    "date": "2026-03-03",
+    "id": "2026-03-03",
+    "name": "Brinksmanship",
+    "description": "A tense two-player bluffing game where you and an AI secretly place real warheads and decoys on hex islands, then probe, posture, or strike to control territory without triggering mutual destruction.",
+    "inspiration": "France announced it will increase its nuclear warheads for the first time in decades, with Macron declaring 'to be free, we have to be feared.'",
+    "connection": "The idea of escalating deterrence — building up power to prevent attack while risking mutually assured destruction — maps perfectly onto a two-player bluffing game where you stack invisible threats.",
+    "source_url": "https://www.golocalprov.com/news/5-big-news-stories-overnight-tuesday-march-3-2026",
+    "emoji": "☢️",
+    "category": "Game",
+    "image": true
+  },
+  {
     "date": "2026-03-02",
     "id": "2026-03-02-6",
     "name": "Ringworld",

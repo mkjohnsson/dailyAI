@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brinksmanship — Daily AI Gen</title>
+  <meta name="description" content="A tense two-player bluffing game where you and an AI secretly place real warheads and decoys on hex islands, then probe, posture, or strike to control territory without triggering mutual destruction.">
+  <meta property="og:title" content="Brinksmanship — Daily AI Gen">
+  <meta property="og:description" content="A tense two-player bluffing game where you and an AI secretly place real warheads and decoys on hex islands, then probe, posture, or strike to control territory without triggering mutual destruction.">
+  <meta property="og:url" content="https://dailyaigen.com/apps/2026-03-03/">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="https://dailyaigen.com/apps/2026-03-03/">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Courier New', monospace;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    color: #e0e0e0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+  }
+  #game-container {
+    background: #0f1419;
+    border: 2px solid #2a4a6a;
+    border-radius: 12px;
+    padding: 30px;
+    max-width: 900px;
+    width: 100%;
+    box-shadow: 0 0 40px rgba(42, 74, 106, 0.5);
+  }
+  h1 {
+    text-align: center;
+    color: #ff6b6b;
+    margin-bottom: 10px;
+    font-size: 2em;
+    text-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
+  }
+  #status {
+    text-align: center;
+    margin-bottom: 20px;
+    font-size: 1.1em;
+    color: #ffd93d;
+    min-height: 30px;
+  }
+  #stats {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 15px;
+  }
+  .stat {
+    background: #1a2332;
+    padding: 12px 20px;
+    border-radius: 8px;
+    border: 1px solid #2a4a6a;
+  }
+  .stat-label {
+    font-size: 0.8em;
+    color: #8a9ba8;
+  }
+  .stat-value {
+    font-size: 1.3em;
+    font-weight: bold;
+    margin-top: 5px;
+  }
+  #fear-meter {
+    width: 100%;
+    height: 30px;
+    background: #1a2332;
+    border-radius: 15px;
+    overflow: hidden;
+    margin-bottom: 20px;
+    border: 2px solid #2a4a6a;
+    position: relative;
+  }
+  #fear-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #4ecca3 0%, #ffd93d 50%, #ff6b6b 100%);
+    transition: width 0.5s ease;
+    width: 0%;
+  }
+  #fear-label {
+    position: absolute;
+    width: 100%;
+    text-align: center;
+    line-height: 30px;
+    font-weight: bold;
+    color: #000;
+    text-shadow: 0 0 3px #fff;
+  }
+  #hex-grid {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 30px;
+  }
+  .hex-row {
+    display: flex;
+    gap: 10px;
+  }
+  .hex {
+    width: 70px;
+    height: 80px;
+    position: relative;
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+  .hex:hover {
+    transform: scale(1.1);
+  }
+  .hex-shape {
+    width: 100%;
+    height: 100%;
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border: 2px solid #2a4a6a;
+    position: relative;
+  }
+  .hex-neutral { background: #2a3f5f; }
+  .hex-player { background: #3a7bc8; border-color: #5a9bea; }
+  .hex-ai { background: #c84a3a; border-color: #ea5a5a; }
+  .hex-contested { background: linear-gradient(135deg, #3a7bc8 50%, #c84a3a 50%); }
+  .hex-label {
+    font-size: 0.7em;
+    color: #fff;
+    font-weight: bold;
+  }
+  .hex-tokens {
+    font-size: 1.2em;
+    margin-top: 3px;
+  }
+  .token-hidden { color: #888; }
+  .token-revealed { color: #ffd93d; }
+  .token-decoy { color: #999; text-decoration: line-through; }
+  #controls {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  button {
+    background: #2a4a6a;
+    color: #fff;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: 'Courier New', monospace;
+    font-size: 1em;
+    transition: all 0.3s;
+    border: 2px solid transparent;
+  }
+  button:hover:not(:disabled) {
+    background: #3a6a9a;
+    border-color: #5a9bea;
+    transform: translateY(-2px);
+  }
+  button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .btn-probe { background: #4a7ba7; }
+  .btn-posture { background: #a7864a; }
+  .btn-strike { background: #a74a4a; }
+  .btn-primary { background: #4ecca3; color: #000; font-weight: bold; }
+  #phase-info {
+    text-align: center;
+    background: #1a2332;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border: 1px solid #2a4a6a;
+  }
+  .modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.8);
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+  .modal-content {
+    background: #0f1419;
+    padding: 30px;
+    border-radius: 12px;
+    border: 2px solid #2a4a6a;
+    max-width: 400px;
+    text-align: center;
+  }
+  .modal h2 {
+    color: #ffd93d;
+    margin-bottom: 15px;
+  }
+  .allocation-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin: 20px 0;
+  }
+  .alloc-tile {
+    padding: 10px;
+    background: #1a2332;
+    border: 2px solid #2a4a6a;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+  .alloc-tile:hover {
+    border-color: #5a9bea;
+  }
+  .alloc-tile.selected {
+    background: #3a7bc8;
+    border-color: #5a9bea;
+  }
+  .token-selector {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin: 15px 0;
+  }
+  .token-btn {
+    padding: 10px 20px;
+    background: #2a4a6a;
+    border: 2px solid #2a4a6a;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+  .token-btn.selected {
+    background: #ffd93d;
+    color: #000;
+    border-color: #ffd93d;
+  }
+  #log {
+    background: #1a2332;
+    padding: 15px;
+    border-radius: 8px;
+    max-height: 150px;
+    overflow-y: auto;
+    font-size: 0.9em;
+    border: 1px solid #2a4a6a;
+  }
+  .log-entry {
+    margin-bottom: 5px;
+    padding: 5px;
+    border-left: 3px solid #2a4a6a;
+    padding-left: 10px;
+  }
+  .log-player { border-left-color: #3a7bc8; }
+  .log-ai { border-left-color: #c84a3a; }
+  .log-system { border-left-color: #ffd93d; }
+</style>
+</head>
+<body>
+<div id="game-container">
+  <h1>⚠ BRINKSMANSHIP ⚠</h1>
+  <div id="status">Preparing deployment phase...</div>
+  
+  <div id="stats">
+    <div class="stat">
+      <div class="stat-label">ROUND</div>
+      <div class="stat-value" id="round">1 / 12</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">YOUR TERRITORY</div>
+      <div class="stat-value" style="color: #3a7bc8;" id="player-territory">0</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">AI TERRITORY</div>
+      <div class="stat-value" style="color: #c84a3a;" id="ai-territory">0</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">WARHEADS LEFT</div>
+      <div class="stat-value" style="color: #ffd93d;" id="warheads">3</div>
+    </div>
+  </div>
+
+  <div id="fear-meter">
+    <div id="fear-bar"></div>
+    <div id="fear-label">FEAR INDEX: 0%</div>
+  </div>
+
+  <div id="phase-info">
+    <strong>DEPLOYMENT PHASE:</strong> Click territories to allocate warheads (real or decoy)
+  </div>
+
+  <div id="hex-grid"></div>
+
+  <div id="controls">
+    <button id="btn-probe" class="btn-probe" disabled>🔍 PROBE</button>
+    <button id="btn-posture" class="btn-posture" disabled>💪 POSTURE</button>
+    <button id="btn-strike" class="btn-strike" disabled>💥 STRIKE</button>
+    <button id="btn-end-turn" class="btn-primary">END DEPLOYMENT</button>
+  </div>
+
+  <div id="log"></div>
+</div>
+
+<div id="allocation-modal" class="modal">
+  <div class="modal-content">
+    <h2>Allocate to Island <span id="alloc-island"></span></h2>
+    <div class="token-selector">
+      <div class="token-btn selected" data-type="real">⚛ WARHEAD</div>
+      <div class="token-btn" data-type="decoy">📦 DECOY</div>
+    </div>
+    <p style="margin: 15px 0; color: #8a9ba8;">Warheads left: <span id="modal-warheads"></span></p>
+    <button id="confirm-alloc">CONFIRM</button>
+    <button id="cancel-alloc" style="margin-left: 10px;">CANCEL</button>
+  </div>
+</div>
+
+<div id="game-over-modal" class="modal">
+  <div class="modal-content">
+    <h2 id="game-over-title"></h2>
+    <p id="game-over-message" style="margin: 20px 0; font-size: 1.1em;"></p>
+    <button id="restart-game" class="btn-primary">PLAY AGAIN</button>
+  </div>
+</div>
+
+<script>
+const ISLANDS = ['A1','A2','B1','B2','B3','C1','C2'];
+const ADJACENCY = {
+  'A1': ['A2','B1','B2'],
+  'A2': ['A1','B2','B3'],
+  'B1': ['A1','B2','C1'],
+  'B2': ['A1','A2','B1','B3','C1','C2'],
+  'B3': ['A2','B2','C2'],
+  'C1': ['B1','B2'],
+  'C2': ['B2','B3']
+};
+
+let gameState = {
+  round: 1,
+  phase: 'deploy', // deploy, action, resolve
+  fearIndex: 0,
+  playerWarheads: 3,
+  aiWarheads: 3,
+  territories: {},
+  playerTokens: {},
+  aiTokens: {},
+  selectedIsland: null,
+  actionType: null
+};
+
+function initGame() {
+  gameState = {
+    round: 1,
+    phase: 'deploy',
+    fearIndex: 0,
+    playerWarheads: 3,
+    aiWarheads: 3,
+    territories: {},
+    playerTokens: {},
+    aiTokens: {},
+    selectedIsland: null,
+    actionType: null
+  };
+  
+  ISLANDS.forEach(island => {
+    gameState.territories[island] = 'neutral';
+    gameState.playerTokens[island] = [];
+    gameState.aiTokens[island] = [];
+  });
+  
+  updateUI();
+  renderHexGrid();
+  log('Game started. Deploy your arsenal wisely.', 'system');
+}
+
+function renderHexGrid() {
+  const grid = document.getElementById('hex-grid');
+  grid.innerHTML = '';
+  
+  const rows = [
+    ['A1', 'A2'],
+    ['B1', 'B2', 'B3'],
+    ['C1', 'C2']
+  ];
+  
+  rows.forEach(row => {
+    const rowDiv = document.createElement('div');
+    rowDiv.className = 'hex-row';
+    row.forEach(island => {
+      const hex = document.createElement('div');
+      hex.className = 'hex';
+      hex.dataset.island = island;
+      
+      const shape = document.createElement('div');
+      shape.className = 'hex-shape';
+      
+      const owner = gameState.territories[island];
+      if (owner === 'player') shape.classList.add('hex-player');
+      else if (owner === 'ai') shape.classList.add('hex-ai');
+      else if (owner === 'contested') shape.classList.add('hex-contested');
+      else shape.classList.add('hex-neutral');
+      
+      const label = document.createElement('div');
+      label.className = 'hex-label';
+      label.textContent = island;
+      
+      const tokens = document.createElement('div');
+      tokens.className = 'hex-tokens';
+      
+      const playerTokens = gameState.playerTokens[island] || [];
+      const aiTokens = gameState.aiTokens[island] || [];
+      
+      let tokenDisplay = '';
+      if (playerTokens.length > 0) {
+        const revealed = playerTokens.filter(t => t.revealed);
+        if (revealed.length > 0) {
+          tokenDisplay += revealed.map(t => t.type === 'real' ? '⚛' : '📦').join('');
+        } else {
+          tokenDisplay += '🔒'.repeat(playerTokens.length);
+        }
+      }
+      if (aiTokens.length > 0) {
+        const revealed = aiTokens.filter(t => t.revealed);
+        if (revealed.length > 0) {
+          tokenDisplay += revealed.map(t => t.type === 'real' ? '⚛' : '📦').join('');
+        } else {
+          tokenDisplay += '🔒'.repeat(aiTokens.length);
+        }
+      }
+      tokens.innerHTML = tokenDisplay || '○';
+      
+      shape.appendChild(label);
+      shape.appendChild(tokens);
+      hex.appendChild(shape);
+      rowDiv.appendChild(hex);
+      
+      hex.addEventListener('click', () => handleHexClick(island));
+    });
+    grid.appendChild(rowDiv);
+  });
+}
+
+function handleHexClick(island) {
+  if (gameState.phase === 'deploy') {
+    openAllocationModal(island);
+  } else if (gameState.phase === 'action' && gameState.actionType) {
+    executeAction(island);
+  }
+}
+
+function openAllocationModal(island) {
+  gameState.selectedIsland = island;
+  document.getElementById('alloc-island').textContent = island;
+  document.getElementById('modal-warheads').textContent = gameState.playerWarheads;
+  document.getElementById('allocation-modal').style.display = 'flex';
+}
+
+document.querySelectorAll('.token-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.token-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+  });
+});
+
+document.getElementById('confirm-alloc').addEventListener('click', () => {
+  const island = gameState.selectedIsland;
+  const type = document.querySelector('.token-btn.selected').dataset.type;
+  
+  if (type === 'real' && gameState.playerWarheads <= 0) {
+    alert('No warheads remaining!');
+    return;
+  }
+  
+  gameState.playerTokens[island].push({ type, revealed: false });
+  if (type === 'real') gameState.playerWarheads--;
+  
+  log(`Deployed ${type === 'real' ? 'WARHEAD' : 'DECOY'} to ${island}`, 'player');
+  
+  document.getElementById('allocation-modal').style.display = 'none';
+  updateUI();
+  renderHexGrid();
+});
+
+document.getElementById('cancel-alloc').addEventListener('click', () => {
+  document.getElementById('allocation-modal').style.display = 'none';
+});
+
+document.getElementById('btn-end-turn').addEventListener('click', () => {
+  if (gameState.phase === 'deploy') {
+    aiDeploy();
+    gameState.phase = 'action';
+    updateUI();
+    log('Action phase begins. Choose your move.', 'system');
+  }
+});
+
+function aiDeploy() {
+  const islands = [...ISLANDS].sort(() => Math.random() - 0.5);
+  let warheadsLeft = gameState.aiWarheads;
+  
+  islands.slice(0, 3 + Math.floor(Math.random() * 2)).forEach(island => {
+    const useReal = warheadsLeft > 0 && Math.random() > 0.4;
+    gameState.aiTokens[island].push({ type: useReal ? 'real' : 'decoy', revealed: false });
+    if (useReal) warheadsLeft--;
+  });
+  
+  gameState.aiWarheads = warheadsLeft;
+  log('AI has completed deployment.', 'ai');
+}
+
+document.getElementById('btn-probe').addEventListener('click', () => {
+  gameState.actionType = 'probe';
+  updateUI();
+  log('Select enemy territory to PROBE', 'system');
+});
+
+document.getElementById('btn-posture').addEventListener('click', () => {
+  gameState.actionType = 'posture';
+  updateUI();
+  log('Select your territory to POSTURE from', 'system');
+});
+
+document.getElementById('btn-strike').addEventListener('click', () => {
+  gameState.actionType = 'strike';
+  updateUI();
+  log('Select territory to STRIKE', 'system');
+});
+
+function executeAction(island) {
+  const action = gameState.actionType;
+  
+  if (action === 'probe') {
+    if (gameState.aiTokens[island].length === 0) {
+      log(`${island} has no AI tokens to probe.`, 'system');
+      return;
+    }
+    
+    const token = gameState.aiTokens[island].find(t => !t.revealed);
+    if (token) {
+      token.revealed = true;
+      log(`PROBE revealed ${token.type === 'real' ? 'WARHEAD ⚛' : 'DECOY 📦'} at ${island}`, 'player');
+      gameState.fearIndex += token.type === 'real' ? 15 : 5;
+      
+      // AI retaliation chance
+      if (Math.random() > 0.5) {
+        const playerIslands = ISLANDS.filter(i => gameState.playerTokens[i].length > 0);
+        if (playerIslands.length > 0) {
+          const target = playerIslands[Math.floor(Math.random() * playerIslands.length)];
+          const ptoken = gameState.playerTokens[target].find(t => !t.revealed);
+          if (ptoken) {
+            ptoken.revealed = true;
+            log(`AI retaliated! Probed your ${ptoken.type === 'real' ? 'WARHEAD ⚛' : 'DECOY 📦'} at ${target}`, 'ai');
+            gameState.fearIndex += 10;
+          }
+        }
+      }
+    }
+  } else if (action === 'posture') {
+    if (gameState.playerTokens[island].length === 0) {
+      log(`You have no tokens at ${island} to posture with.`, 'system');
+      return;
+    }
+    
+    const adjacentAI = ADJACENCY[island].filter(i => gameState.aiTokens[i].length > 0);
+    if (adjacentAI.length === 0) {
+      log(`No AI presence near ${island} to intimidate.`, 'system');
+    } else {
+      const success = Math.random() > 0.4;
+      if (success) {
+        const target = adjacentAI[Math.floor(Math.random() * adjacentAI.length)];
+        if (gameState.territories[target] === 'ai') {
+          gameState.territories[target] = 'contested';
+          log(`POSTURE successful! ${target} now contested.`, 'player');
+          gameState.fearIndex += 10;
+        }
+      } else {
+        log(`POSTURE failed. AI sees through your bluff.`, 'player');
+        gameState.fearIndex += 5;
+      }
+    }
+  } else if (action === 'strike') {
+    const playerHasReal = gameState.playerTokens[island].some(t => t.type === 'real');
+    const aiHasReal = gameState.aiTokens[island].some(t => t.type === 'real');
+    
+    // AI strike decision
+    const aiStrike = Math.random() > 0.6 && aiHasReal;
+    
+    if (playerHasReal && aiStrike) {
+      log(`💥 MUTUAL ANNIHILATION at ${island}! Both sides destroyed.`, 'system');
+      gameState.playerTokens[island] = [];
+      gameState.aiTokens[island] = [];
+      gameState.territories[island] = 'neutral';
+      gameState.fearIndex += 40;
+    } else if (playerHasReal) {
+      log(`💥 STRIKE successful! ${island} secured.`, 'player');
+      gameState.territories[island] = 'player';
+      gameState.aiTokens[island] = [];
+      gameState.fearIndex += 20;
+    } else {
+      log(`Strike failed - no warheads at ${island}!`, 'player');
+      gameState.fearIndex += 5;
+    }
+  }
+  
+  gameState.actionType = null;
+  aiAction();
+  resolveRound();
+}
+
+function aiAction() {
+  const action = ['probe', 'posture', 'strike'][Math.floor(Math.random() * 3)];
+  
+  if (action === 'probe') {
+    const targets = ISLANDS.filter(i => gameState.playerTokens[i].length > 0);
+    if (targets.length > 0) {
+      const target = targets[Math.floor(Math.random() * targets.length)];
+      const token = gameState.playerTokens[target].find(t => !t.revealed);
+      if (token) {
+        token.revealed = true;
+        log(`AI probed ${target}, found your ${token.type === 'real' ? 'WARHEAD ⚛' : 'DECOY 📦'}`, 'ai');
+        gameState.fearIndex += 8;
+      }
+    }
+  } else if (action === 'posture') {
+    const aiIslands = ISLANDS.filter(i => gameState.aiTokens[i].length > 0);
+    if (aiIslands.length > 0) {
+      const from = aiIslands[Math.floor(Math.random() * aiIslands.length)];
+      log(`AI postures from ${from}`, 'ai');
+      gameState.fearIndex += 7;
+    }
+  } else if (action === 'strike') {
+    const targets = ISLANDS.filter(i => gameState.territories[i] !== 'ai');
+    if (targets.length > 0 && gameState.aiTokens[targets[0]].some(t => t.type === 'real')) {
+      const target = targets[Math.floor(Math.random() * targets.length)];
+      log(`AI struck ${target}`, 'ai');
+      if (gameState.territories[target] === 'player') {
+        gameState.territories[target] = 'contested';
+      } else {
+        gameState.territories[target] = 'ai';
+      }
+      gameState.fearIndex += 15;
+    }
+  }
+}
+
+function resolveRound() {
+  // Update territory control
+  ISLANDS.forEach(island => {
+    const pTokens = gameState.playerTokens[island].filter(t => t.type === 'real').length;
+    const aTokens = gameState.aiTokens[island].filter(t => t.type === 'real').length;
+    
+    if (pTokens > aTokens) gameState.territories[island] = 'player';
+    else if (aTokens > pTokens) gameState.territories[island] = 'ai';
+    else if (pTokens > 0 && aTokens > 0) gameState.territories[island] = 'contested';
+  });
+  
+  gameState.round++;
+  
+  if (gameState.fearIndex >= 100) {
+    endGame('sudden-death');
+    return;
+  }
+  
+  if (gameState.round > 12) {
+    endGame('rounds-complete');
+    return;
+  }
+  
+  // New round
+  gameState.phase = 'deploy';
+  gameState.playerWarheads = 3;
+  gameState.aiWarheads = 3;
+  ISLANDS.forEach(island => {
+    gameState.playerTokens[island] = [];
+    gameState.aiTokens[island] = [];
+  });
+  
+  updateUI();
+  renderHexGrid();
+  log(`--- ROUND ${gameState.round} BEGINS ---`, 'system');
+}
+
+function endGame(reason) {
+  const playerScore = ISLANDS.filter(i => gameState.territories[i] === 'player').length;
+  const aiScore = ISLANDS.filter(i => gameState.territories[i] === 'ai').length;
+  
+  const modal = document.getElementById('game-over-modal');
+  const title = document.getElementById('game-over-title');
+  const message = document.getElementById('game-over-message');
+  
+  if (reason === 'sudden-death') {
+    title.textContent = '☢ GLOBAL CATASTROPHE ☢';
+    message.textContent = 'Fear Index reached 100%. The world is engulfed in nuclear fire. Nobody wins.';
+  } else {
+    if (playerScore > aiScore) {
+      title.textContent = '🏆 VICTORY 🏆';
+      message.textContent = `You control ${playerScore} territories vs AI's ${aiScore}. Strategic dominance achieved.`;
+    } else if (aiScore > playerScore) {
+      title.textContent = '💀 DEFEAT 💀';
+      message.textContent = `AI controls ${aiScore} territories vs your ${playerScore}. You were outmaneuvered.`;
+    } else {
+      title.textContent = '⚖ STALEMATE ⚖';
+      message.textContent = `Both sides control ${playerScore} territories. The balance of power holds.`;
+    }
+  }
+  
+  modal.style.display = 'flex';
+}
+
+document.getElementById('restart-game').addEventListener('click', () => {
+  document.getElementById('game-over-modal').style.display = 'none';
+  initGame();
+});
+
+function updateUI() {
+  document.getElementById('round').textContent = `${gameState.round} / 12`;
+  document.getElementById('warheads').textContent = gameState.playerWarheads;
+  
+  const playerScore = ISLANDS.filter(i => gameState.territories[i] === 'player').length;
+  const aiScore = ISLANDS.filter(i => gameState.territories[i] === 'ai').length;
+  document.getElementById('player-territory').textContent = playerScore;
+  document.getElementById('ai-territory').textContent = aiScore;
+  
+  const fearBar = document.getElementById('fear-bar');
+  const fearLabel = document.getElementById('fear-label');
+  fearBar.style.width = Math.min(gameState.fearIndex, 100) + '%';
+  fearLabel.textContent = `FEAR INDEX: ${Math.round(gameState.fearIndex)}%`;
+  
+  const phaseInfo = document.getElementById('phase-info');
+  if (gameState.phase === 'deploy') {
+    phaseInfo.innerHTML = '<strong>DEPLOYMENT PHASE:</strong> Click territories to allocate warheads (real or decoy)';
+    document.getElementById('btn-end-turn').disabled = false;
+    document.getElementById('btn-probe').disabled = true;
+    document.getElementById('btn-posture').disabled = true;
+    document.getElementById('btn-strike').disabled = true;
+  } else {
+    phaseInfo.innerHTML = '<strong>ACTION PHASE:</strong> Choose an action and select a target';
+    document.getElementById('btn-end-turn').disabled = true;
+    document.getElementById('btn-probe').disabled = false;
+    document.getElementById('btn-posture').disabled = false;
+    document.getElementById('btn-strike').disabled = false;
+  }
+  
+  renderHexGrid();
+}
+
+function log(message, type = 'system') {
+  const logDiv = document.getElementById('log');
+  const entry = document.createElement('div');
+  entry.className = `log-entry log-${type}`;
+  entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+  logDiv.prepend(entry);
+  
+  while (logDiv.children.length > 10) {
+    logDiv.removeChild(logDiv.lastChild);
+  }
+}
+
+initGame();
+</script>
+</body>
+</html>
