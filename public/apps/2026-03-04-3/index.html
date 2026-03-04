@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chipwright — Daily AI Gen</title>
+  <meta name="description" content="Build Frankenstein neural networks from mismatched chips by routing signal paths, balancing speed and heat to pass cognitive benchmarks while watching your design bottleneck in real-time.">
+  <meta property="og:title" content="Chipwright — Daily AI Gen">
+  <meta property="og:description" content="Build Frankenstein neural networks from mismatched chips by routing signal paths, balancing speed and heat to pass cognitive benchmarks while watching your design bottleneck in real-time.">
+  <meta property="og:url" content="https://dailyaigen.com/apps/2026-03-04-3/">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="https://dailyaigen.com/apps/2026-03-04-3/">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0a0a0a;
+            color: #00ff00;
+            overflow: hidden;
+            user-select: none;
+        }
+        #game {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        #header {
+            padding: 15px 20px;
+            background: #111;
+            border-bottom: 2px solid #00ff00;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        #level-info {
+            font-size: 18px;
+        }
+        #stats {
+            display: flex;
+            gap: 30px;
+            font-size: 14px;
+        }
+        .stat {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .stat-bar {
+            width: 100px;
+            height: 12px;
+            background: #222;
+            border: 1px solid #444;
+            position: relative;
+        }
+        .stat-fill {
+            height: 100%;
+            transition: width 0.3s, background 0.3s;
+        }
+        #main {
+            flex: 1;
+            display: flex;
+        }
+        #board-container {
+            flex: 1;
+            position: relative;
+            background: #0f0f0f;
+        }
+        canvas {
+            display: block;
+        }
+        #sidebar {
+            width: 280px;
+            background: #111;
+            border-left: 2px solid #00ff00;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        .chip {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border: 2px solid;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            transition: transform 0.2s;
+        }
+        .chip:hover {
+            transform: scale(1.1);
+        }
+        .chip.selected {
+            box-shadow: 0 0 20px currentColor;
+        }
+        .chip-label {
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+        .chip-stats {
+            font-size: 8px;
+            opacity: 0.7;
+        }
+        .port {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #fff;
+            border-radius: 50%;
+            cursor: crosshair;
+        }
+        .port.input {
+            left: -4px;
+        }
+        .port.output {
+            right: -4px;
+        }
+        h2 {
+            font-size: 16px;
+            margin-bottom: 15px;
+            color: #00ff00;
+        }
+        .challenge {
+            background: #1a1a1a;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 1px solid #333;
+            border-radius: 4px;
+        }
+        .challenge-title {
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #00ffff;
+        }
+        .requirement {
+            font-size: 11px;
+            margin: 4px 0;
+            padding-left: 10px;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #003300;
+            border: 2px solid #00ff00;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: all 0.2s;
+        }
+        button:hover {
+            background: #00ff00;
+            color: #000;
+        }
+        button:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+        #result {
+            margin-top: 15px;
+            padding: 12px;
+            border: 1px solid #333;
+            border-radius: 4px;
+            font-size: 12px;
+            min-height: 60px;
+        }
+        .success {
+            border-color: #00ff00;
+            background: #003300;
+        }
+        .failure {
+            border-color: #ff0000;
+            background: #330000;
+            color: #ff6666;
+        }
+        .info {
+            background: #1a1a1a;
+        }
+        #controls {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #333;
+        }
+        .control-btn {
+            padding: 8px;
+            margin-top: 5px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div id="game">
+        <div id="header">
+            <div id="level-info">
+                <span>CHIPWRIGHT</span> | 
+                <span id="level-name">Level 1: Basic Recognition</span>
+            </div>
+            <div id="stats">
+                <div class="stat">
+                    <span>HEAT:</span>
+                    <div class="stat-bar">
+                        <div class="stat-fill" id="heat-fill" style="width: 0%; background: #ff6600;"></div>
+                    </div>
+                </div>
+                <div class="stat">
+                    <span>LATENCY:</span>
+                    <div class="stat-bar">
+                        <div class="stat-fill" id="latency-fill" style="width: 0%; background: #ffff00;"></div>
+                    </div>
+                </div>
+                <div class="stat">
+                    <span>ACCURACY:</span>
+                    <div class="stat-bar">
+                        <div class="stat-fill" id="accuracy-fill" style="width: 0%; background: #00ff00;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="main">
+            <div id="board-container">
+                <canvas id="board"></canvas>
+            </div>
+            <div id="sidebar">
+                <h2>CHALLENGE</h2>
+                <div id="challenge-info"></div>
+                
+                <button id="test-btn">RUN BENCHMARK</button>
+                <button class="control-btn" id="clear-btn">Clear Wires</button>
+                
+                <div id="result" class="info">
+                    Wire chips together by clicking output ports (right) to input ports (left). Balance speed, precision, and heat.
+                </div>
+                
+                <div id="controls">
+                    <h2>TIPS</h2>
+                    <div style="font-size: 11px; line-height: 1.6;">
+                        • Fast chips add latency<br>
+                        • Deep chips add precision<br>
+                        • Many wires = more heat<br>
+                        • Sparse designs often win
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('board');
+        const ctx = canvas.getContext('2d');
+        
+        let width, height;
+        function resizeCanvas() {
+            width = canvas.width = canvas.parentElement.clientWidth;
+            height = canvas.height = canvas.parentElement.clientHeight;
+            draw();
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const CHIP_TYPES = {
+            FAST: { color: '#ff3366', speed: 5, precision: 3, heat: 8, label: 'FAST' },
+            DEEP: { color: '#3366ff', speed: 2, precision: 9, heat: 4, label: 'DEEP' },
+            CHEAP: { color: '#66ff33', speed: 4, precision: 5, heat: 6, label: 'CHEAP' },
+            LEAKY: { color: '#ffaa33', speed: 6, precision: 2, heat: 9, label: 'LEAKY' },
+            BALANCED: { color: '#ff33ff', speed: 5, precision: 6, heat: 5, label: 'BAL' }
+        };
+
+        const LEVELS = [
+            {
+                name: "Level 1: Basic Recognition",
+                chips: [
+                    { type: 'FAST', x: 100, y: 150 },
+                    { type: 'CHEAP', x: 100, y: 300 },
+                    { type: 'DEEP', x: 300, y: 225 },
+                    { type: 'BALANCED', x: 500, y: 225 }
+                ],
+                requirements: {
+                    minAccuracy: 60,
+                    maxLatency: 70,
+                    maxHeat: 60
+                },
+                description: "Simple pattern matching"
+            },
+            {
+                name: "Level 2: Multi-Modal Fusion",
+                chips: [
+                    { type: 'FAST', x: 80, y: 120 },
+                    { type: 'FAST', x: 80, y: 280 },
+                    { type: 'DEEP', x: 250, y: 120 },
+                    { type: 'CHEAP', x: 250, y: 280 },
+                    { type: 'BALANCED', x: 450, y: 200 },
+                    { type: 'DEEP', x: 600, y: 200 }
+                ],
+                requirements: {
+                    minAccuracy: 75,
+                    maxLatency: 60,
+                    maxHeat: 70
+                },
+                description: "Combine vision and audio streams"
+            },
+            {
+                name: "Level 3: Reasoning Under Noise",
+                chips: [
+                    { type: 'LEAKY', x: 90, y: 100 },
+                    { type: 'LEAKY', x: 90, y: 220 },
+                    { type: 'FAST', x: 90, y: 340 },
+                    { type: 'DEEP', x: 280, y: 160 },
+                    { type: 'DEEP', x: 280, y: 280 },
+                    { type: 'BALANCED', x: 480, y: 160 },
+                    { type: 'CHEAP', x: 480, y: 280 },
+                    { type: 'DEEP', x: 650, y: 220 }
+                ],
+                requirements: {
+                    minAccuracy: 85,
+                    maxLatency: 55,
+                    maxHeat: 65
+                },
+                description: "Clean signal from corrupted inputs"
+            }
+        ];
+
+        let currentLevel = 0;
+        let chips = [];
+        let wires = [];
+        let selectedPort = null;
+        let hoverPort = null;
+
+        class Chip {
+            constructor(type, x, y, id) {
+                this.type = type;
+                this.spec = CHIP_TYPES[type];
+                this.x = x;
+                this.y = y;
+                this.id = id;
+                this.heat = 0;
+                this.active = false;
+            }
+        }
+
+        class Wire {
+            constructor(fromChip, toChip) {
+                this.from = fromChip;
+                this.to = toChip;
+                this.signal = 0;
+            }
+        }
+
+        function loadLevel(levelIndex) {
+            currentLevel = levelIndex;
+            const level = LEVELS[levelIndex];
+            
+            chips = level.chips.map((chipDef, i) => 
+                new Chip(chipDef.type, chipDef.x, chipDef.y, i)
+            );
+            wires = [];
+            
+            document.getElementById('level-name').textContent = level.name;
+            
+            const challengeDiv = document.getElementById('challenge-info');
+            challengeDiv.innerHTML = `
+                <div class="challenge">
+                    <div class="challenge-title">${level.description}</div>
+                    <div class="requirement">Min Accuracy: ${level.requirements.minAccuracy}%</div>
+                    <div class="requirement">Max Latency: ${level.requirements.maxLatency}%</div>
+                    <div class="requirement">Max Heat: ${level.requirements.maxHeat}%</div>
+                </div>
+            `;
+            
+            updateStats(0, 0, 0);
+            document.getElementById('result').className = 'info';
+            document.getElementById('result').textContent = 'Wire chips together and run the benchmark.';
+            
+            draw();
+        }
+
+        function draw() {
+            ctx.fillStyle = '#0f0f0f';
+            ctx.fillRect(0, 0, width, height);
+            
+            // Draw grid
+            ctx.strokeStyle = '#1a1a1a';
+            ctx.lineWidth = 1;
+            for (let x = 0; x < width; x += 50) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, height);
+                ctx.stroke();
+            }
+            for (let y = 0; y < height; y += 50) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(width, y);
+                ctx.stroke();
+            }
+            
+            // Draw wires
+            wires.forEach(wire => {
+                const from = chips[wire.from];
+                const to = chips[wire.to];
+                
+                ctx.beginPath();
+                ctx.moveTo(from.x + 30, from.y + 30);
+                ctx.lineTo(to.x + 30, to.y + 30);
+                
+                const gradient = ctx.createLinearGradient(from.x, from.y, to.x, to.y);
+                gradient.addColorStop(0, from.spec.color);
+                gradient.addColorStop(1, to.spec.color);
+                
+                ctx.strokeStyle = gradient;
+                ctx.lineWidth = 3;
+                ctx.globalAlpha = 0.6 + wire.signal * 0.4;
+                ctx.stroke();
+                ctx.globalAlpha = 1;
+            });
+            
+            // Draw temporary wire being created
+            if (selectedPort) {
+                ctx.beginPath();
+                const chip = chips[selectedPort.chipId];
+                ctx.moveTo(chip.x + 30, chip.y + 30);
+                ctx.lineTo(mouseX, mouseY);
+                ctx.strokeStyle = chip.spec.color;
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 5]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+            
+            // Draw chips
+            chips.forEach((chip, i) => {
+                // Heat glow
+                if (chip.heat > 0) {
+                    const intensity = chip.heat / 10;
+                    const gradient = ctx.createRadialGradient(
+                        chip.x + 30, chip.y + 30, 0,
+                        chip.x + 30, chip.y + 30, 40 + intensity * 20
+                    );
+                    gradient.addColorStop(0, `${chip.spec.color}88`);
+                    gradient.addColorStop(1, 'transparent');
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(chip.x - 20, chip.y - 20, 100, 100);
+                }
+                
+                // Chip body
+                ctx.fillStyle = chip.active ? '#222' : '#1a1a1a';
+                ctx.fillRect(chip.x, chip.y, 60, 60);
+                
+                ctx.strokeStyle = chip.spec.color;
+                ctx.lineWidth = chip.active ? 3 : 2;
+                ctx.strokeRect(chip.x, chip.y, 60, 60);
+                
+                // Label
+                ctx.fillStyle = chip.spec.color;
+                ctx.font = 'bold 11px Courier New';
+                ctx.textAlign = 'center';
+                ctx.fillText(chip.spec.label, chip.x + 30, chip.y + 28);
+                
+                // Stats
+                ctx.font = '8px Courier New';
+                ctx.fillStyle = '#888';
+                ctx.fillText(`S:${chip.spec.speed} P:${chip.spec.precision}`, chip.x + 30, chip.y + 42);
+                ctx.fillText(`H:${chip.spec.heat}`, chip.x + 30, chip.y + 52);
+                
+                // Ports
+                const isInputHover = hoverPort && hoverPort.chipId === i && hoverPort.type === 'input';
+                const isOutputHover = hoverPort && hoverPort.chipId === i && hoverPort.type === 'output';
+                
+                // Input port (left)
+                ctx.fillStyle = isInputHover ? '#ffffff' : '#666';
+                ctx.beginPath();
+                ctx.arc(chip.x, chip.y + 30, 4, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Output port (right)
+                ctx.fillStyle = isOutputHover ? '#ffffff' : '#666';
+                ctx.beginPath();
+                ctx.arc(chip.x + 60, chip.y + 30, 4, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+
+        let mouseX = 0, mouseY = 0;
+        
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            mouseX = e.clientX - rect.left;
+            mouseY = e.clientY - rect.top;
+            
+            hoverPort = null;
+            chips.forEach((chip, i) => {
+                const distInput = Math.hypot(mouseX - chip.x, mouseY - (chip.y + 30));
+                const distOutput = Math.hypot(mouseX - (chip.x + 60), mouseY - (chip.y + 30));
+                
+                if (distInput < 8) {
+                    hoverPort = { chipId: i, type: 'input' };
+                } else if (distOutput < 8) {
+                    hoverPort = { chipId: i, type: 'output' };
+                }
+            });
+            
+            draw();
+        });
+        
+        canvas.addEventListener('click', (e) => {
+            if (!hoverPort) {
+                selectedPort = null;
+                draw();
+                return;
+            }
+            
+            if (hoverPort.type === 'output') {
+                selectedPort = hoverPort;
+            } else if (hoverPort.type === 'input' && selectedPort) {
+                // Create wire from selected output to this input
+                const existingWire = wires.find(w => 
+                    w.from === selectedPort.chipId && w.to === hoverPort.chipId
+                );
+                
+                if (!existingWire && selectedPort.chipId !== hoverPort.chipId) {
+                    wires.push(new Wire(selectedPort.chipId, hoverPort.chipId));
+                }
+                
+                selectedPort = null;
+            }
+            
+            draw();
+        });
+
+        function updateStats(heat, latency, accuracy) {
+            document.getElementById('heat-fill').style.width = heat + '%';
+            document.getElementById('latency-fill').style.width = latency + '%';
+            document.getElementById('accuracy-fill').style.width = accuracy + '%';
+            
+            document.getElementById('heat-fill').style.background = 
+                heat > 80 ? '#ff0000' : heat > 60 ? '#ff6600' : '#ffaa00';
+            document.getElementById('latency-fill').style.background = 
+                latency > 80 ? '#ff0000' : latency > 60 ? '#ff6600' : '#ffff00';
+        }
+
+        function runBenchmark() {
+            if (wires.length === 0) {
+                showResult('No wires connected!', 'failure');
+                return;
+            }
+            
+            // Build adjacency for signal propagation
+            const outputs = new Map();
+            wires.forEach(wire => {
+                if (!outputs.has(wire.from)) outputs.set(wire.from, []);
+                outputs.get(wire.from).push(wire.to);
+            });
+            
+            // Calculate metrics
+            let totalSpeed = 0;
+            let totalPrecision = 0;
+            let totalHeat = 0;
+            let activeChips = new Set();
+            
+            // Find all chips involved in the network
+            wires.forEach(wire => {
+                activeChips.add(wire.from);
+                activeChips.add(wire.to);
+            });
+            
+            activeChips.forEach(chipId => {
+                const chip = chips[chipId];
+                totalSpeed += chip.spec.speed;
+                totalPrecision += chip.spec.precision;
+                totalHeat += chip.spec.heat;
+            });
+            
+            // Wire complexity penalty
+            const wireComplexity = wires.length * 5;
+            totalHeat += wireComplexity;
+            
+            // Network depth (affects latency)
+            const maxDepth = calculateNetworkDepth(outputs);
+            const latency = Math.min(100, maxDepth * 8 + (10 - totalSpeed / activeChips.size) * 5);
+            
+            // Accuracy depends on precision and sparsity
+            const avgPrecision = totalPrecision / activeChips.size;
+            const sparsityBonus = Math.max(0, 10 - wires.length) * 2;
+            const accuracy = Math.min(100, avgPrecision * 8 + sparsityBonus);
+            
+            const heat = Math.min(100, (totalHeat / activeChips.size) * 10);
+            
+            // Animate chips
+            let frame = 0;
+            const animationFrames = 30;
+            
+            const animate = () => {
+                frame++;
+                const progress = frame / animationFrames;
+                
+                chips.forEach((chip, i) => {
+                    chip.active = activeChips.has(i);
+                    chip.heat = activeChips.has(i) ? heat / 10 : 0;
+                });
+                
+                wires.forEach(wire => {
+                    wire.signal = Math.sin(progress * Math.PI * 4) * 0.5 + 0.5;
+                });
+                
+                updateStats(heat * progress, latency * progress, accuracy * progress);
+                draw();
+                
+                if (frame < animationFrames) {
+                    requestAnimationFrame(animate);
+                } else {
+                    checkSuccess(heat, latency, accuracy);
+                }
+            };
+            
+            animate();
+        }
+        
+        function calculateNetworkDepth(outputs) {
+            const visited = new Set();
+            let maxDepth = 0;
+            
+            function dfs(nodeId, depth) {
+                if (visited.has(nodeId)) return depth;
+                visited.add(nodeId);
+                
+                maxDepth = Math.max(maxDepth, depth);
+                
+                const neighbors = outputs.get(nodeId) || [];
+                neighbors.forEach(neighbor => dfs(neighbor, depth + 1));
+                
+                return depth;
+            }
+            
+            outputs.forEach((_, nodeId) => dfs(nodeId, 0));
+            return maxDepth;
+        }
+        
+        function checkSuccess(heat, latency, accuracy) {
+            const level = LEVELS[currentLevel];
+            const req = level.requirements;
+            
+            const passAccuracy = accuracy >= req.minAccuracy;
+            const passLatency = latency <= req.maxLatency;
+            const passHeat = heat <= req.maxHeat;
+            
+            if (passAccuracy && passLatency && passHeat) {
+                showResult(`✓ BENCHMARK PASSED!\nAccuracy: ${accuracy.toFixed(1)}%\nLatency: ${latency.toFixed(1)}%\nHeat: ${heat.toFixed(1)}%`, 'success');
+                
+                if (currentLevel < LEVELS.length - 1) {
+                    setTimeout(() => {
+                        if (confirm('Level complete! Continue to next challenge?')) {
+                            loadLevel(currentLevel + 1);
+                        }
+                    }, 1500);
+                } else {
+                    setTimeout(() => {
+                        alert('🎉 All levels complete! You are a master Chipwright!');
+                    }, 1500);
+                }
+            } else {
+                let failures = [];
+                if (!passAccuracy) failures.push(`Accuracy too low (${accuracy.toFixed(1)}% < ${req.minAccuracy}%)`);
+                if (!passLatency) failures.push(`Latency too high (${latency.toFixed(1)}% > ${req.maxLatency}%)`);
+                if (!passHeat) failures.push(`Overheating (${heat.toFixed(1)}% > ${req.maxHeat}%)`);
+                
+                showResult('✗ BENCHMARK FAILED\n' + failures.join('\n'), 'failure');
+            }
+        }
+        
+        function showResult(text, type) {
+            const result = document.getElementById('result');
+            result.textContent = text;
+            result.className = type;
+        }
+        
+        document.getElementById('test-btn').addEventListener('click', runBenchmark);
+        
+        document.getElementById('clear-btn').addEventListener('click', () => {
+            wires = [];
+            chips.forEach(chip => {
+                chip.heat = 0;
+                chip.active = false;
+            });
+            selectedPort = null;
+            updateStats(0, 0, 0);
+            draw();
+            showResult('Wires cleared. Design your network.', 'info');
+        });
+        
+        loadLevel(0);
+    </script>
+</body>
+</html>

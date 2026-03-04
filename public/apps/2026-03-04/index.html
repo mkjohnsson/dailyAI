@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Throttle - Network Flow Analyzer — Daily AI Gen</title>
+  <meta name="description" content="A network flow visualizer that reveals systemic fragility by letting you pinch nodes shut and watch throughput collapse cascade through the graph in real-time.">
+  <meta property="og:title" content="Throttle — Daily AI Gen">
+  <meta property="og:description" content="A network flow visualizer that reveals systemic fragility by letting you pinch nodes shut and watch throughput collapse cascade through the graph in real-time.">
+  <meta property="og:url" content="https://dailyaigen.com/apps/2026-03-04/">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="https://dailyaigen.com/apps/2026-03-04/">
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Courier New', monospace;
+  background: #0a0a0a;
+  color: #e0e0e0;
+  overflow: hidden;
+  height: 100vh;
+}
+
+#container {
+  display: flex;
+  height: 100vh;
+}
+
+#canvas-area {
+  flex: 1;
+  position: relative;
+}
+
+canvas {
+  display: block;
+  cursor: crosshair;
+}
+
+#sidebar {
+  width: 280px;
+  background: #1a1a1a;
+  border-left: 1px solid #333;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+h1 {
+  font-size: 20px;
+  margin-bottom: 5px;
+  color: #00ff88;
+  letter-spacing: 2px;
+}
+
+.subtitle {
+  font-size: 11px;
+  color: #666;
+  margin-bottom: 20px;
+}
+
+.section {
+  margin-bottom: 25px;
+}
+
+.section-title {
+  font-size: 12px;
+  color: #00ff88;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+button {
+  background: #222;
+  color: #00ff88;
+  border: 1px solid #00ff88;
+  padding: 8px 12px;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  cursor: pointer;
+  margin: 5px 5px 5px 0;
+  transition: all 0.2s;
+}
+
+button:hover {
+  background: #00ff88;
+  color: #000;
+}
+
+button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+#fragility-list {
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.fragility-item {
+  padding: 8px;
+  margin: 5px 0;
+  background: #111;
+  border-left: 3px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.fragility-item:hover {
+  background: #1a1a1a;
+}
+
+.fragility-item.critical {
+  border-left-color: #ff0055;
+}
+
+.fragility-item.high {
+  border-left-color: #ff8800;
+}
+
+.fragility-item.medium {
+  border-left-color: #ffdd00;
+}
+
+.fragility-item.low {
+  border-left-color: #00ff88;
+}
+
+.node-name {
+  font-weight: bold;
+  color: #fff;
+}
+
+.score {
+  color: #888;
+  float: right;
+}
+
+.stats {
+  font-size: 11px;
+  padding: 10px;
+  background: #111;
+  margin-bottom: 10px;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  margin: 5px 0;
+}
+
+.stat-label {
+  color: #888;
+}
+
+.stat-value {
+  color: #00ff88;
+  font-weight: bold;
+}
+
+.instructions {
+  font-size: 10px;
+  color: #666;
+  line-height: 1.5;
+  margin-top: 15px;
+}
+
+.example-btn {
+  width: 100%;
+  margin: 3px 0;
+}
+
+select {
+  background: #222;
+  color: #00ff88;
+  border: 1px solid #00ff88;
+  padding: 6px;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  width: 100%;
+  margin-bottom: 10px;
+}
+</style>
+</head>
+<body>
+<div id="container">
+  <div id="canvas-area">
+    <canvas id="canvas"></canvas>
+  </div>
+  <div id="sidebar">
+    <h1>THROTTLE</h1>
+    <div class="subtitle">Network Flow Analyzer</div>
+    
+    <div class="section">
+      <div class="section-title">Load Example</div>
+      <button class="example-btn" onclick="loadExample('supply')">Supply Chain</button>
+      <button class="example-btn" onclick="loadExample('social')">Social Network</button>
+      <button class="example-btn" onclick="loadExample('transit')">Transit System</button>
+      <button class="example-btn" onclick="loadExample('code')">Code Dependencies</button>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Controls</div>
+      <button onclick="resetNetwork()">Reset Network</button>
+      <button onclick="clearThrottles()">Clear Throttles</button>
+    </div>
+
+    <div class="section">
+      <div class="stats">
+        <div class="stat-row">
+          <span class="stat-label">Total Flow:</span>
+          <span class="stat-value" id="total-flow">0</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Active Nodes:</span>
+          <span class="stat-value" id="active-nodes">0</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Throttled:</span>
+          <span class="stat-value" id="throttled-nodes">0</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Cascades:</span>
+          <span class="stat-value" id="cascade-count">0</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Fragility Ranking</div>
+      <div id="fragility-list"></div>
+    </div>
+
+    <div class="instructions">
+      <strong>Click & hold</strong> on nodes to throttle them shut.<br>
+      Watch flow die downstream.<br>
+      Node size = throughput.<br>
+      Edge thickness = flow volume.
+    </div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+let width, height;
+let nodes = [];
+let edges = [];
+let hoveredNode = null;
+let throttledNodes = new Set();
+let cascadeCount = 0;
+
+// Examples
+const examples = {
+  supply: {
+    nodes: [
+      {id: 'raw', label: 'Raw Materials', x: 0.15, y: 0.3, sources: []},
+      {id: 'mfg', label: 'Manufacturer', x: 0.35, y: 0.3, sources: ['raw']},
+      {id: 'dist', label: 'Distributor', x: 0.55, y: 0.3, sources: ['mfg']},
+      {id: 'retail1', label: 'Retail North', x: 0.75, y: 0.2, sources: ['dist']},
+      {id: 'retail2', label: 'Retail South', x: 0.75, y: 0.4, sources: ['dist']},
+      {id: 'warehouse', label: 'Warehouse', x: 0.35, y: 0.6, sources: ['raw']},
+      {id: 'backup', label: 'Backup Supplier', x: 0.55, y: 0.6, sources: ['warehouse', 'mfg']},
+      {id: 'consumer', label: 'Consumers', x: 0.9, y: 0.3, sources: ['retail1', 'retail2', 'backup']}
+    ]
+  },
+  social: {
+    nodes: [
+      {id: 'alice', label: 'Alice', x: 0.5, y: 0.2, sources: []},
+      {id: 'bob', label: 'Bob', x: 0.3, y: 0.4, sources: ['alice']},
+      {id: 'carol', label: 'Carol', x: 0.7, y: 0.4, sources: ['alice']},
+      {id: 'dave', label: 'Dave', x: 0.2, y: 0.6, sources: ['bob']},
+      {id: 'eve', label: 'Eve', x: 0.5, y: 0.6, sources: ['bob', 'carol']},
+      {id: 'frank', label: 'Frank', x: 0.8, y: 0.6, sources: ['carol']},
+      {id: 'grace', label: 'Grace', x: 0.35, y: 0.8, sources: ['dave', 'eve']},
+      {id: 'heidi', label: 'Heidi', x: 0.65, y: 0.8, sources: ['eve', 'frank']}
+    ]
+  },
+  transit: {
+    nodes: [
+      {id: 'airport', label: 'Airport Hub', x: 0.5, y: 0.2, sources: []},
+      {id: 'central', label: 'Central Station', x: 0.5, y: 0.4, sources: ['airport']},
+      {id: 'north', label: 'North Terminal', x: 0.3, y: 0.6, sources: ['central']},
+      {id: 'south', label: 'South Terminal', x: 0.7, y: 0.6, sources: ['central']},
+      {id: 'east', label: 'East Station', x: 0.8, y: 0.4, sources: ['central', 'south']},
+      {id: 'west', label: 'West Station', x: 0.2, y: 0.4, sources: ['central', 'north']},
+      {id: 'suburban1', label: 'Suburban A', x: 0.15, y: 0.8, sources: ['west', 'north']},
+      {id: 'suburban2', label: 'Suburban B', x: 0.85, y: 0.8, sources: ['east', 'south']}
+    ]
+  },
+  code: {
+    nodes: [
+      {id: 'core', label: 'core.js', x: 0.3, y: 0.3, sources: []},
+      {id: 'utils', label: 'utils.js', x: 0.5, y: 0.3, sources: []},
+      {id: 'api', label: 'api.js', x: 0.4, y: 0.5, sources: ['core', 'utils']},
+      {id: 'auth', label: 'auth.js', x: 0.6, y: 0.5, sources: ['utils']},
+      {id: 'ui', label: 'ui.js', x: 0.3, y: 0.7, sources: ['core']},
+      {id: 'app', label: 'app.js', x: 0.5, y: 0.7, sources: ['api', 'auth', 'ui']},
+      {id: 'tests', label: 'tests.js', x: 0.7, y: 0.7, sources: ['app', 'api']},
+      {id: 'main', label: 'main.js', x: 0.5, y: 0.9, sources: ['app']}
+    ]
+  }
+};
+
+function resize() {
+  width = canvas.width = canvas.offsetWidth;
+  height = canvas.height = canvas.offsetHeight;
+}
+
+function loadExample(type) {
+  const example = examples[type];
+  nodes = example.nodes.map(n => ({
+    id: n.id,
+    label: n.label,
+    x: n.x * width,
+    y: n.y * height,
+    sources: n.sources,
+    flow: 0,
+    baseFlow: 0,
+    throttle: 0,
+    targetThrottle: 0
+  }));
+  
+  edges = [];
+  nodes.forEach(node => {
+    node.sources.forEach(sourceId => {
+      const source = nodes.find(n => n.id === sourceId);
+      if (source) {
+        edges.push({ from: source, to: node, flow: 0 });
+      }
+    });
+  });
+  
+  throttledNodes.clear();
+  cascadeCount = 0;
+  calculateFlow();
+  updateFragilityList();
+}
+
+function calculateFlow() {
+  // Reset flows
+  nodes.forEach(n => {
+    n.flow = 0;
+    n.baseFlow = 0;
+  });
+  edges.forEach(e => e.flow = 0);
+  
+  // Find source nodes (no incoming edges)
+  const sourceNodes = nodes.filter(n => n.sources.length === 0);
+  
+  // Initialize source flows
+  sourceNodes.forEach(n => {
+    if (n.throttle < 0.9) {
+      n.baseFlow = 100 * (1 - n.throttle);
+    }
+  });
+  
+  // Propagate flow through network (multiple passes)
+  for (let pass = 0; pass < 10; pass++) {
+    nodes.forEach(n => n.flow = n.baseFlow);
+    
+    edges.forEach(edge => {
+      const sourceFlow = edge.from.flow * (1 - edge.from.throttle);
+      const contribution = sourceFlow / nodes.filter(node => 
+        node.sources.includes(edge.from.id)
+      ).length;
+      edge.flow = contribution;
+      edge.to.flow += contribution;
+    });
+  }
+}
+
+function calculateFragility() {
+  const fragilities = nodes.map(node => {
+    const originalTotal = nodes.reduce((sum, n) => sum + n.flow, 0);
+    
+    // Simulate removing this node
+    const oldThrottle = node.throttle;
+    node.throttle = 1;
+    calculateFlow();
+    const newTotal = nodes.reduce((sum, n) => sum + n.flow, 0);
+    node.throttle = oldThrottle;
+    calculateFlow();
+    
+    const flowLoss = originalTotal - newTotal;
+    const impactPercent = (flowLoss / originalTotal) * 100;
+    
+    return {
+      node,
+      impact: impactPercent
+    };
+  });
+  
+  return fragilities.sort((a, b) => b.impact - a.impact);
+}
+
+function updateFragilityList() {
+  const fragilities = calculateFragility();
+  const list = document.getElementById('fragility-list');
+  
+  list.innerHTML = fragilities.map(f => {
+    let severity = 'low';
+    if (f.impact > 50) severity = 'critical';
+    else if (f.impact > 25) severity = 'high';
+    else if (f.impact > 10) severity = 'medium';
+    
+    return `
+      <div class="fragility-item ${severity}" data-node="${f.node.id}">
+        <span class="node-name">${f.node.label}</span>
+        <span class="score">${f.impact.toFixed(1)}%</span>
+      </div>
+    `;
+  }).join('');
+  
+  // Add click listeners
+  document.querySelectorAll('.fragility-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const nodeId = item.dataset.node;
+      const node = nodes.find(n => n.id === nodeId);
+      if (node) {
+        node.targetThrottle = node.targetThrottle > 0.5 ? 0 : 1;
+        if (node.targetThrottle > 0.5) {
+          throttledNodes.add(node.id);
+          cascadeCount++;
+        } else {
+          throttledNodes.delete(node.id);
+        }
+      }
+    });
+  });
+}
+
+function resetNetwork() {
+  if (nodes.length > 0) {
+    const currentType = Object.keys(examples).find(key => 
+      examples[key].nodes[0].id === nodes[0].id
+    ) || 'supply';
+    loadExample(currentType);
+  }
+}
+
+function clearThrottles() {
+  nodes.forEach(n => {
+    n.throttle = 0;
+    n.targetThrottle = 0;
+  });
+  throttledNodes.clear();
+  calculateFlow();
+}
+
+function getNodeAt(x, y) {
+  for (let node of nodes) {
+    const size = 10 + Math.sqrt(node.flow) * 3;
+    const dist = Math.hypot(node.x - x, node.y - y);
+    if (dist < size) return node;
+  }
+  return null;
+}
+
+function draw() {
+  ctx.fillStyle = '#0a0a0a';
+  ctx.fillRect(0, 0, width, height);
+  
+  // Draw edges
+  edges.forEach(edge => {
+    const thickness = 1 + (edge.flow / 20);
+    const alpha = Math.min(edge.flow / 50, 1);
+    
+    ctx.beginPath();
+    ctx.moveTo(edge.from.x, edge.from.y);
+    ctx.lineTo(edge.to.x, edge.to.y);
+    ctx.strokeStyle = `rgba(0, 255, 136, ${alpha * 0.6})`;
+    ctx.lineWidth = thickness;
+    ctx.stroke();
+  });
+  
+  // Draw nodes
+  nodes.forEach(node => {
+    const size = 10 + Math.sqrt(node.flow) * 3;
+    const pulse = Math.sin(Date.now() / 500 + node.x) * 0.2 + 0.8;
+    
+    // Glow effect for active nodes
+    if (node.flow > 5) {
+      ctx.beginPath();
+      ctx.arc(node.x, node.y, size * 1.5, 0, Math.PI * 2);
+      const glowAlpha = (node.flow / 100) * 0.2 * pulse;
+      ctx.fillStyle = `rgba(0, 255, 136, ${glowAlpha})`;
+      ctx.fill();
+    }
+    
+    // Node circle
+    ctx.beginPath();
+    ctx.arc(node.x, node.y, size, 0, Math.PI * 2);
+    
+    // Color based on throttle and flow
+    if (node.throttle > 0.5) {
+      // Throttled - dark red
+      ctx.fillStyle = '#330000';
+      ctx.strokeStyle = '#ff0055';
+    } else if (node.flow < 10 && node.sources.length > 0) {
+      // Starved - dark
+      ctx.fillStyle = '#111111';
+      ctx.strokeStyle = '#444444';
+    } else {
+      // Active - green
+      const intensity = Math.min(node.flow / 100, 1);
+      ctx.fillStyle = `rgba(0, ${100 + intensity * 155}, ${100 + intensity * 155}, 0.3)`;
+      ctx.strokeStyle = `rgba(0, 255, 136, ${0.5 + intensity * 0.5})`;
+    }
+    
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    
+    // Label
+    ctx.fillStyle = node === hoveredNode ? '#00ff88' : '#e0e0e0';
+    ctx.font = '11px Courier New';
+    ctx.textAlign = 'center';
+    ctx.fillText(node.label, node.x, node.y - size - 5);
+    
+    // Flow indicator
+    if (node.flow > 0) {
+      ctx.fillStyle = '#666';
+      ctx.font = '9px Courier New';
+      ctx.fillText(Math.round(node.flow), node.x, node.y + size + 12);
+    }
+  });
+  
+  // Update stats
+  document.getElementById('total-flow').textContent = Math.round(nodes.reduce((s, n) => s + n.flow, 0));
+  document.getElementById('active-nodes').textContent = nodes.filter(n => n.flow > 1).length;
+  document.getElementById('throttled-nodes').textContent = throttledNodes.size;
+  document.getElementById('cascade-count').textContent = cascadeCount;
+}
+
+function update() {
+  // Smooth throttle transitions
+  nodes.forEach(node => {
+    const diff = node.targetThrottle - node.throttle;
+    node.throttle += diff * 0.1;
+  });
+  
+  calculateFlow();
+}
+
+let mouseDown = false;
+let throttleNode = null;
+
+canvas.addEventListener('mousedown', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  
+  throttleNode = getNodeAt(x, y);
+  if (throttleNode) {
+    mouseDown = true;
+    throttleNode.targetThrottle = 1;
+    throttledNodes.add(throttleNode.id);
+    cascadeCount++;
+  }
+});
+
+canvas.addEventListener('mouseup', () => {
+  mouseDown = false;
+  throttleNode = null;
+});
+
+canvas.addEventListener('mousemove', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  
+  hoveredNode = getNodeAt(x, y);
+  
+  if (mouseDown && throttleNode) {
+    // Keep throttled while mouse is down
+  }
+});
+
+canvas.addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  
+  const node = getNodeAt(x, y);
+  if (node) {
+    node.targetThrottle = 0;
+    throttledNodes.delete(node.id);
+  }
+});
+
+function animate() {
+  update();
+  draw();
+  requestAnimationFrame(animate);
+}
+
+window.addEventListener('resize', resize);
+resize();
+loadExample('supply');
+animate();
+</script>
+</body>
+</html>

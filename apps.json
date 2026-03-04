@@ -1,5 +1,42 @@
 [
   {
+    "date": "2026-03-04",
+    "id": "2026-03-04-3",
+    "name": "Chipwright",
+    "description": "Build Frankenstein neural networks from mismatched chips by routing signal paths, balancing speed and heat to pass cognitive benchmarks while watching your design bottleneck in real-time.",
+    "inspiration": "Zhipu AI's GLM-5 was trained entirely on Huawei chips to achieve independence from US hardware, using efficiency techniques to match frontier performance despite constrained resources.",
+    "connection": "The idea of building something powerful under severe constraints — choosing which scarce resources to allocate where — inspired a game about composing intelligence itself from limited, mismatched parts.",
+    "source_url": "https://www.euronews.com/next/2026/02/17/these-are-chinas-new-ai-models-that-have-just-been-released-ahead-of-the-lunar-new-year",
+    "emoji": "🧩",
+    "category": "AI-inspired",
+    "image": true
+  },
+  {
+    "date": "2026-03-04",
+    "id": "2026-03-04-2",
+    "name": "Havenproof",
+    "description": "Drop crisis markers on a live price timeline to see which crypto assets actually behaved as safe havens versus which crashed alongside traditional markets.",
+    "inspiration": "During geopolitical crises like the current US-Iran conflict, investors and ordinary people holding crypto need to quickly understand how conflict escalation historically correlates with crypto price movements — does Bitcoin actually act as a safe haven when oil spikes and stocks crash, or does it dump with everything else? People need a clear, data-driven answer in real-time, not speculation.",
+    "connection": "CoinGecko provides both live prices and historical price data for cryptocurrencies, letting us overlay crypto performance against crisis timelines to reveal whether digital assets shelter or sink during geopolitical shocks.",
+    "source_url": "https://www.youtube.com/watch?v=AoftvMoHIK0",
+    "emoji": "🛡️",
+    "category": "API tool",
+    "api": "CoinGecko",
+    "image": true
+  },
+  {
+    "date": "2026-03-04",
+    "id": "2026-03-04",
+    "name": "Throttle",
+    "description": "A network flow visualizer that reveals systemic fragility by letting you pinch nodes shut and watch throughput collapse cascade through the graph in real-time.",
+    "inspiration": "The Strait of Hormuz blockade halting 20% of global oil flow, creating a chokepoint that ripples through the entire world economy.",
+    "connection": "A single narrow passage controlling massive flow made me think about visualizing any system's hidden chokepoints — the few nodes that, if removed, cause cascading collapse across an entire network.",
+    "source_url": "https://www.youtube.com/watch?v=AoftvMoHIK0",
+    "emoji": "🫗",
+    "category": "Data/visual",
+    "image": true
+  },
+  {
     "date": "2026-03-03",
     "id": "2026-03-03-3",
     "name": "Palimpsest",

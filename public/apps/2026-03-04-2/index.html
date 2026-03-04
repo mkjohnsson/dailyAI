@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Havenproof - Crisis Correlation Dashboard — Daily AI Gen</title>
+  <meta name="description" content="Drop crisis markers on a live price timeline to see which crypto assets actually behaved as safe havens versus which crashed alongside traditional markets.">
+  <meta property="og:title" content="Havenproof — Daily AI Gen">
+  <meta property="og:description" content="Drop crisis markers on a live price timeline to see which crypto assets actually behaved as safe havens versus which crashed alongside traditional markets.">
+  <meta property="og:url" content="https://dailyaigen.com/apps/2026-03-04-2/">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="https://dailyaigen.com/apps/2026-03-04-2/">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: #0a0e17;
+  color: #e0e6ed;
+  padding: 20px;
+  min-height: 100vh;
+}
+.container { max-width: 1400px; margin: 0 auto; }
+h1 {
+  font-size: 2em;
+  margin-bottom: 8px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.subtitle {
+  color: #8b95a5;
+  margin-bottom: 30px;
+  font-size: 0.95em;
+}
+.controls {
+  background: #151b26;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  border: 1px solid #1f2937;
+}
+.asset-toggle {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.asset-btn {
+  padding: 10px 20px;
+  border: 2px solid #2d3748;
+  background: #1a202c;
+  color: #a0aec0;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: all 0.2s;
+}
+.asset-btn.active { border-color: #667eea; background: #2a2f4a; color: #fff; }
+.asset-btn:hover { background: #2d3748; }
+.chart-container {
+  background: #151b26;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  border: 1px solid #1f2937;
+  position: relative;
+  height: 400px;
+}
+.marker-input {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.marker-input input {
+  flex: 1;
+  min-width: 200px;
+  padding: 10px;
+  background: #1a202c;
+  border: 1px solid #2d3748;
+  border-radius: 6px;
+  color: #e0e6ed;
+  font-size: 0.9em;
+}
+.marker-input button {
+  padding: 10px 24px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  border-radius: 6px;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+.marker-input button:hover { transform: translateY(-2px); }
+.marker-input button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+.markers-list {
+  background: #151b26;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  border: 1px solid #1f2937;
+}
+.marker-item {
+  background: #1a202c;
+  padding: 15px;
+  border-radius: 6px;
+  margin-bottom: 12px;
+  border-left: 4px solid #667eea;
+}
+.marker-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.marker-name { font-weight: 600; font-size: 1.05em; }
+.marker-date { color: #8b95a5; font-size: 0.85em; }
+.marker-delete {
+  background: #dc2626;
+  border: none;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8em;
+}
+.marker-delete:hover { background: #b91c1c; }
+.performance-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+.perf-cell {
+  text-align: center;
+  padding: 8px;
+  background: #0f1419;
+  border-radius: 4px;
+}
+.perf-label { font-size: 0.75em; color: #8b95a5; margin-bottom: 4px; }
+.perf-value {
+  font-weight: 600;
+  font-size: 1.1em;
+}
+.perf-value.positive { color: #10b981; }
+.perf-value.negative { color: #ef4444; }
+.summary {
+  background: #151b26;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid #1f2937;
+}
+.summary h2 {
+  font-size: 1.3em;
+  margin-bottom: 15px;
+  color: #667eea;
+}
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 15px;
+}
+.summary-card {
+  background: #1a202c;
+  padding: 15px;
+  border-radius: 6px;
+}
+.summary-card h3 {
+  font-size: 1em;
+  margin-bottom: 10px;
+  color: #a0aec0;
+}
+.summary-score {
+  font-size: 2em;
+  font-weight: 700;
+  margin: 10px 0;
+}
+.summary-score.haven { color: #10b981; }
+.summary-score.contagion { color: #ef4444; }
+.loading {
+  text-align: center;
+  padding: 60px 20px;
+  font-size: 1.1em;
+  color: #8b95a5;
+}
+.loading::after {
+  content: '...';
+  animation: dots 1.5s infinite;
+}
+@keyframes dots {
+  0%, 20% { content: '.'; }
+  40% { content: '..'; }
+  60%, 100% { content: '...'; }
+}
+.error {
+  background: #7f1d1d;
+  color: #fca5a5;
+  padding: 15px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+  border: 1px solid #991b1b;
+}
+.info {
+  background: #1e3a5f;
+  color: #93c5fd;
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+  font-size: 0.9em;
+  border: 1px solid #1e40af;
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🛡️ Havenproof</h1>
+  <p class="subtitle">Crisis Correlation Dashboard - Drop event markers to see which assets actually behave as safe havens</p>
+  
+  <div id="error-container"></div>
+  <div id="info-container"></div>
+  
+  <div class="controls">
+    <div class="asset-toggle" id="asset-toggle"></div>
+    <div class="marker-input">
+      <input type="text" id="marker-name" placeholder="Event name (e.g., 'Fed announces QE', 'Oil shock')">
+      <input type="datetime-local" id="marker-date">
+      <button id="add-marker" disabled>Add Crisis Marker</button>
+    </div>
+  </div>
+  
+  <div class="chart-container">
+    <canvas id="price-chart"></canvas>
+  </div>
+  
+  <div class="markers-list" id="markers-list" style="display:none;">
+    <h2 style="margin-bottom: 15px; font-size: 1.2em;">Crisis Markers</h2>
+    <div id="markers-container"></div>
+  </div>
+  
+  <div class="summary" id="summary" style="display:none;">
+    <h2>Safe Haven Score</h2>
+    <div class="summary-grid" id="summary-grid"></div>
+  </div>
+</div>
+
+<script>
+const ASSETS = [
+  { id: 'bitcoin', name: 'Bitcoin', color: '#f7931a' },
+  { id: 'ethereum', name: 'Ethereum', color: '#627eea' },
+  { id: 'pax-gold', name: 'Gold (PAXG)', color: '#ffd700' }
+];
+
+let priceData = {};
+let markers = [];
+let chart = null;
+let activeAssets = new Set(['bitcoin', 'ethereum', 'pax-gold']);
+
+async function fetchHistoricalData(assetId, days = 90) {
+  const response = await fetch(
+    `https://api.coingecko.com/api/v3/coins/${assetId}/market_chart?vs_currency=usd&days=${days}&interval=daily`
+  );
+  if (!response.ok) throw new Error(`Failed to fetch ${assetId}`);
+  const data = await response.json();
+  return data.prices.map(([timestamp, price]) => ({ 
+    timestamp, 
+    price,
+    date: new Date(timestamp)
+  }));
+}
+
+async function loadAllData() {
+  showInfo('Loading 90 days of price data from CoinGecko...');
+  const errorDiv = document.getElementById('error-container');
+  errorDiv.innerHTML = '';
+  
+  try {
+    const results = await Promise.all(
+      ASSETS.map(async asset => {
+        const data = await fetchHistoricalData(asset.id);
+        return { id: asset.id, data };
+      })
+    );
+    
+    results.forEach(({ id, data }) => {
+      priceData[id] = data;
+    });
+    
+    hideInfo();
+    initChart();
+    document.getElementById('add-marker').disabled = false;
+  } catch (error) {
+    showError(`Failed to load data: ${error.message}. Please try refreshing the page.`);
+  }
+}
+
+function showError(message) {
+  document.getElementById('error-container').innerHTML = 
+    `<div class="error">⚠️ ${message}</div>`;
+}
+
+function showInfo(message) {
+  document.getElementById('info-container').innerHTML = 
+    `<div class="info">ℹ️ ${message}</div>`;
+}
+
+function hideInfo() {
+  document.getElementById('info-container').innerHTML = '';
+}
+
+function initChart() {
+  const ctx = document.getElementById('price-chart').getContext('2d');
+  
+  const datasets = ASSETS.filter(asset => activeAssets.has(asset.id)).map(asset => ({
+    label: asset.name,
+    data: priceData[asset.id].map(d => ({ x: d.date, y: d.price })),
+    borderColor: asset.color,
+    backgroundColor: asset.color + '20',
+    tension: 0.3,
+    pointRadius: 0,
+    pointHoverRadius: 6,
+    borderWidth: 2
+  }));
+  
+  if (chart) {
+    chart.destroy();
+  }
+  
+  chart = new Chart(ctx, {
+    type: 'line',
+    data: { datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        intersect: false,
+        mode: 'index'
+      },
+      plugins: {
+        legend: {
+          labels: { color: '#e0e6ed' }
+        },
+        tooltip: {
+          backgroundColor: '#1a202c',
+          titleColor: '#e0e6ed',
+          bodyColor: '#e0e6ed',
+          borderColor: '#2d3748',
+          borderWidth: 1,
+          callbacks: {
+            label: (context) => {
+              return `${context.dataset.label}: $${context.parsed.y.toFixed(2)}`;
+            }
+          }
+        },
+        annotation: {
+          annotations: markers.map(marker => ({
+            type: 'line',
+            xMin: marker.date,
+            xMax: marker.date,
+            borderColor: '#667eea',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            label: {
+              content: marker.name,
+              enabled: true,
+              position: 'top',
+              backgroundColor: '#667eea',
+              color: '#fff',
+              font: { size: 10 }
+            }
+          }))
+        }
+      },
+      scales: {
+        x: {
+          type: 'time',
+          time: { unit: 'day' },
+          grid: { color: '#1f2937' },
+          ticks: { color: '#8b95a5' }
+        },
+        y: {
+          grid: { color: '#1f2937' },
+          ticks: {
+            color: '#8b95a5',
+            callback: (value) => '$' + value.toFixed(0)
+          }
+        }
+      }
+    }
+  });
+}
+
+function setupAssetToggles() {
+  const container = document.getElementById('asset-toggle');
+  ASSETS.forEach(asset => {
+    const btn = document.createElement('button');
+    btn.className = 'asset-btn active';
+    btn.textContent = asset.name;
+    btn.onclick = () => {
+      if (activeAssets.has(asset.id)) {
+        activeAssets.delete(asset.id);
+        btn.classList.remove('active');
+      } else {
+        activeAssets.add(asset.id);
+        btn.classList.add('active');
+      }
+      initChart();
+    };
+    container.appendChild(btn);
+  });
+}
+
+function getPriceAtTime(assetId, targetDate) {
+  const data = priceData[assetId];
+  const targetTime = targetDate.getTime();
+  
+  // Find closest data point
+  let closest = data[0];
+  let minDiff = Math.abs(data[0].timestamp - targetTime);
+  
+  for (let i = 1; i < data.length; i++) {
+    const diff = Math.abs(data[i].timestamp - targetTime);
+    if (diff < minDiff) {
+      minDiff = diff;
+      closest = data[i];
+    }
+  }
+  
+  return closest.price;
+}
+
+function getPriceChange(assetId, markerDate, hoursAhead) {
+  const startDate = new Date(markerDate);
+  const endDate = new Date(markerDate.getTime() + hoursAhead * 60 * 60 * 1000);
+  
+  const startPrice = getPriceAtTime(assetId, startDate);
+  const endPrice = getPriceAtTime(assetId, endDate);
+  
+  return ((endPrice - startPrice) / startPrice) * 100;
+}
+
+function addMarker() {
+  const nameInput = document.getElementById('marker-name');
+  const dateInput = document.getElementById('marker-date');
+  
+  const name = nameInput.value.trim();
+  const date = new Date(dateInput.value);
+  
+  if (!name || !dateInput.value) {
+    alert('Please enter both event name and date');
+    return;
+  }
+  
+  // Check if date is within data range
+  const oldestDate = new Date(Math.min(...priceData.bitcoin.map(d => d.timestamp)));
+  const newestDate = new Date(Math.max(...priceData.bitcoin.map(d => d.timestamp)));
+  
+  if (date < oldestDate || date > newestDate) {
+    alert('Date must be within the last 90 days');
+    return;
+  }
+  
+  const marker = {
+    id: Date.now(),
+    name,
+    date,
+    performance: {}
+  };
+  
+  // Calculate performance for each asset
+  ASSETS.forEach(asset => {
+    marker.performance[asset.id] = {
+      '1h': getPriceChange(asset.id, date, 1),
+      '24h': getPriceChange(asset.id, date, 24),
+      '7d': getPriceChange(asset.id, date, 168)
+    };
+  });
+  
+  markers.push(marker);
+  nameInput.value = '';
+  dateInput.value = '';
+  
+  renderMarkers();
+  updateSummary();
+  initChart();
+}
+
+function deleteMarker(id) {
+  markers = markers.filter(m => m.id !== id);
+  renderMarkers();
+  updateSummary();
+  initChart();
+}
+
+function renderMarkers() {
+  const container = document.getElementById('markers-container');
+  const listDiv = document.getElementById('markers-list');
+  
+  if (markers.length === 0) {
+    listDiv.style.display = 'none';
+    return;
+  }
+  
+  listDiv.style.display = 'block';
+  container.innerHTML = markers.map(marker => `
+    <div class="marker-item">
+      <div class="marker-header">
+        <div>
+          <div class="marker-name">${marker.name}</div>
+          <div class="marker-date">${marker.date.toLocaleString()}</div>
+        </div>
+        <button class="marker-delete" onclick="deleteMarker(${marker.id})">Delete</button>
+      </div>
+      <div class="performance-grid">
+        ${ASSETS.map(asset => `
+          ${['1h', '24h', '7d'].map(period => {
+            const value = marker.performance[asset.id][period];
+            const className = value >= 0 ? 'positive' : 'negative';
+            return `
+              <div class="perf-cell">
+                <div class="perf-label">${asset.name} ${period}</div>
+                <div class="perf-value ${className}">${value >= 0 ? '+' : ''}${value.toFixed(2)}%</div>
+              </div>
+            `;
+          }).join('')}
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+function updateSummary() {
+  const summaryDiv = document.getElementById('summary');
+  const grid = document.getElementById('summary-grid');
+  
+  if (markers.length === 0) {
+    summaryDiv.style.display = 'none';
+    return;
+  }
+  
+  summaryDiv.style.display = 'block';
+  
+  const scores = {};
+  ASSETS.forEach(asset => {
+    let totalScore = 0;
+    let count = 0;
+    
+    markers.forEach(marker => {
+      Object.values(marker.performance[asset.id]).forEach(perf => {
+        totalScore += perf;
+        count++;
+      });
+    });
+    
+    scores[asset.id] = totalScore / count;
+  });
+  
+  grid.innerHTML = ASSETS.map(asset => {
+    const score = scores[asset.id];
+    const className = score >= 0 ? 'haven' : 'contagion';
+    const label = score >= 0 ? 'Safe Haven' : 'Contagion';
+    
+    return `
+      <div class="summary-card">
+        <h3>${asset.name}</h3>
+        <div class="summary-score ${className}">${score >= 0 ? '+' : ''}${score.toFixed(2)}%</div>
+        <p style="color: #8b95a5; font-size: 0.9em;">Average across all crisis markers</p>
+        <p style="color: ${score >= 0 ? '#10b981' : '#ef4444'}; font-weight: 600; margin-top: 8px;">
+          ${label}
+        </p>
+      </div>
+    `;
+  }).join('');
+}
+
+// Initialize
+document.getElementById('add-marker').addEventListener('click', addMarker);
+document.getElementById('marker-date').valueAsDate = new Date();
+
+setupAssetToggles();
+loadAllData();
+</script>
+</body>
+</html>
