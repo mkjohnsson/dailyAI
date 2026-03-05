@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fourvoice — Daily AI Gen</title>
+  <meta name="description" content="A collaborative writing tool where four AI-like narrative voices continuously suggest different story directions, and you weave them together by adjusting their influence and selecting sentences to braid into your evolving tale.">
+  <meta property="og:title" content="Fourvoice — Daily AI Gen">
+  <meta property="og:description" content="A collaborative writing tool where four AI-like narrative voices continuously suggest different story directions, and you weave them together by adjusting their influence and selecting sentences to braid into your evolving tale.">
+  <meta property="og:url" content="https://dailyaigen.com/apps/2026-03-05-3/">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="https://dailyaigen.com/apps/2026-03-05-3/">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Georgia', serif;
+    background: #1a1a1a;
+    color: #e0e0e0;
+    overflow-x: hidden;
+  }
+  #container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  h1 {
+    text-align: center;
+    font-size: 2.5em;
+    margin-bottom: 10px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .subtitle {
+    text-align: center;
+    color: #888;
+    margin-bottom: 30px;
+    font-style: italic;
+  }
+  #main-area {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 30px;
+    margin-bottom: 30px;
+  }
+  #controls {
+    background: #252525;
+    padding: 20px;
+    border-radius: 10px;
+    height: fit-content;
+  }
+  .voice-control {
+    margin-bottom: 25px;
+  }
+  .voice-label {
+    font-weight: bold;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .voice-name {
+    font-size: 1.1em;
+  }
+  .voice-value {
+    font-size: 0.9em;
+    opacity: 0.7;
+  }
+  input[type="range"] {
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    outline: none;
+    -webkit-appearance: none;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    cursor: pointer;
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+  }
+  #plot-slider { background: #3b82f6; }
+  #plot-slider::-webkit-slider-thumb { background: #60a5fa; }
+  #plot-slider::-moz-range-thumb { background: #60a5fa; }
+  
+  #character-slider { background: #ec4899; }
+  #character-slider::-webkit-slider-thumb { background: #f472b6; }
+  #character-slider::-moz-range-thumb { background: #f472b6; }
+  
+  #atmosphere-slider { background: #8b5cf6; }
+  #atmosphere-slider::-webkit-slider-thumb { background: #a78bfa; }
+  #atmosphere-slider::-moz-range-thumb { background: #a78bfa; }
+  
+  #chaos-slider { background: #f59e0b; }
+  #chaos-slider::-webkit-slider-thumb { background: #fbbf24; }
+  #chaos-slider::-moz-range-thumb { background: #fbbf24; }
+  
+  .plot-color { color: #60a5fa; }
+  .character-color { color: #f472b6; }
+  .atmosphere-color { color: #a78bfa; }
+  .chaos-color { color: #fbbf24; }
+  
+  #story-area {
+    background: #252525;
+    padding: 30px;
+    border-radius: 10px;
+    min-height: 400px;
+  }
+  #story-strand {
+    line-height: 1.8;
+    font-size: 1.1em;
+  }
+  .story-sentence {
+    display: inline;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 3px;
+    transition: background 0.2s;
+    position: relative;
+  }
+  .story-sentence:hover {
+    background: rgba(255,255,255,0.1);
+  }
+  .story-sentence.has-alternatives::after {
+    content: '⋮';
+    position: absolute;
+    right: -8px;
+    top: -2px;
+    font-size: 0.8em;
+    opacity: 0.5;
+  }
+  #proposals {
+    background: #1f1f1f;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  .proposals-header {
+    font-size: 1.2em;
+    margin-bottom: 15px;
+    text-align: center;
+    color: #aaa;
+  }
+  .proposal-threads {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+  }
+  .proposal-thread {
+    background: #2a2a2a;
+    padding: 15px;
+    border-radius: 8px;
+    border-left: 4px solid;
+    cursor: pointer;
+    transition: all 0.3s;
+    position: relative;
+  }
+  .proposal-thread:hover {
+    transform: translateX(5px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+  .proposal-thread.plot { border-color: #60a5fa; }
+  .proposal-thread.character { border-color: #f472b6; }
+  .proposal-thread.atmosphere { border-color: #a78bfa; }
+  .proposal-thread.chaos { border-color: #fbbf24; }
+  
+  .thread-label {
+    font-size: 0.85em;
+    font-weight: bold;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .thread-text {
+    line-height: 1.6;
+  }
+  .weave-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(255,255,255,0.1);
+    border: none;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .proposal-thread:hover .weave-btn {
+    opacity: 1;
+  }
+  .weave-btn:hover {
+    background: rgba(255,255,255,0.2);
+  }
+  #alternatives-panel {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #2a2a2a;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    max-width: 600px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    display: none;
+    z-index: 1000;
+  }
+  #alternatives-panel.active {
+    display: block;
+  }
+  .alternatives-header {
+    font-size: 1.3em;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+  .alternative-option {
+    background: #1f1f1f;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    border-left: 4px solid;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .alternative-option:hover {
+    transform: translateX(5px);
+  }
+  .alternative-option.current {
+    opacity: 0.5;
+  }
+  .close-alternatives {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 1.5em;
+    cursor: pointer;
+  }
+  .close-alternatives:hover {
+    color: #fff;
+  }
+  #overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.7);
+    display: none;
+    z-index: 999;
+  }
+  #overlay.active {
+    display: block;
+  }
+  .action-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+  }
+  button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.95em;
+    transition: all 0.2s;
+  }
+  #generate-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    flex: 1;
+  }
+  #generate-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  }
+  #reset-btn {
+    background: #444;
+    color: white;
+  }
+  #reset-btn:hover {
+    background: #555;
+  }
+</style>
+</head>
+<body>
+<div id="container">
+  <h1>Fourvoice</h1>
+  <div class="subtitle">Conduct your narrative through four autonomous voices</div>
+  
+  <div id="proposals">
+    <div class="proposals-header">Current Proposals</div>
+    <div class="proposal-threads">
+      <div class="proposal-thread plot" data-voice="plot">
+        <div class="thread-label plot-color">Plot</div>
+        <div class="thread-text" id="plot-proposal">Waiting for generation...</div>
+        <button class="weave-btn" onclick="weaveProposal('plot')">Weave</button>
+      </div>
+      <div class="proposal-thread character" data-voice="character">
+        <div class="thread-label character-color">Character</div>
+        <div class="thread-text" id="character-proposal">Waiting for generation...</div>
+        <button class="weave-btn" onclick="weaveProposal('character')">Weave</button>
+      </div>
+      <div class="proposal-thread atmosphere" data-voice="atmosphere">
+        <div class="thread-label atmosphere-color">Atmosphere</div>
+        <div class="thread-text" id="atmosphere-proposal">Waiting for generation...</div>
+        <button class="weave-btn" onclick="weaveProposal('atmosphere')">Weave</button>
+      </div>
+      <div class="proposal-thread chaos" data-voice="chaos">
+        <div class="thread-label chaos-color">Chaos</div>
+        <div class="thread-text" id="chaos-proposal">Waiting for generation...</div>
+        <button class="weave-btn" onclick="weaveProposal('chaos')">Weave</button>
+      </div>
+    </div>
+  </div>
+  
+  <div id="main-area">
+    <div id="controls">
+      <div class="voice-control">
+        <div class="voice-label">
+          <span class="voice-name plot-color">Plot</span>
+          <span class="voice-value" id="plot-value">50%</span>
+        </div>
+        <input type="range" id="plot-slider" min="0" max="100" value="50">
+      </div>
+      
+      <div class="voice-control">
+        <div class="voice-label">
+          <span class="voice-name character-color">Character</span>
+          <span class="voice-value" id="character-value">50%</span>
+        </div>
+        <input type="range" id="character-slider" min="0" max="100" value="50">
+      </div>
+      
+      <div class="voice-control">
+        <div class="voice-label">
+          <span class="voice-name atmosphere-color">Atmosphere</span>
+          <span class="voice-value" id="atmosphere-value">50%</span>
+        </div>
+        <input type="range" id="atmosphere-slider" min="0" max="100" value="50">
+      </div>
+      
+      <div class="voice-control">
+        <div class="voice-label">
+          <span class="voice-name chaos-color">Chaos</span>
+          <span class="voice-value" id="chaos-value">50%</span>
+        </div>
+        <input type="range" id="chaos-slider" min="0" max="100" value="50">
+      </div>
+      
+      <div class="action-buttons">
+        <button id="generate-btn">Generate Next</button>
+        <button id="reset-btn">Reset</button>
+      </div>
+    </div>
+    
+    <div id="story-area">
+      <div id="story-strand"></div>
+    </div>
+  </div>
+</div>
+
+<div id="overlay"></div>
+<div id="alternatives-panel">
+  <button class="close-alternatives" onclick="closeAlternatives()">×</button>
+  <div class="alternatives-header">Alternative Threads</div>
+  <div id="alternatives-list"></div>
+</div>
+
+<script>
+const voices = {
+  plot: {
+    templates: [
+      "Then {subject} discovered {object}.",
+      "Suddenly, {event} changed everything.",
+      "{subject} had to make a choice.",
+      "The {object} was not what it seemed.",
+      "This led {subject} to {location}.",
+      "{subject} realized the truth about {object}.",
+      "A new challenge emerged: {event}.",
+      "Everything pointed to one conclusion.",
+      "{subject} found themselves at a crossroads."
+    ],
+    subjects: ["the protagonist", "she", "he", "they", "the stranger", "the detective", "Sarah", "the child"],
+    objects: ["the letter", "a hidden door", "the artifact", "an old photograph", "the truth", "a cryptic message", "the key"],
+    events: ["a knock at the door", "the phone call", "the stranger's arrival", "the power outage", "the revelation"],
+    locations: ["the abandoned house", "the city's edge", "the rooftop", "the forgotten station", "the library"]
+  },
+  character: {
+    templates: [
+      "{subject} felt {emotion}.",
+      "In that moment, {subject} remembered {memory}.",
+      "{subject}'s {trait} took over.",
+      "Deep down, {subject} knew {truth}.",
+      "{subject} couldn't shake the feeling of {emotion}.",
+      "For the first time, {subject} felt truly {emotion}.",
+      "{subject}'s hands trembled with {emotion}.",
+      "The weight of {burden} pressed on {subject}."
+    ],
+    subjects: ["she", "he", "they", "the protagonist", "Sarah", "Michael"],
+    emotions: ["fear creeping in", "a strange relief", "overwhelming doubt", "unexpected joy", "bitter regret", "fierce determination"],
+    traits: ["stubbornness", "curiosity", "compassion", "pride", "caution"],
+    memories: ["their mother's warning", "the summer of '94", "what was lost", "the promise they made"],
+    truths: ["it was too late", "they were being watched", "nothing would be the same", "the answer had been there all along"],
+    burdens: ["the secret", "their past", "responsibility", "guilt"]
+  },
+  atmosphere: {
+    templates: [
+      "The {place} was filled with {quality}.",
+      "{weather} outside mirrored the mood.",
+      "Shadows {action} across {surface}.",
+      "The air smelled of {scent}.",
+      "{sound} echoed in the distance.",
+      "Everything was bathed in {light}.",
+      "The {time} brought with it {quality}.",
+      "Silence hung heavy, broken only by {sound}."
+    ],
+    places: ["room", "street", "corridor", "space", "building"],
+    qualities: ["an eerie stillness", "golden afternoon light", "thick tension", "abandoned comfort", "strange electricity"],
+    weather: ["Rain", "Fog", "The setting sun", "Storm clouds", "Darkness"],
+    actions: ["danced", "crept", "stretched", "flickered", "swept"],
+    surfaces: ["the walls", "the floor", "her face", "the papers"],
+    scents: ["rain and rust", "old books", "smoke", "lavender", "decay"],
+    sounds: ["distant sirens", "footsteps", "a clock ticking", "wind through broken glass", "whispered voices"],
+    lights: ["amber streetlight", "cold fluorescence", "moonlight", "dying firelight"],
+    times: ["twilight", "midnight hour", "dawn", "late afternoon"]
+  },
+  chaos: {
+    templates: [
+      "But then, {unexpected}.",
+      "{bizarre} — no one could have predicted it.",
+      "Out of nowhere: {unexpected}.",
+      "Which is when {bizarre}.",
+      "Except {contradiction}.",
+      "Unless, of course, {wild}.",
+      "Or was it? {unexpected}.",
+      "None of this explained {mystery}."
+    ],
+    unexpected: [
+      "the cat spoke",
+      "the walls began to breathe",
+      "time reversed for exactly three seconds",
+      "gravity seemed optional",
+      "every clock stopped",
+      "the photograph blinked",
+      "rain started falling upward"
+    ],
+    bizarre: [
+      "the entire conversation had happened before",
+      "all the doors led to the same room",
+      "the stranger was wearing tomorrow's newspaper",
+      "mirrors no longer showed reflections",
+      "the city had rearranged itself overnight"
+    ],
+    contradictions: [
+      "the door had never existed",
+      "nobody else remembered",
+      "that person had died years ago",
+      "it was still yesterday",
+      "the building wasn't on any map"
+    ],
+    wilds: [
+      "reality was negotiable",
+      "the story was writing itself",
+      "everything was metaphor",
+      "dreams were bleeding through"
+    ],
+    mysteries: [
+      "why nobody was surprised",
+      "the mathematics of it all",
+      "the singing",
+      "why she was smiling"
+    ]
+  }
+};
+
+let story = [];
+let currentProposals = {};
+let voiceWeights = { plot: 50, character: 50, atmosphere: 50, chaos: 50 };
+
+function randomChoice(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function fillTemplate(template, options) {
+  let result = template;
+  for (let key in options) {
+    result = result.replace(`{${key}}`, randomChoice(options[key]));
+  }
+  return result;
+}
+
+function generateProposal(voiceName) {
+  const voice = voices[voiceName];
+  const template = randomChoice(voice.templates);
+  return fillTemplate(template, voice);
+}
+
+function generateAllProposals() {
+  for (let voiceName in voices) {
+    const proposal = generateProposal(voiceName);
+    currentProposals[voiceName] = proposal;
+    document.getElementById(`${voiceName}-proposal`).textContent = proposal;
+  }
+}
+
+function weaveProposal(voiceName) {
+  const sentence = currentProposals[voiceName];
+  const alternatives = {};
+  for (let v in currentProposals) {
+    if (v !== voiceName) {
+      alternatives[v] = currentProposals[v];
+    }
+  }
+  
+  story.push({
+    text: sentence,
+    voice: voiceName,
+    alternatives: alternatives,
+    chosen: voiceName
+  });
+  
+  renderStory();
+  generateAllProposals();
+}
+
+function renderStory() {
+  const strandEl = document.getElementById('story-strand');
+  strandEl.innerHTML = '';
+  
+  story.forEach((item, index) => {
+    const span = document.createElement('span');
+    span.className = `story-sentence ${item.voice}-color`;
+    if (Object.keys(item.alternatives).length > 0) {
+      span.className += ' has-alternatives';
+    }
+    span.textContent = item.text + ' ';
+    span.onclick = () => showAlternatives(index);
+    strandEl.appendChild(span);
+  });
+}
+
+function showAlternatives(index) {
+  const item = story[index];
+  const panel = document.getElementById('alternatives-panel');
+  const list = document.getElementById('alternatives-list');
+  const overlay = document.getElementById('overlay');
+  
+  list.innerHTML = '';
+  
+  // Current sentence
+  const currentDiv = document.createElement('div');
+  currentDiv.className = `alternative-option ${item.voice} current`;
+  currentDiv.style.borderColor = getVoiceColor(item.voice);
+  currentDiv.innerHTML = `<strong>Current (${item.voice}):</strong><br>${item.text}`;
+  list.appendChild(currentDiv);
+  
+  // Alternatives
+  for (let voiceName in item.alternatives) {
+    const altDiv = document.createElement('div');
+    altDiv.className = `alternative-option ${voiceName}`;
+    altDiv.style.borderColor = getVoiceColor(voiceName);
+    altDiv.innerHTML = `<strong>${voiceName}:</strong><br>${item.alternatives[voiceName]}`;
+    altDiv.onclick = () => spliceAlternative(index, voiceName);
+    list.appendChild(altDiv);
+  }
+  
+  panel.classList.add('active');
+  overlay.classList.add('active');
+}
+
+function spliceAlternative(index, newVoice) {
+  const item = story[index];
+  const oldText = item.text;
+  const newText = item.alternatives[newVoice];
+  
+  // Swap them
+  item.alternatives[item.voice] = oldText;
+  item.text = newText;
+  item.voice = newVoice;
+  item.chosen = newVoice;
+  delete item.alternatives[newVoice];
+  
+  renderStory();
+  closeAlternatives();
+}
+
+function getVoiceColor(voice) {
+  const colors = {
+    plot: '#60a5fa',
+    character: '#f472b6',
+    atmosphere: '#a78bfa',
+    chaos: '#fbbf24'
+  };
+  return colors[voice];
+}
+
+function closeAlternatives() {
+  document.getElementById('alternatives-panel').classList.remove('active');
+  document.getElementById('overlay').classList.remove('active');
+}
+
+function updateSliders() {
+  for (let voice in voiceWeights) {
+    const slider = document.getElementById(`${voice}-slider`);
+    const valueEl = document.getElementById(`${voice}-value`);
+    
+    slider.addEventListener('input', (e) => {
+      voiceWeights[voice] = parseInt(e.target.value);
+      valueEl.textContent = voiceWeights[voice] + '%';
+    });
+  }
+}
+
+function reset() {
+  story = [];
+  renderStory();
+  generateAllProposals();
+}
+
+document.getElementById('generate-btn').addEventListener('click', () => {
+  // Weight-based selection
+  const total = Object.values(voiceWeights).reduce((a, b) => a + b, 0);
+  let rand = Math.random() * total;
+  let selectedVoice = 'plot';
+  
+  for (let voice in voiceWeights) {
+    rand -= voiceWeights[voice];
+    if (rand <= 0) {
+      selectedVoice = voice;
+      break;
+    }
+  }
+  
+  weaveProposal(selectedVoice);
+});
+
+document.getElementById('reset-btn').addEventListener('click', reset);
+document.getElementById('overlay').addEventListener('click', closeAlternatives);
+
+updateSliders();
+generateAllProposals();
+</script>
+</body>
+</html>

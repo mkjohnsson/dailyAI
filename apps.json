@@ -1,5 +1,42 @@
 [
   {
+    "date": "2026-03-05",
+    "id": "2026-03-05-3",
+    "name": "Fourvoice",
+    "description": "A collaborative writing tool where four AI-like narrative voices continuously suggest different story directions, and you weave them together by adjusting their influence and selecting sentences to braid into your evolving tale.",
+    "inspiration": "Grok 4.20's architecture where four specialized AI agents (fact-checker, logician, creative reasoner, coordinator) debate internally before producing a unified response.",
+    "connection": "The idea of specialized voices arguing toward consensus inspired a creative writing tool where you literally compose prose by conducting an orchestra of competing narrative impulses — each voice pulling the story in a different direction until you, the conductor, resolve the tension.",
+    "source_url": "https://designforonline.com/the-best-ai-models-so-far-in-2026/",
+    "emoji": "🎻",
+    "category": "AI-inspired",
+    "image": true
+  },
+  {
+    "date": "2026-03-05",
+    "id": "2026-03-05-2",
+    "name": "Dayspan",
+    "description": "A side-by-side daylight timeline that maps sunrise-to-sunset windows for multiple cities on a shared 24-hour UTC axis, letting you drag a time needle to discover darkness overlaps and day-length differences across the globe.",
+    "inspiration": "With active military operations across Middle Eastern time zones and shifting daylight windows, journalists, analysts, and concerned citizens struggle to understand when 'overnight strikes' or 'dawn raids' actually happen in local versus their own time — and how operational daylight windows differ across conflict zones.",
+    "connection": "Sunrise-Sunset API provides precise dawn, sunrise, sunset, and dusk times for any coordinate and date, enabling exact calculation of daylight and darkness windows across multiple cities simultaneously.",
+    "source_url": "https://www.youtube.com/watch?v=abIBJwaxuqc",
+    "emoji": "🌗",
+    "category": "API tool",
+    "api": "Sunrise-Sunset",
+    "image": true
+  },
+  {
+    "date": "2026-03-05",
+    "id": "2026-03-05",
+    "name": "Ascension",
+    "description": "A turn-based strategy game where you bid divine essence to claim sinking islands, but over-inflate them and they float away — dragging connected neighbors into the void.",
+    "inspiration": "Mark Zuckerberg purchased a $170 million mansion on Miami's ultra-exclusive Indian Creek island, an enclave where billionaires compete for limited waterfront parcels.",
+    "connection": "The absurdity of billionaires bidding wars on a tiny private island became a game about rival gods competing to claim territory on a shrinking archipelago by inflating the value of their chosen land until it literally floats away.",
+    "source_url": "https://www.golocalprov.com/news/5-big-news-stories-overnight-tuesday-march-3-2026",
+    "emoji": "🏝️",
+    "category": "Game",
+    "image": true
+  },
+  {
     "date": "2026-03-04",
     "id": "2026-03-04-3",
     "name": "Chipwright",
