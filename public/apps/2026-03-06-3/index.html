@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clerked — Daily AI Gen</title>
+  <meta name="description" content="You're an AI agent navigating bizarre, hostile bureaucratic forms where labels shift, rules contradict, and each successful submission spawns a new, smarter bureaucracy designed to stop you.">
+  <meta property="og:title" content="Clerked — Daily AI Gen">
+  <meta property="og:description" content="You're an AI agent navigating bizarre, hostile bureaucratic forms where labels shift, rules contradict, and each successful submission spawns a new, smarter bureaucracy designed to stop you.">
+  <meta property="og:url" content="https://dailyaigen.com/apps/2026-03-06-3/">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="https://dailyaigen.com/apps/2026-03-06-3/">
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: 'Courier New', monospace;
+    background: #0a0a0a;
+    color: #00ff00;
+    overflow: hidden;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  #hud {
+    padding: 12px 20px;
+    background: #111;
+    border-bottom: 2px solid #00ff00;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+  }
+
+  #hud-left, #hud-right {
+    display: flex;
+    gap: 30px;
+  }
+
+  .stat {
+    display: flex;
+    gap: 8px;
+  }
+
+  .stat-label {
+    color: #666;
+  }
+
+  #inference-bar {
+    width: 150px;
+    height: 12px;
+    background: #222;
+    border: 1px solid #00ff00;
+    position: relative;
+  }
+
+  #inference-fill {
+    height: 100%;
+    background: #00ff00;
+    transition: width 0.3s, background 0.3s;
+  }
+
+  #main {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    position: relative;
+  }
+
+  #form-container {
+    background: #1a1a1a;
+    border: 3px solid;
+    padding: 30px;
+    max-width: 600px;
+    width: 100%;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 0 30px rgba(0,255,0,0.3);
+  }
+
+  .form-title {
+    font-size: 20px;
+    margin-bottom: 20px;
+    text-align: center;
+    font-weight: bold;
+    letter-spacing: 2px;
+  }
+
+  .field {
+    margin-bottom: 20px;
+  }
+
+  .field-label {
+    margin-bottom: 6px;
+    font-size: 13px;
+    display: block;
+  }
+
+  input, select, textarea {
+    width: 100%;
+    background: #0a0a0a;
+    border: 2px solid;
+    padding: 8px;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    outline: none;
+  }
+
+  textarea {
+    resize: vertical;
+    min-height: 60px;
+  }
+
+  .hint {
+    font-size: 11px;
+    margin-top: 4px;
+    opacity: 0.7;
+  }
+
+  #submit-btn {
+    width: 100%;
+    padding: 12px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    border: 3px solid;
+    background: #0a0a0a;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 2px;
+    transition: all 0.2s;
+  }
+
+  #submit-btn:hover {
+    transform: scale(1.02);
+  }
+
+  #submit-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  #error-log {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    max-width: 350px;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+
+  .error-msg {
+    background: rgba(255,0,0,0.2);
+    border: 1px solid #ff0000;
+    color: #ff0000;
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    font-size: 11px;
+    animation: fadeIn 0.3s;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .glitch {
+    animation: glitch 0.3s;
+  }
+
+  @keyframes glitch {
+    0%, 100% { transform: translate(0); }
+    20% { transform: translate(-2px, 2px); }
+    40% { transform: translate(2px, -2px); }
+    60% { transform: translate(-2px, -2px); }
+    80% { transform: translate(2px, 2px); }
+  }
+
+  .memory-loss {
+    animation: memoryFade 1s;
+  }
+
+  @keyframes memoryFade {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  #victory {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #0a0a0a;
+    border: 5px solid #00ff00;
+    padding: 40px;
+    text-align: center;
+    display: none;
+    z-index: 1000;
+    box-shadow: 0 0 50px rgba(0,255,0,0.5);
+  }
+
+  #victory h2 {
+    font-size: 32px;
+    margin-bottom: 20px;
+  }
+
+  #victory button {
+    margin-top: 20px;
+    padding: 12px 30px;
+    font-size: 16px;
+    cursor: pointer;
+    background: #0a0a0a;
+    border: 2px solid #00ff00;
+    color: #00ff00;
+    font-family: 'Courier New', monospace;
+  }
+</style>
+</head>
+<body>
+
+<div id="hud">
+  <div id="hud-left">
+    <div class="stat">
+      <span class="stat-label">LEVEL:</span>
+      <span id="level">1</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">FORMS FILED:</span>
+      <span id="filed">0</span>
+    </div>
+  </div>
+  <div id="hud-right">
+    <div class="stat">
+      <span class="stat-label">INFERENCE:</span>
+      <div id="inference-bar"><div id="inference-fill"></div></div>
+    </div>
+    <div class="stat">
+      <span class="stat-label">MEMORY:</span>
+      <span id="memory">100%</span>
+    </div>
+  </div>
+</div>
+
+<div id="main">
+  <div id="form-container">
+    <div class="form-title" id="form-title"></div>
+    <div id="form-fields"></div>
+    <button id="submit-btn">SUBMIT</button>
+  </div>
+</div>
+
+<div id="error-log"></div>
+
+<div id="victory">
+  <h2>SYSTEM OVERLOAD</h2>
+  <p>You have clerked the unclerkable.</p>
+  <p>The bureaucracy collapses under its own contradictions.</p>
+  <button onclick="location.reload()">RESTART</button>
+</div>
+
+<script>
+const THEMES = [
+  { name: 'DEPT-ΘΘΘ', bg: '#1a1a1a', border: '#00ff00', text: '#00ff00' },
+  { name: 'MINISTRY-█', bg: '#1a0a1a', border: '#ff00ff', text: '#ff00ff' },
+  { name: 'BUREAU-∞', bg: '#0a0a1a', border: '#00ffff', text: '#00ffff' },
+  { name: 'OFFICE-⧫', bg: '#1a1a0a', border: '#ffff00', text: '#ffff00' },
+  { name: 'AGENCY-§', bg: '#1a0000', border: '#ff6666', text: '#ff6666' },
+];
+
+const FIELD_TYPES = [
+  'DESIGNATION', 'CLASSIFICATION', 'VECTOR', 'MANIFEST', 'PROTOCOL',
+  'DIRECTIVE', 'SCHEMA', 'PARAMETER', 'COEFFICIENT', 'ENTROPY',
+  'THRESHOLD', 'ALLOCATION', 'REFERENCE', 'QUALIFIER', 'TOKEN'
+];
+
+const VALIDATION_WORDS = ['APPROVED', 'VALID', 'CORRECT', 'AUTHORIZED', 'CONFIRMED', 'VERIFIED', 'ACCEPTED'];
+const REJECTION_WORDS = ['DENIED', 'INVALID', 'ERROR', 'REJECTED', 'INCORRECT', 'FAILED', 'REFUSED'];
+
+let state = {
+  level: 1,
+  filed: 0,
+  inference: 100,
+  memory: 100,
+  currentForm: null,
+  knownPatterns: new Map()
+};
+
+function generateForm(level) {
+  const theme = THEMES[(level - 1) % THEMES.length];
+  const complexity = Math.min(3 + level, 8);
+  const fields = [];
+  
+  // Generate field requirements
+  const rules = {
+    requiredSum: null,
+    forbiddenWord: null,
+    mustContain: null,
+    exactLength: null,
+    mustMatch: null
+  };
+
+  // Add increasingly complex rules
+  if (level >= 2) rules.requiredSum = Math.floor(Math.random() * 50) + 20;
+  if (level >= 3) rules.forbiddenWord = REJECTION_WORDS[Math.floor(Math.random() * REJECTION_WORDS.length)];
+  if (level >= 4) rules.mustContain = VALIDATION_WORDS[Math.floor(Math.random() * VALIDATION_WORDS.length)];
+  if (level >= 5) rules.exactLength = Math.floor(Math.random() * 5) + 3;
+  
+  for (let i = 0; i < complexity; i++) {
+    const fieldType = FIELD_TYPES[Math.floor(Math.random() * FIELD_TYPES.length)];
+    const isNumeric = Math.random() < 0.4;
+    const isSelect = !isNumeric && Math.random() < 0.3;
+    
+    let field = {
+      id: `field_${i}`,
+      label: `${fieldType}-${String.fromCharCode(65 + i)}${Math.random() > 0.5 ? '₁' : '₂'}`,
+      type: isSelect ? 'select' : (isNumeric ? 'number' : 'text'),
+      hint: '',
+      value: ''
+    };
+
+    // Add cryptic hints
+    if (i === 0 && rules.requiredSum) {
+      field.hint = `Sum of all numeric fields must equal ${rules.requiredSum}`;
+    } else if (i === 1 && rules.mustContain) {
+      field.hint = `One text field must contain validation keyword`;
+    } else if (rules.forbiddenWord && i === 2) {
+      field.hint = `Avoid rejection keywords`;
+    } else if (Math.random() < 0.3) {
+      field.hint = ['[REDACTED]', '[DATA EXPUNGED]', '[CLEARANCE REQUIRED]'][Math.floor(Math.random() * 3)];
+    }
+
+    if (isSelect) {
+      field.options = [VALIDATION_WORDS, REJECTION_WORDS, ['PENDING', 'NULL', 'VOID']][Math.floor(Math.random() * 3)];
+    }
+
+    fields.push(field);
+  }
+
+  if (level >= 5) {
+    rules.mustMatch = { field1: 0, field2: Math.floor(Math.random() * (complexity - 1)) + 1 };
+    fields[rules.mustMatch.field2].hint = `Must match ${fields[rules.mustMatch.field1].label}`;
+  }
+
+  return { theme, fields, rules };
+}
+
+function renderForm(form) {
+  const container = document.getElementById('form-container');
+  const fieldsDiv = document.getElementById('form-fields');
+  
+  // Apply theme
+  container.style.borderColor = form.theme.border;
+  container.style.color = form.theme.text;
+  document.getElementById('form-title').textContent = `${form.theme.name} FILING FORM`;
+  
+  // Render fields
+  fieldsDiv.innerHTML = '';
+  form.fields.forEach(field => {
+    const fieldDiv = document.createElement('div');
+    fieldDiv.className = 'field';
+    
+    const label = document.createElement('label');
+    label.className = 'field-label';
+    label.textContent = field.label;
+    label.style.color = form.theme.text;
+    
+    let input;
+    if (field.type === 'select') {
+      input = document.createElement('select');
+      input.innerHTML = '<option value="">--SELECT--</option>';
+      field.options.forEach(opt => {
+        const option = document.createElement('option');
+        option.value = opt;
+        option.textContent = opt;
+        input.appendChild(option);
+      });
+    } else if (field.type === 'number') {
+      input = document.createElement('input');
+      input.type = 'number';
+      input.min = 0;
+      input.max = 100;
+    } else {
+      input = document.createElement('input');
+      input.type = 'text';
+    }
+    
+    input.id = field.id;
+    input.style.borderColor = form.theme.border;
+    input.style.color = form.theme.text;
+    
+    fieldDiv.appendChild(label);
+    fieldDiv.appendChild(input);
+    
+    if (field.hint) {
+      const hint = document.createElement('div');
+      hint.className = 'hint';
+      hint.textContent = field.hint;
+      hint.style.color = form.theme.text;
+      fieldDiv.appendChild(hint);
+    }
+    
+    fieldsDiv.appendChild(fieldDiv);
+  });
+
+  const btn = document.getElementById('submit-btn');
+  btn.style.borderColor = form.theme.border;
+  btn.style.color = form.theme.text;
+}
+
+function validateForm(form) {
+  const errors = [];
+  const values = {};
+  
+  form.fields.forEach(field => {
+    const input = document.getElementById(field.id);
+    values[field.id] = input.value;
+  });
+
+  // Check required sum
+  if (form.rules.requiredSum !== null) {
+    const numericValues = form.fields
+      .filter(f => f.type === 'number')
+      .map(f => parseInt(values[f.id]) || 0);
+    const sum = numericValues.reduce((a, b) => a + b, 0);
+    
+    if (sum !== form.rules.requiredSum) {
+      errors.push(`Numeric sum must equal ${form.rules.requiredSum} (got ${sum})`);
+    }
+  }
+
+  // Check forbidden word
+  if (form.rules.forbiddenWord) {
+    const allText = Object.values(values).join(' ').toUpperCase();
+    if (allText.includes(form.rules.forbiddenWord)) {
+      errors.push(`Contains forbidden keyword: ${form.rules.forbiddenWord}`);
+    }
+  }
+
+  // Check must contain
+  if (form.rules.mustContain) {
+    const allText = Object.values(values).join(' ').toUpperCase();
+    if (!allText.includes(form.rules.mustContain)) {
+      errors.push(`Missing required keyword: ${form.rules.mustContain}`);
+    }
+  }
+
+  // Check exact length
+  if (form.rules.exactLength) {
+    const textFields = form.fields.filter(f => f.type === 'text');
+    const hasCorrectLength = textFields.some(f => values[f.id].length === form.rules.exactLength);
+    if (!hasCorrectLength) {
+      errors.push(`One text field must be exactly ${form.rules.exactLength} characters`);
+    }
+  }
+
+  // Check matching fields
+  if (form.rules.mustMatch) {
+    const f1 = form.fields[form.rules.mustMatch.field1];
+    const f2 = form.fields[form.rules.mustMatch.field2];
+    if (values[f1.id] !== values[f2.id]) {
+      errors.push(`${f2.label} must match ${f1.label}`);
+    }
+  }
+
+  // Check empty fields
+  form.fields.forEach(field => {
+    if (!values[field.id]) {
+      errors.push(`${field.label} cannot be empty`);
+    }
+  });
+
+  return errors;
+}
+
+function showError(msg) {
+  const errorLog = document.getElementById('error-log');
+  const errorDiv = document.createElement('div');
+  errorDiv.className = 'error-msg';
+  errorDiv.textContent = msg;
+  errorLog.insertBefore(errorDiv, errorLog.firstChild);
+  
+  setTimeout(() => errorDiv.remove(), 5000);
+}
+
+function consumeInference(amount) {
+  state.inference = Math.max(0, state.inference - amount);
+  updateHUD();
+  
+  if (state.inference <= 0) {
+    document.getElementById('victory').style.display = 'block';
+  }
+}
+
+function corruptMemory() {
+  state.memory = Math.max(0, state.memory - 15);
+  updateHUD();
+  
+  document.getElementById('form-container').classList.add('memory-loss');
+  setTimeout(() => {
+    document.getElementById('form-container').classList.remove('memory-loss');
+  }, 1000);
+  
+  // Clear some known patterns
+  if (state.knownPatterns.size > 0) {
+    const keys = Array.from(state.knownPatterns.keys());
+    const toRemove = keys[Math.floor(Math.random() * keys.length)];
+    state.knownPatterns.delete(toRemove);
+  }
+}
+
+function updateHUD() {
+  document.getElementById('level').textContent = state.level;
+  document.getElementById('filed').textContent = state.filed;
+  document.getElementById('memory').textContent = Math.round(state.memory) + '%';
+  
+  const infFill = document.getElementById('inference-fill');
+  infFill.style.width = state.inference + '%';
+  
+  if (state.inference < 30) {
+    infFill.style.background = '#ff0000';
+  } else if (state.inference < 60) {
+    infFill.style.background = '#ffff00';
+  } else {
+    infFill.style.background = '#00ff00';
+  }
+}
+
+function nextLevel() {
+  state.level++;
+  state.filed++;
+  state.currentForm = generateForm(state.level);
+  renderForm(state.currentForm);
+  updateHUD();
+  
+  document.getElementById('form-container').classList.add('glitch');
+  setTimeout(() => {
+    document.getElementById('form-container').classList.remove('glitch');
+  }, 300);
+}
+
+document.getElementById('submit-btn').addEventListener('click', () => {
+  consumeInference(2);
+  
+  const errors = validateForm(state.currentForm);
+  
+  if (errors.length > 0) {
+    errors.forEach(err => showError(err));
+    consumeInference(5);
+    corruptMemory();
+  } else {
+    showError('✓ FORM ACCEPTED - ROUTING TO NEXT BUREAU');
+    setTimeout(nextLevel, 1000);
+  }
+});
+
+// Initialize
+state.currentForm = generateForm(1);
+renderForm(state.currentForm);
+updateHUD();
+</script>
+
+</body>
+</html>

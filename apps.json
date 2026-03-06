@@ -1,5 +1,42 @@
 [
   {
+    "date": "2026-03-06",
+    "id": "2026-03-06-3",
+    "name": "Clerked",
+    "description": "You're an AI agent navigating bizarre, hostile bureaucratic forms where labels shift, rules contradict, and each successful submission spawns a new, smarter bureaucracy designed to stop you.",
+    "inspiration": "Alibaba's Qwen 3.5 claims 5x faster agentic deployment by processing text, images, and video across 200 languages for multi-step task completion like form-filling and website navigation.",
+    "connection": "The idea of an AI agent autonomously navigating websites and filling forms made me think: what if YOU were the agent, trapped inside a hostile bureaucratic system, trying to parse alien interfaces and complete incomprehensible multi-step tasks under time pressure — turning the agentic workflow into a puzzle game from the agent's perspective.",
+    "source_url": "https://www.euronews.com/next/2026/02/17/these-are-chinas-new-ai-models-that-have-just-been-released-ahead-of-the-lunar-new-year",
+    "emoji": "📋",
+    "category": "AI-inspired",
+    "image": true
+  },
+  {
+    "date": "2026-03-06",
+    "id": "2026-03-06-2",
+    "name": "Forexpose",
+    "description": "A currency exposure tracker that reveals how exchange rate swings reshape your multi-currency net worth over time, with volatility heatmaps and real-time conversion alerts.",
+    "inspiration": "With oil prices surging 20%, the Strait of Hormuz threatened, and global markets in turmoil from the Iran conflict, people holding multiple currencies or planning international transfers need to see exactly how their purchasing power is shifting day-by-day and make smarter timing decisions on conversions.",
+    "connection": "Frankfurter provides free historical and live ECB exchange rates, making it perfect for tracking currency erosion and identifying optimal conversion windows during volatile geopolitical periods.",
+    "source_url": "https://www.youtube.com/watch?v=tWf02WGK-o4",
+    "emoji": "💱",
+    "category": "API tool",
+    "api": "Frankfurter",
+    "image": true
+  },
+  {
+    "date": "2026-03-06",
+    "id": "2026-03-06",
+    "name": "Vasoform",
+    "description": "A haunting biological strategy game where you manage the circulatory network of a translucent deep-sea creature, making surgical decisions that reshape its alien anatomy across generations.",
+    "inspiration": "The Strait of Hormuz being declared 'closed,' threatening to choke one-fifth of the world's daily oil supply through a single narrow passage.",
+    "connection": "A chokepoint where everything funnels through reminded me of a living circulatory system — what if you managed a creature whose body IS a network of straits and channels, and blockages cause organ death?",
+    "source_url": "https://www.youtube.com/watch?v=tWf02WGK-o4",
+    "emoji": "🫀",
+    "category": "Simulation",
+    "image": true
+  },
+  {
     "date": "2026-03-05",
     "id": "2026-03-05-3",
     "name": "Fourvoice",

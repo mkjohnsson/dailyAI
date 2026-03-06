@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vasoform — Daily AI Gen</title>
+  <meta name="description" content="A haunting biological strategy game where you manage the circulatory network of a translucent deep-sea creature, making surgical decisions that reshape its alien anatomy across generations.">
+  <meta property="og:title" content="Vasoform — Daily AI Gen">
+  <meta property="og:description" content="A haunting biological strategy game where you manage the circulatory network of a translucent deep-sea creature, making surgical decisions that reshape its alien anatomy across generations.">
+  <meta property="og:url" content="https://dailyaigen.com/apps/2026-03-06/">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="https://dailyaigen.com/apps/2026-03-06/">
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: #000810;
+  font-family: 'Courier New', monospace;
+  color: #4a9fb8;
+  overflow: hidden;
+  cursor: crosshair;
+}
+
+#canvas {
+  display: block;
+  background: radial-gradient(ellipse at center, #001418 0%, #000408 100%);
+}
+
+#ui {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background: rgba(0, 8, 16, 0.85);
+  padding: 15px;
+  border: 1px solid #1a4a5a;
+  border-radius: 4px;
+  max-width: 280px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+#stats {
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #1a4a5a;
+}
+
+.stat {
+  display: flex;
+  justify-content: space-between;
+  margin: 4px 0;
+}
+
+.stat-label {
+  color: #5ab8d4;
+}
+
+.stat-value {
+  color: #88ddff;
+  font-weight: bold;
+}
+
+.critical {
+  color: #ff6b6b;
+}
+
+.warning {
+  color: #ffd700;
+}
+
+#actions button {
+  width: 100%;
+  margin: 5px 0;
+  padding: 8px;
+  background: #0a2a3a;
+  border: 1px solid #1a4a5a;
+  color: #5ab8d4;
+  cursor: pointer;
+  border-radius: 3px;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  transition: all 0.2s;
+}
+
+#actions button:hover:not(:disabled) {
+  background: #1a4a5a;
+  border-color: #2a6a7a;
+  color: #88ddff;
+}
+
+#actions button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.cost {
+  color: #ff9966;
+  font-size: 10px;
+}
+
+#message {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: rgba(0, 8, 16, 0.9);
+  padding: 12px 16px;
+  border: 1px solid #1a4a5a;
+  border-radius: 4px;
+  max-width: 300px;
+  font-size: 11px;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+
+#message.show {
+  opacity: 1;
+}
+
+.title {
+  font-size: 14px;
+  color: #88ddff;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+#selected-info {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #1a4a5a;
+  font-size: 10px;
+  color: #5ab8d4;
+  min-height: 40px;
+}
+
+.mode-indicator {
+  display: inline-block;
+  padding: 2px 6px;
+  background: #0a2a3a;
+  border-radius: 2px;
+  margin-left: 5px;
+  font-size: 10px;
+}
+</style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+
+<div id="ui">
+  <div class="title">Vasoform</div>
+  <div id="stats">
+    <div class="stat">
+      <span class="stat-label">Generation:</span>
+      <span class="stat-value" id="gen">1</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">Bio-Energy:</span>
+      <span class="stat-value" id="energy">100</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">Vitality:</span>
+      <span class="stat-value" id="vitality">100%</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">Active Organs:</span>
+      <span class="stat-value" id="organs">5</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">Blockages:</span>
+      <span class="stat-value" id="blockages">0</span>
+    </div>
+  </div>
+  
+  <div id="actions">
+    <button id="clearBtn" disabled><span class="cost">[-15 energy]</span> Clear Blockage</button>
+    <button id="growBtn" disabled><span class="cost">[-25 energy]</span> Grow New Vessel</button>
+    <button id="sacrificeBtn" disabled><span class="cost">[+20 energy]</span> Sacrifice Organ</button>
+    <button id="evolveBtn"><span class="cost">[-50 energy]</span> Force Evolution</button>
+  </div>
+  
+  <div id="selected-info">Click on blockages, vessels, or organs to interact.</div>
+</div>
+
+<div id="message"></div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+// Game state
+let generation = 1;
+let energy = 100;
+let organs = [];
+let vessels = [];
+let blockages = [];
+let selectedElement = null;
+let time = 0;
+
+// Constants
+const ORGAN_CONSUMPTION = 0.15;
+const ENERGY_PER_TICK = 0.05;
+const BLOCKAGE_SPAWN_CHANCE = 0.008;
+const EVOLUTION_THRESHOLD = 200;
+
+class Organ {
+  constructor(x, y, type = 'core') {
+    this.x = x;
+    this.y = y;
+    this.type = type; // core, filter, processor, storage
+    this.health = 100;
+    this.size = type === 'core' ? 25 : 15;
+    this.pulsePhase = Math.random() * Math.PI * 2;
+    this.connections = [];
+    this.alive = true;
+    this.nutrients = 0;
+    this.maxNutrients = 100;
+    this.hue = this.getHue();
+  }
+  
+  getHue() {
+    const hues = { core: 180, filter: 280, processor: 320, storage: 140 };
+    return hues[this.type] || 180;
+  }
+  
+  update() {
+    if (!this.alive) return;
+    
+    this.pulsePhase += 0.03;
+    this.nutrients = Math.max(0, this.nutrients - ORGAN_CONSUMPTION);
+    
+    if (this.nutrients < 20) {
+      this.health -= 0.1;
+    } else if (this.nutrients > 60 && this.health < 100) {
+      this.health += 0.05;
+    }
+    
+    if (this.health <= 0) {
+      this.alive = false;
+      this.health = 0;
+    }
+  }
+  
+  draw() {
+    if (!this.alive) {
+      ctx.globalAlpha = 0.2;
+    }
+    
+    const pulse = Math.sin(this.pulsePhase) * 0.2 + 0.8;
+    const size = this.size * pulse;
+    
+    // Glow
+    const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, size * 2);
+    gradient.addColorStop(0, `hsla(${this.hue}, 70%, 60%, ${0.3 * pulse})`);
+    gradient.addColorStop(1, 'transparent');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(this.x - size * 2, this.y - size * 2, size * 4, size * 4);
+    
+    // Core
+    ctx.fillStyle = `hsla(${this.hue}, 60%, ${40 + this.nutrients / 5}%, 0.6)`;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, size, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Outline
+    ctx.strokeStyle = `hsla(${this.hue}, 80%, 70%, 0.8)`;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    
+    // Health indicator
+    if (this.health < 60) {
+      ctx.strokeStyle = this.health < 30 ? '#ff4444' : '#ffaa44';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, size + 4, 0, Math.PI * 2 * (this.health / 100));
+      ctx.stroke();
+    }
+    
+    ctx.globalAlpha = 1;
+  }
+  
+  contains(x, y) {
+    const dx = x - this.x;
+    const dy = y - this.y;
+    return dx * dx + dy * dy <= this.size * this.size;
+  }
+}
+
+class Vessel {
+  constructor(from, to) {
+    this.from = from;
+    this.to = to;
+    this.flow = 0;
+    this.maxFlow = 5;
+    this.width = 2;
+    this.flowPhase = 0;
+  }
+  
+  update() {
+    if (!this.from.alive || !this.to.alive) {
+      this.flow = 0;
+      return;
+    }
+    
+    // Nutrient flow simulation
+    if (this.from.nutrients > this.to.nutrients + 10) {
+      const transfer = Math.min(this.maxFlow, (this.from.nutrients - this.to.nutrients) / 10);
+      this.from.nutrients -= transfer;
+      this.to.nutrients += transfer;
+      this.flow = transfer;
+    } else {
+      this.flow *= 0.9;
+    }
+    
+    this.flowPhase += this.flow * 0.1;
+  }
+  
+  draw() {
+    if (!this.from.alive || !this.to.alive) return;
+    
+    const intensity = Math.min(1, this.flow / this.maxFlow);
+    
+    // Base vessel
+    ctx.strokeStyle = `hsla(180, 40%, 30%, ${0.3 + intensity * 0.4})`;
+    ctx.lineWidth = this.width;
+    ctx.beginPath();
+    ctx.moveTo(this.from.x, this.from.y);
+    ctx.lineTo(this.to.x, this.to.y);
+    ctx.stroke();
+    
+    // Flow animation
+    if (intensity > 0.1) {
+      const dx = this.to.x - this.from.x;
+      const dy = this.to.y - this.from.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const segments = Math.floor(dist / 20);
+      
+      for (let i = 0; i < segments; i++) {
+        const t = (i / segments + this.flowPhase * 0.1) % 1;
+        const x = this.from.x + dx * t;
+        const y = this.from.y + dy * t;
+        
+        ctx.fillStyle = `hsla(180, 70%, 60%, ${intensity * 0.6})`;
+        ctx.beginPath();
+        ctx.arc(x, y, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+  
+  getMidpoint() {
+    return {
+      x: (this.from.x + this.to.x) / 2,
+      y: (this.from.y + this.to.y) / 2
+    };
+  }
+  
+  distanceToPoint(px, py) {
+    const x1 = this.from.x, y1 = this.from.y;
+    const x2 = this.to.x, y2 = this.to.y;
+    
+    const A = px - x1;
+    const B = py - y1;
+    const C = x2 - x1;
+    const D = y2 - y1;
+    
+    const dot = A * C + B * D;
+    const lenSq = C * C + D * D;
+    const param = lenSq !== 0 ? dot / lenSq : -1;
+    
+    let xx, yy;
+    
+    if (param < 0) {
+      xx = x1;
+      yy = y1;
+    } else if (param > 1) {
+      xx = x2;
+      yy = y2;
+    } else {
+      xx = x1 + param * C;
+      yy = y1 + param * D;
+    }
+    
+    const dx = px - xx;
+    const dy = py - yy;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+}
+
+class Blockage {
+  constructor(vessel, position) {
+    this.vessel = vessel;
+    this.position = position; // 0 to 1 along vessel
+    this.severity = 0.5 + Math.random() * 0.5;
+    this.type = Math.random() < 0.4 ? 'parasite' : Math.random() < 0.7 ? 'clot' : 'calcification';
+    this.size = 6 + this.severity * 4;
+    this.pulsePhase = Math.random() * Math.PI * 2;
+    
+    const dx = vessel.to.x - vessel.from.x;
+    const dy = vessel.to.y - vessel.from.y;
+    this.x = vessel.from.x + dx * position;
+    this.y = vessel.from.y + dy * position;
+  }
+  
+  update() {
+    this.pulsePhase += 0.05;
+    
+    // Blockages reduce vessel flow
+    this.vessel.maxFlow = 5 * (1 - this.severity * 0.7);
+    
+    // Slowly grow
+    if (Math.random() < 0.005) {
+      this.severity = Math.min(1, this.severity + 0.05);
+      this.size = 6 + this.severity * 4;
+    }
+  }
+  
+  draw() {
+    const pulse = Math.sin(this.pulsePhase) * 0.15 + 0.85;
+    const size = this.size * pulse;
+    
+    const colors = {
+      parasite: { h: 320, s: 70, l: 50 },
+      clot: { h: 0, s: 60, l: 40 },
+      calcification: { h: 45, s: 40, l: 60 }
+    };
+    const color = colors[this.type];
+    
+    // Glow
+    const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, size * 2);
+    gradient.addColorStop(0, `hsla(${color.h}, ${color.s}%, ${color.l}%, 0.4)`);
+    gradient.addColorStop(1, 'transparent');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(this.x - size * 2, this.y - size * 2, size * 4, size * 4);
+    
+    // Core
+    ctx.fillStyle = `hsla(${color.h}, ${color.s}%, ${color.l}%, 0.7)`;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, size, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.strokeStyle = `hsla(${color.h}, ${color.s + 20}%, ${color.l + 20}%, 0.9)`;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+  
+  contains(x, y) {
+    const dx = x - this.x;
+    const dy = y - this.y;
+    return dx * dx + dy * dy <= this.size * this.size;
+  }
+}
+
+function initCreature() {
+  organs = [];
+  vessels = [];
+  blockages = [];
+  
+  // Create core organ at center
+  const core = new Organ(canvas.width / 2, canvas.height / 2, 'core');
+  organs.push(core);
+  
+  // Create initial organs in a network
+  const types = ['filter', 'processor', 'storage', 'filter'];
+  for (let i = 0; i < 4; i++) {
+    const angle = (i / 4) * Math.PI * 2;
+    const dist = 120 + Math.random() * 40;
+    const organ = new Organ(
+      core.x + Math.cos(angle) * dist,
+      core.y + Math.sin(angle) * dist,
+      types[i]
+    );
+    organs.push(organ);
+    vessels.push(new Vessel(core, organ));
+  }
+  
+  // Start with nutrients in core
+  core.nutrients = 100;
+}
+
+function spawnBlockage() {
+  if (vessels.length === 0) return;
+  
+  const vessel = vessels[Math.floor(Math.random() * vessels.length)];
+  const position = 0.3 + Math.random() * 0.4;
+  
+  blockages.push(new Blockage(vessel, position));
+}
+
+function clearBlockage(blockage) {
+  const index = blockages.indexOf(blockage);
+  if (index > -1) {
+    blockages.splice(index, 1);
+    blockage.vessel.maxFlow = 5; // Restore flow
+    showMessage('Blockage cleared. Flow restored.');
+  }
+}
+
+function growNewVessel(fromOrgan) {
+  // Find nearest unconnected organ
+  let nearest = null;
+  let minDist = Infinity;
+  
+  for (const organ of organs) {
+    if (!organ.alive || organ === fromOrgan) continue;
+    
+    const alreadyConnected = vessels.some(v => 
+      (v.from === fromOrgan && v.to === organ) ||
+      (v.from === organ && v.to === fromOrgan)
+    );
+    
+    if (alreadyConnected) continue;
+    
+    const dx = organ.x - fromOrgan.x;
+    const dy = organ.y - fromOrgan.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    
+    if (dist < minDist) {
+      minDist = dist;
+      nearest = organ;
+    }
+  }
+  
+  if (nearest) {
+    vessels.push(new Vessel(fromOrgan, nearest));
+    showMessage('New vessel grown. Network adapted.');
+    return true;
+  }
+  return false;
+}
+
+function sacrificeOrgan(organ) {
+  organ.alive = false;
+  organ.health = 0;
+  
+  // Remove vessels connected to this organ
+  vessels = vessels.filter(v => v.from !== organ && v.to !== organ);
+  blockages = blockages.filter(b => b.vessel.from !== organ && b.vessel.to !== organ);
+  
+  showMessage(`${organ.type} organ sacrificed. Gained energy.`);
+}
+
+function evolveCreature() {
+  generation++;
+  
+  // Remove dead organs
+  organs = organs.filter(o => o.alive);
+  
+  if (organs.length === 0) {
+    showMessage('EXTINCTION: No living organs remain.', 5000);
+    setTimeout(initCreature, 3000);
+    return;
+  }
+  
+  // Mutate morphology
+  organs.forEach(organ => {
+    organ.x += (Math.random() - 0.5) * 30;
+    organ.y += (Math.random() - 0.5) * 30;
+    organ.health = 100;
+    organ.nutrients = 50;
+  });
+  
+  // Sometimes add new organ
+  if (Math.random() < 0.4 && organs.length < 8) {
+    const parent = organs[Math.floor(Math.random() * organs.length)];
+    const angle = Math.random() * Math.PI * 2;
+    const dist = 80 + Math.random() * 60;
+    const types = ['filter', 'processor', 'storage'];
+    const newOrgan = new Organ(
+      parent.x + Math.cos(angle) * dist,
+      parent.y + Math.sin(angle) * dist,
+      types[Math.floor(Math.random() * types.length)]
+    );
+    organs.push(newOrgan);
+    vessels.push(new Vessel(parent, newOrgan));
+  }
+  
+  showMessage(`GENERATION ${generation}: Morphology adapted.`, 3000);
+}
+
+function updateStats() {
+  document.getElementById('gen').textContent = generation;
+  document.getElementById('energy').textContent = Math.floor(energy);
+  
+  const aliveOrgans = organs.filter(o => o.alive).length;
+  const avgHealth = aliveOrgans > 0 
+    ? organs.filter(o => o.alive).reduce((sum, o) => sum + o.health, 0) / aliveOrgans 
+    : 0;
+  
+  const vitalityEl = document.getElementById('vitality');
+  vitalityEl.textContent = Math.floor(avgHealth) + '%';
+  vitalityEl.className = 'stat-value' + (avgHealth < 30 ? ' critical' : avgHealth < 60 ? ' warning' : '');
+  
+  document.getElementById('organs').textContent = aliveOrgans;
+  document.getElementById('blockages').textContent = blockages.length;
+  
+  // Update buttons
+  document.getElementById('clearBtn').disabled = !selectedElement || selectedElement.type !== 'blockage' || energy < 15;
+  document.getElementById('growBtn').disabled = !selectedElement || selectedElement.type !== 'organ' || energy < 25 || !selectedElement.element.alive;
+  document.getElementById('sacrificeBtn').disabled = !selectedElement || selectedElement.type !== 'organ' || !selectedElement.element.alive || aliveOrgans <= 1;
+  document.getElementById('evolveBtn').disabled = energy < 50;
+}
+
+function showMessage(text, duration = 2000) {
+  const msgEl = document.getElementById('message');
+  msgEl.textContent = text;
+  msgEl.classList.add('show');
+  setTimeout(() => msgEl.classList.remove('show'), duration);
+}
+
+function update() {
+  time++;
+  
+  // Passive energy generation
+  energy += ENERGY_PER_TICK;
+  
+  // Update organs
+  organs.forEach(organ => organ.update());
+  
+  // Update vessels
+  vessels.forEach(vessel => vessel.update());
+  
+  // Update blockages
+  blockages.forEach(blockage => blockage.update());
+  
+  // Spawn new blockages
+  if (Math.random() < BLOCKAGE_SPAWN_CHANCE && vessels.length > 0) {
+    spawnBlockage();
+  }
+  
+  // Auto-evolve every 200 ticks if energy available
+  if (time % EVOLUTION_THRESHOLD === 0 && energy >= 50) {
+    energy -= 50;
+    evolveCreature();
+  }
+  
+  updateStats();
+}
+
+function draw() {
+  ctx.fillStyle = 'rgba(0, 4, 8, 0.15)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Draw vessels
+  vessels.forEach(vessel => vessel.draw());
+  
+  // Draw blockages
+  blockages.forEach(blockage => blockage.draw());
+  
+  // Draw organs
+  organs.forEach(organ => organ.draw());
+  
+  // Draw selection
+  if (selectedElement) {
+    ctx.strokeStyle = '#88ddff';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 5]);
+    ctx.beginPath();
+    
+    if (selectedElement.type === 'organ' || selectedElement.type === 'blockage') {
+      const el = selectedElement.element;
+      ctx.arc(el.x, el.y, el.size + 8, 0, Math.PI * 2);
+    }
+    
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+}
+
+function gameLoop() {
+  update();
+  draw();
+  requestAnimationFrame(gameLoop);
+}
+
+// Event handlers
+canvas.addEventListener('click', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  
+  selectedElement = null;
+  
+  // Check blockages first
+  for (const blockage of blockages) {
+    if (blockage.contains(x, y)) {
+      selectedElement = { type: 'blockage', element: blockage };
+      document.getElementById('selected-info').textContent = 
+        `Selected: ${blockage.type} (${Math.floor(blockage.severity * 100)}% severity)`;
+      return;
+    }
+  }
+  
+  // Check organs
+  for (const organ of organs) {
+    if (organ.contains(x, y)) {
+      selectedElement = { type: 'organ', element: organ };
+      document.getElementById('selected-info').textContent = 
+        `Selected: ${organ.type} organ (${Math.floor(organ.health)}% health)`;
+      return;
+    }
+  }
+  
+  document.getElementById('selected-info').textContent = 
+    'Click on blockages, vessels, or organs to interact.';
+});
+
+document.getElementById('clearBtn').addEventListener('click', () => {
+  if (selectedElement && selectedElement.type === 'blockage' && energy >= 15) {
+    energy -= 15;
+    clearBlockage(selectedElement.element);
+    selectedElement = null;
+    document.getElementById('selected-info').textContent = 'Click on blockages, vessels, or organs to interact.';
+  }
+});
+
+document.getElementById('growBtn').addEventListener('click', () => {
+  if (selectedElement && selectedElement.type === 'organ' && energy >= 25) {
+    if (growNewVessel(selectedElement.element)) {
+      energy -= 25;
+    }
+  }
+});
+
+document.getElementById('sacrificeBtn').addEventListener('click', () => {
+  if (selectedElement && selectedElement.type === 'organ' && energy >= 0) {
+    energy += 20;
+    sacrificeOrgan(selectedElement.element);
+    selectedElement = null;
+    document.getElementById('selected-info').textContent = 'Click on blockages, vessels, or organs to interact.';
+  }
+});
+
+document.getElementById('evolveBtn').addEventListener('click', () => {
+  if (energy >= 50) {
+    energy -= 50;
+    evolveCreature();
+  }
+});
+
+window.addEventListener('resize', () => {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+});
+
+// Initialize and start
+initCreature();
+showMessage('Vasoform awakens. Tend its vital flows.', 3000);
+gameLoop();
+</script>
+</body>
+</html>

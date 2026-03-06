@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Forexpose - Currency Exposure Tracker — Daily AI Gen</title>
+  <meta name="description" content="A currency exposure tracker that reveals how exchange rate swings reshape your multi-currency net worth over time, with volatility heatmaps and real-time conversion alerts.">
+  <meta property="og:title" content="Forexpose — Daily AI Gen">
+  <meta property="og:description" content="A currency exposure tracker that reveals how exchange rate swings reshape your multi-currency net worth over time, with volatility heatmaps and real-time conversion alerts.">
+  <meta property="og:url" content="https://dailyaigen.com/apps/2026-03-06-2/">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="https://dailyaigen.com/apps/2026-03-06-2/">
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  padding: 20px;
+  color: #333;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  overflow: hidden;
+}
+
+header {
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+  color: white;
+  padding: 30px;
+  text-align: center;
+}
+
+h1 {
+  font-size: 2.5em;
+  margin-bottom: 10px;
+}
+
+.subtitle {
+  opacity: 0.9;
+  font-size: 1.1em;
+}
+
+.main-content {
+  padding: 30px;
+}
+
+.section {
+  margin-bottom: 30px;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 12px;
+}
+
+.section-title {
+  font-size: 1.3em;
+  margin-bottom: 15px;
+  color: #2a5298;
+  border-bottom: 2px solid #667eea;
+  padding-bottom: 8px;
+}
+
+.holdings-form {
+  display: grid;
+  gap: 15px;
+}
+
+.holding-row {
+  display: grid;
+  grid-template-columns: 150px 1fr 80px;
+  gap: 10px;
+  align-items: center;
+}
+
+select, input {
+  padding: 10px;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  font-size: 1em;
+}
+
+select:focus, input:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+button {
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1em;
+  font-weight: 600;
+  transition: transform 0.2s;
+}
+
+button:hover {
+  transform: translateY(-2px);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.add-holding {
+  width: fit-content;
+  margin-top: 10px;
+}
+
+.remove-btn {
+  background: #e74c3c;
+  padding: 8px 16px;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+  font-size: 1.2em;
+  color: #667eea;
+}
+
+.spinner {
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #667eea;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.error {
+  background: #fee;
+  border: 2px solid #e74c3c;
+  padding: 15px;
+  border-radius: 8px;
+  color: #c0392b;
+  margin-bottom: 20px;
+}
+
+.chart-container {
+  height: 300px;
+  position: relative;
+}
+
+canvas {
+  max-width: 100%;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.stat-card {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 2em;
+  font-weight: bold;
+  color: #2a5298;
+  margin-bottom: 5px;
+}
+
+.stat-label {
+  color: #666;
+  font-size: 0.9em;
+}
+
+.stat-change {
+  font-size: 0.85em;
+  margin-top: 5px;
+}
+
+.positive {
+  color: #27ae60;
+}
+
+.negative {
+  color: #e74c3c;
+}
+
+.heatmap {
+  display: grid;
+  gap: 10px;
+}
+
+.heatmap-row {
+  display: grid;
+  grid-template-columns: 100px 1fr 120px;
+  align-items: center;
+  gap: 10px;
+}
+
+.heatmap-bar {
+  height: 30px;
+  background: linear-gradient(90deg, #27ae60, #f39c12, #e74c3c);
+  border-radius: 6px;
+  position: relative;
+}
+
+.heatmap-indicator {
+  position: absolute;
+  width: 4px;
+  height: 100%;
+  background: #2c3e50;
+  top: 0;
+}
+
+.alert-card {
+  background: #fff3cd;
+  border: 2px solid #ffc107;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+.alert-best {
+  background: #d4edda;
+  border-color: #28a745;
+}
+
+.alert-title {
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+
+.home-currency-selector {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.home-currency-selector label {
+  font-weight: 600;
+}
+
+.hidden {
+  display: none;
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>💱 Forexpose</h1>
+    <p class="subtitle">Track your multi-currency exposure in real-time</p>
+  </header>
+
+  <div class="main-content">
+    <div class="section">
+      <div class="section-title">Portfolio Setup</div>
+      
+      <div class="home-currency-selector">
+        <label>Home Currency:</label>
+        <select id="homeCurrency">
+          <option value="USD">USD - US Dollar</option>
+          <option value="EUR">EUR - Euro</option>
+          <option value="GBP">GBP - British Pound</option>
+          <option value="JPY">JPY - Japanese Yen</option>
+          <option value="CHF">CHF - Swiss Franc</option>
+          <option value="CAD">CAD - Canadian Dollar</option>
+          <option value="AUD">AUD - Australian Dollar</option>
+          <option value="NZD">NZD - New Zealand Dollar</option>
+        </select>
+        <button onclick="updatePortfolio()">Update Analysis</button>
+      </div>
+
+      <div class="holdings-form" id="holdingsForm">
+        <div class="holding-row">
+          <select class="currency-select">
+            <option value="USD">USD</option>
+            <option value="EUR">EUR</option>
+            <option value="GBP">GBP</option>
+            <option value="JPY">JPY</option>
+            <option value="CHF">CHF</option>
+            <option value="CAD">CAD</option>
+            <option value="AUD">AUD</option>
+            <option value="NZD">NZD</option>
+          </select>
+          <input type="number" class="amount-input" placeholder="Amount" value="10000">
+          <button class="remove-btn" onclick="removeHolding(this)" style="display:none;">Remove</button>
+        </div>
+      </div>
+      <button class="add-holding" onclick="addHolding()">+ Add Currency</button>
+    </div>
+
+    <div id="errorContainer"></div>
+    <div id="loadingContainer" class="hidden">
+      <div class="loading">
+        <div class="spinner"></div>
+        Fetching exchange rates...
+      </div>
+    </div>
+
+    <div id="resultsContainer" class="hidden">
+      <div class="section">
+        <div class="section-title">Portfolio Overview</div>
+        <div class="stats-grid" id="statsGrid"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Net Worth (90-Day History)</div>
+        <div class="chart-container">
+          <canvas id="portfolioChart"></canvas>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Conversion Alerts</div>
+        <div id="alertsContainer"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">7-Day Volatility Heatmap</div>
+        <div class="heatmap" id="heatmapContainer"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+<script>
+let chart = null;
+let ratesData = {};
+let historicalData = {};
+
+function addHolding() {
+  const form = document.getElementById('holdingsForm');
+  const newRow = document.createElement('div');
+  newRow.className = 'holding-row';
+  newRow.innerHTML = `
+    <select class="currency-select">
+      <option value="USD">USD</option>
+      <option value="EUR">EUR</option>
+      <option value="GBP">GBP</option>
+      <option value="JPY">JPY</option>
+      <option value="CHF">CHF</option>
+      <option value="CAD">CAD</option>
+      <option value="AUD">AUD</option>
+      <option value="NZD">NZD</option>
+    </select>
+    <input type="number" class="amount-input" placeholder="Amount" value="0">
+    <button class="remove-btn" onclick="removeHolding(this)">Remove</button>
+  `;
+  form.appendChild(newRow);
+}
+
+function removeHolding(btn) {
+  btn.closest('.holding-row').remove();
+}
+
+function showError(message) {
+  const container = document.getElementById('errorContainer');
+  container.innerHTML = `<div class="error">${message}</div>`;
+}
+
+function clearError() {
+  document.getElementById('errorContainer').innerHTML = '';
+}
+
+function getHoldings() {
+  const rows = document.querySelectorAll('.holding-row');
+  const holdings = [];
+  rows.forEach(row => {
+    const currency = row.querySelector('.currency-select').value;
+    const amount = parseFloat(row.querySelector('.amount-input').value) || 0;
+    if (amount > 0) {
+      holdings.push({ currency, amount });
+    }
+  });
+  return holdings;
+}
+
+function getDates(days) {
+  const dates = [];
+  const today = new Date();
+  for (let i = days; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    dates.push(d.toISOString().split('T')[0]);
+  }
+  return dates;
+}
+
+async function fetchHistoricalRates(base, currencies, startDate, endDate) {
+  const currencyList = currencies.join(',');
+  const url = `https://api.frankfurter.app/${startDate}..${endDate}?from=${base}&to=${currencyList}`;
+  const response = await fetch(url);
+  if (!response.ok) throw new Error('Failed to fetch historical rates');
+  return await response.json();
+}
+
+async function updatePortfolio() {
+  clearError();
+  const holdings = getHoldings();
+  const homeCurrency = document.getElementById('homeCurrency').value;
+
+  if (holdings.length === 0) {
+    showError('Please add at least one currency holding');
+    return;
+  }
+
+  document.getElementById('loadingContainer').classList.remove('hidden');
+  document.getElementById('resultsContainer').classList.add('hidden');
+
+  try {
+    const dates = getDates(90);
+    const startDate = dates[0];
+    const endDate = dates[dates.length - 1];
+    
+    // Get unique currencies
+    const currencies = [...new Set(holdings.map(h => h.currency).filter(c => c !== homeCurrency))];
+    
+    if (currencies.length === 0) {
+      // All holdings are in home currency
+      historicalData = {};
+      currencies.forEach(c => {
+        historicalData[c] = {};
+        dates.forEach(d => {
+          if (!historicalData[c][d]) historicalData[c][d] = {};
+          historicalData[c][d] = 1;
+        });
+      });
+    } else {
+      // Fetch historical data
+      const data = await fetchHistoricalRates(homeCurrency, currencies, startDate, endDate);
+      historicalData = {};
+      
+      Object.keys(data.rates).forEach(date => {
+        Object.keys(data.rates[date]).forEach(currency => {
+          if (!historicalData[currency]) historicalData[currency] = {};
+          historicalData[currency][date] = data.rates[date][currency];
+        });
+      });
+    }
+
+    // Calculate portfolio values over time
+    const portfolioValues = dates.map(date => {
+      let total = 0;
+      holdings.forEach(holding => {
+        if (holding.currency === homeCurrency) {
+          total += holding.amount;
+        } else {
+          const rate = historicalData[holding.currency]?.[date];
+          if (rate) {
+            total += holding.amount / rate;
+          }
+        }
+      });
+      return total;
+    });
+
+    renderStats(portfolioValues, homeCurrency);
+    renderChart(dates, portfolioValues, homeCurrency);
+    renderAlerts(holdings, homeCurrency, dates);
+    renderHeatmap(currencies, homeCurrency, dates);
+
+    document.getElementById('loadingContainer').classList.add('hidden');
+    document.getElementById('resultsContainer').classList.remove('hidden');
+
+  } catch (error) {
+    document.getElementById('loadingContainer').classList.add('hidden');
+    showError('Error fetching data: ' + error.message);
+  }
+}
+
+function renderStats(portfolioValues, homeCurrency) {
+  const current = portfolioValues[portfolioValues.length - 1];
+  const start = portfolioValues[0];
+  const change = current - start;
+  const changePercent = ((change / start) * 100).toFixed(2);
+  
+  const max = Math.max(...portfolioValues);
+  const min = Math.min(...portfolioValues);
+  const volatility = ((max - min) / min * 100).toFixed(2);
+
+  const statsHtml = `
+    <div class="stat-card">
+      <div class="stat-value">${homeCurrency} ${current.toFixed(2)}</div>
+      <div class="stat-label">Current Value</div>
+      <div class="stat-change ${change >= 0 ? 'positive' : 'negative'}">
+        ${change >= 0 ? '▲' : '▼'} ${Math.abs(change).toFixed(2)} (${changePercent}%)
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">${volatility}%</div>
+      <div class="stat-label">90-Day Volatility</div>
+      <div class="stat-change">Range: ${min.toFixed(2)} - ${max.toFixed(2)}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">${change >= 0 ? '▲' : '▼'} ${Math.abs(change).toFixed(2)}</div>
+      <div class="stat-label">FX Impact</div>
+      <div class="stat-change">Pure exchange rate movement</div>
+    </div>
+  `;
+  
+  document.getElementById('statsGrid').innerHTML = statsHtml;
+}
+
+function renderChart(dates, values, homeCurrency) {
+  const ctx = document.getElementById('portfolioChart').getContext('2d');
+  
+  if (chart) {
+    chart.destroy();
+  }
+
+  chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: dates,
+      datasets: [{
+        label: `Portfolio Value (${homeCurrency})`,
+        data: values,
+        borderColor: '#667eea',
+        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+        borderWidth: 3,
+        fill: true,
+        tension: 0.4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: false,
+          ticks: {
+            callback: function(value) {
+              return homeCurrency + ' ' + value.toFixed(0);
+            }
+          }
+        },
+        x: {
+          ticks: {
+            maxTicksLimit: 10
+          }
+        }
+      }
+    }
+  });
+}
+
+function renderAlerts(holdings, homeCurrency, dates) {
+  const recent7Days = dates.slice(-7);
+  const recent21Days = dates.slice(-21);
+  const alerts = [];
+
+  holdings.forEach(holding => {
+    if (holding.currency === homeCurrency) return;
+
+    const rates = dates.map(d => historicalData[holding.currency]?.[d]).filter(r => r);
+    const rates21 = recent21Days.map(d => historicalData[holding.currency]?.[d]).filter(r => r);
+    const currentRate = rates[rates.length - 1];
+    
+    if (rates21.length > 0) {
+      const max21 = Math.max(...rates21);
+      const min21 = Math.min(...rates21);
+      
+      if (currentRate === min21) {
+        alerts.push({
+          type: 'best',
+          message: `${holding.currency}→${homeCurrency}: Best conversion rate in 3 weeks (${(1/currentRate).toFixed(4)})`,
+          detail: 'Great time to convert from ' + holding.currency
+        });
+      } else if (currentRate === max21) {
+        alerts.push({
+          type: 'worst',
+          message: `${holding.currency}→${homeCurrency}: Worst rate in 3 weeks (${(1/currentRate).toFixed(4)})`,
+          detail: 'Consider waiting to convert'
+        });
+      }
+    }
+  });
+
+  if (alerts.length === 0) {
+    document.getElementById('alertsContainer').innerHTML = '<p style="color: #666;">No significant conversion opportunities detected.</p>';
+  } else {
+    const alertsHtml = alerts.map(alert => `
+      <div class="alert-card ${alert.type === 'best' ? 'alert-best' : ''}">
+        <div class="alert-title">${alert.message}</div>
+        <div>${alert.detail}</div>
+      </div>
+    `).join('');
+    document.getElementById('alertsContainer').innerHTML = alertsHtml;
+  }
+}
+
+function renderHeatmap(currencies, homeCurrency, dates) {
+  const recent7Days = dates.slice(-7);
+  const recent30Days = dates.slice(-30);
+  const heatmapData = [];
+
+  currencies.forEach(currency => {
+    const rates7 = recent7Days.map(d => historicalData[currency]?.[d]).filter(r => r);
+    const rates30 = recent30Days.map(d => historicalData[currency]?.[d]).filter(r => r);
+
+    if (rates7.length > 0 && rates30.length > 0) {
+      const volatility7 = (Math.max(...rates7) - Math.min(...rates7)) / Math.min(...rates7) * 100;
+      const volatility30 = (Math.max(...rates30) - Math.min(...rates30)) / Math.min(...rates30) * 100;
+      const ratio = volatility30 > 0 ? volatility7 / volatility30 : 1;
+      
+      heatmapData.push({
+        pair: `${currency}/${homeCurrency}`,
+        volatility7: volatility7.toFixed(2),
+        ratio: ratio
+      });
+    }
+  });
+
+  heatmapData.sort((a, b) => b.ratio - a.ratio);
+
+  const maxRatio = Math.max(...heatmapData.map(d => d.ratio), 1);
+  
+  const heatmapHtml = heatmapData.map(data => {
+    const position = (data.ratio / maxRatio * 100).toFixed(1);
+    return `
+      <div class="heatmap-row">
+        <div style="font-weight: 600;">${data.pair}</div>
+        <div class="heatmap-bar">
+          <div class="heatmap-indicator" style="left: ${position}%"></div>
+        </div>
+        <div style="text-align: right;">${data.volatility7}% (7d)</div>
+      </div>
+    `;
+  }).join('');
+
+  document.getElementById('heatmapContainer').innerHTML = heatmapHtml || '<p style="color: #666;">No volatility data available.</p>';
+}
+
+// Initialize with one holding row having remove button hidden
+document.addEventListener('DOMContentLoaded', () => {
+  const firstRemoveBtn = document.querySelector('.remove-btn');
+  if (firstRemoveBtn) {
+    firstRemoveBtn.style.display = 'none';
+  }
+});
+</script>
+</body>
+</html>
