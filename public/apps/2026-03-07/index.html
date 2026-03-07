@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Habitact — Daily AI Gen</title>
+  <meta name="description" content="A deceptive party game where players follow secret conversational rules that shift mid-chat, then vote on who was following which hidden behavioral pattern.">
+  <meta property="og:title" content="Habitact — Daily AI Gen">
+  <meta property="og:description" content="A deceptive party game where players follow secret conversational rules that shift mid-chat, then vote on who was following which hidden behavioral pattern.">
+  <meta property="og:url" content="https://dailyaigen.com/apps/2026-03-07/">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="https://dailyaigen.com/apps/2026-03-07/">
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+  }
+
+  .container {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    max-width: 500px;
+    width: 100%;
+    overflow: hidden;
+  }
+
+  .header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 25px;
+    text-align: center;
+  }
+
+  .header h1 {
+    font-size: 32px;
+    margin-bottom: 5px;
+  }
+
+  .header p {
+    font-size: 14px;
+    opacity: 0.9;
+  }
+
+  .content {
+    padding: 25px;
+  }
+
+  .screen {
+    display: none;
+  }
+
+  .screen.active {
+    display: block;
+  }
+
+  button {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    border-radius: 10px;
+    font-size: 16px;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 10px;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+
+  button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+  }
+
+  button:active {
+    transform: translateY(0);
+  }
+
+  button.secondary {
+    background: #6c757d;
+  }
+
+  input[type="text"] {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 16px;
+    margin-top: 10px;
+  }
+
+  input[type="text"]:focus {
+    outline: none;
+    border-color: #667eea;
+  }
+
+  .player-list {
+    margin: 20px 0;
+  }
+
+  .player-item {
+    background: #f8f9fa;
+    padding: 12px;
+    border-radius: 8px;
+    margin: 8px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .rule-card {
+    background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);
+    padding: 20px;
+    border-radius: 12px;
+    margin: 15px 0;
+    text-align: center;
+    font-size: 18px;
+    font-weight: bold;
+    color: #2d3436;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+
+  .rule-shift {
+    background: linear-gradient(135deg, #ff7675 0%, #d63031 100%);
+    color: white;
+    animation: pulse 0.5s;
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+  }
+
+  .chat-container {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 15px;
+    margin: 15px 0;
+    background: #f8f9fa;
+  }
+
+  .message {
+    margin: 10px 0;
+    padding: 10px;
+    border-radius: 8px;
+    background: white;
+  }
+
+  .message .author {
+    font-weight: bold;
+    color: #667eea;
+    margin-bottom: 5px;
+  }
+
+  .prompt-card {
+    background: #e3f2fd;
+    padding: 15px;
+    border-radius: 8px;
+    margin: 15px 0;
+    border-left: 4px solid #2196f3;
+  }
+
+  .prompt-card strong {
+    color: #1976d2;
+  }
+
+  .timer {
+    text-align: center;
+    font-size: 24px;
+    font-weight: bold;
+    color: #667eea;
+    margin: 15px 0;
+  }
+
+  .vote-grid {
+    display: grid;
+    gap: 10px;
+    margin: 15px 0;
+  }
+
+  .vote-option {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.2s;
+  }
+
+  .vote-option:hover {
+    border-color: #667eea;
+    background: #e8eaf6;
+  }
+
+  .vote-option.selected {
+    border-color: #667eea;
+    background: #e8eaf6;
+  }
+
+  .score-card {
+    background: #f1f3f5;
+    padding: 15px;
+    border-radius: 8px;
+    margin: 10px 0;
+  }
+
+  .score-card h3 {
+    color: #667eea;
+    margin-bottom: 10px;
+  }
+
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    margin: 5px 0;
+    padding: 5px 0;
+    border-bottom: 1px solid #dee2e6;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+    margin-left: 8px;
+  }
+
+  .badge.shift {
+    background: #ff7675;
+    color: white;
+  }
+
+  .info-box {
+    background: #fff3cd;
+    border: 1px solid #ffc107;
+    padding: 12px;
+    border-radius: 8px;
+    margin: 15px 0;
+    font-size: 14px;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1>🎭 Habitact</h1>
+    <p>Follow hidden rules. Adapt. Deceive.</p>
+  </div>
+
+  <div class="content">
+    <!-- Setup Screen -->
+    <div id="setupScreen" class="screen active">
+      <h2>Game Setup</h2>
+      <p style="margin: 15px 0;">Each player joins on their own device and receives a secret behavioral rule to follow during conversation.</p>
+      
+      <input type="text" id="playerNameInput" placeholder="Enter your name">
+      <button onclick="joinGame()">Join Game</button>
+      
+      <div class="player-list" id="playerList"></div>
+      
+      <button onclick="startGame()" id="startBtn" style="display: none;">Start Game (Min 3 players)</button>
+      
+      <div class="info-box">
+        <strong>How to play:</strong> Share this page URL with friends. Everyone joins, then the host starts. Follow your secret rule while chatting!
+      </div>
+    </div>
+
+    <!-- Rule Assignment Screen -->
+    <div id="ruleScreen" class="screen">
+      <h2>Your Secret Rule</h2>
+      <div class="rule-card" id="currentRuleDisplay"></div>
+      <div class="info-box" id="ruleInfo">
+        Memorize this! Follow it during the conversation. Your rule may shift mid-game...
+      </div>
+      <button onclick="acknowledgeRule()">I've Got It</button>
+    </div>
+
+    <!-- Chat Screen -->
+    <div id="chatScreen" class="screen">
+      <div class="prompt-card">
+        <strong>Topic:</strong> <span id="promptDisplay"></span>
+      </div>
+      
+      <div class="timer" id="timer">2:00</div>
+      
+      <div class="rule-card" id="activeRuleDisplay"></div>
+      
+      <div class="chat-container" id="chatMessages"></div>
+      
+      <input type="text" id="messageInput" placeholder="Type your message..." onkeypress="if(event.key==='Enter') sendMessage()">
+      <button onclick="sendMessage()">Send</button>
+    </div>
+
+    <!-- Voting Screen -->
+    <div id="voteScreen" class="screen">
+      <h2>Vote: <span id="votePlayerName"></span></h2>
+      <p style="margin: 15px 0;">What rule was <strong id="votePlayerName2"></strong> following?</p>
+      
+      <div class="vote-grid" id="voteOptions"></div>
+      
+      <button onclick="submitVote()" id="submitVoteBtn" disabled>Submit Vote</button>
+    </div>
+
+    <!-- Results Screen -->
+    <div id="resultsScreen" class="screen">
+      <h2>Round Results</h2>
+      <div id="resultsContent"></div>
+      <button onclick="nextRound()">Next Round</button>
+      <button onclick="endGame()" class="secondary">End Game</button>
+    </div>
+
+    <!-- Final Scores Screen -->
+    <div id="scoresScreen" class="screen">
+      <h2>Final Scores</h2>
+      <div id="finalScores"></div>
+      <button onclick="resetGame()">New Game</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Game State
+const gameState = {
+  players: [],
+  currentPlayer: null,
+  rules: [
+    "You must agree with whoever spoke last",
+    "You can only ask questions",
+    "You must mention food in every message",
+    "You always bring the topic back to yourself",
+    "You disagree with everything politely",
+    "You must use exactly 3 emojis per message",
+    "You answer questions with questions",
+    "You must compliment someone each message",
+    "You speak in extremely short sentences",
+    "You always suggest doing something together"
+  ],
+  prompts: [
+    "What's the worst movie you've ever seen?",
+    "If you could have dinner with anyone dead or alive, who?",
+    "What's your most embarrassing childhood memory?",
+    "What superpower would actually be annoying?",
+    "What's a hill you're willing to die on?",
+    "What would you do with $1 million?",
+    "What's the strangest thing you believed as a kid?",
+    "If you could eliminate one food forever, what?"
+  ],
+  messages: [],
+  currentPrompt: null,
+  roundNumber: 1,
+  votingIndex: 0,
+  votes: {},
+  timeLeft: 120,
+  timerInterval: null,
+  shiftHappened: false
+};
+
+// Local storage key for multiplayer simulation
+const STORAGE_KEY = 'habitact_game_state';
+
+// Initialize
+function init() {
+  loadGameState();
+  updatePlayerList();
+  
+  // Simulate multiplayer by checking storage every second
+  setInterval(() => {
+    loadGameState();
+    updatePlayerList();
+  }, 1000);
+}
+
+function saveGameState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(gameState));
+}
+
+function loadGameState() {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    const loaded = JSON.parse(saved);
+    // Don't overwrite current player
+    const currentPlayer = gameState.currentPlayer;
+    Object.assign(gameState, loaded);
+    if (currentPlayer) {
+      gameState.currentPlayer = currentPlayer;
+    }
+  }
+}
+
+function joinGame() {
+  const name = document.getElementById('playerNameInput').value.trim();
+  if (!name) {
+    alert('Please enter your name');
+    return;
+  }
+  
+  if (gameState.players.find(p => p.name === name)) {
+    alert('Name already taken');
+    return;
+  }
+  
+  const player = {
+    name: name,
+    id: Date.now() + Math.random(),
+    rule: null,
+    originalRule: null,
+    shifted: false,
+    score: 0,
+    detectionScore: 0,
+    adaptScore: 0
+  };
+  
+  gameState.players.push(player);
+  gameState.currentPlayer = player;
+  saveGameState();
+  
+  document.getElementById('playerNameInput').value = '';
+  updatePlayerList();
+}
+
+function updatePlayerList() {
+  const list = document.getElementById('playerList');
+  if (gameState.players.length === 0) {
+    list.innerHTML = '<p style="color: #6c757d; text-align: center;">Waiting for players...</p>';
+    document.getElementById('startBtn').style.display = 'none';
+  } else {
+    list.innerHTML = '<h3>Players:</h3>' + gameState.players.map(p => 
+      `<div class="player-item">
+        <span>${p.name}</span>
+        ${p.name === gameState.currentPlayer?.name ? '<span style="color: #667eea;">✓ You</span>' : ''}
+      </div>`
+    ).join('');
+    
+    if (gameState.players.length >= 3) {
+      document.getElementById('startBtn').style.display = 'block';
+    }
+  }
+}
+
+function startGame() {
+  if (gameState.players.length < 3) {
+    alert('Need at least 3 players');
+    return;
+  }
+  
+  // Assign rules
+  const shuffledRules = [...gameState.rules].sort(() => Math.random() - 0.5);
+  gameState.players.forEach((player, i) => {
+    player.rule = shuffledRules[i % shuffledRules.length];
+    player.originalRule = player.rule;
+  });
+  
+  gameState.currentPrompt = gameState.prompts[Math.floor(Math.random() * gameState.prompts.length)];
+  gameState.messages = [];
+  gameState.shiftHappened = false;
+  
+  saveGameState();
+  showScreen('ruleScreen');
+  displayCurrentRule();
+}
+
+function displayCurrentRule() {
+  const player = gameState.players.find(p => p.id === gameState.currentPlayer.id);
+  if (player) {
+    document.getElementById('currentRuleDisplay').innerHTML = `"${player.rule}"`;
+  }
+}
+
+function acknowledgeRule() {
+  showScreen('chatScreen');
+  document.getElementById('promptDisplay').textContent = gameState.currentPrompt;
+  displayActiveRule();
+  startTimer();
+  displayMessages();
+}
+
+function displayActiveRule() {
+  const player = gameState.players.find(p => p.id === gameState.currentPlayer.id);
+  if (player) {
+    const ruleDisplay = document.getElementById('activeRuleDisplay');
+    ruleDisplay.innerHTML = `Your rule: "${player.rule}"`;
+    if (player.shifted) {
+      ruleDisplay.classList.add('rule-shift');
+    } else {
+      ruleDisplay.classList.remove('rule-shift');
+    }
+  }
+}
+
+function startTimer() {
+  gameState.timeLeft = 120;
+  updateTimerDisplay();
+  
+  if (gameState.timerInterval) clearInterval(gameState.timerInterval);
+  
+  gameState.timerInterval = setInterval(() => {
+    gameState.timeLeft--;
+    updateTimerDisplay();
+    
+    // Shift rules at 60 seconds
+    if (gameState.timeLeft === 60 && !gameState.shiftHappened) {
+      shiftRules();
+    }
+    
+    if (gameState.timeLeft <= 0) {
+      clearInterval(gameState.timerInterval);
+      startVoting();
+    }
+  }, 1000);
+}
+
+function updateTimerDisplay() {
+  const mins = Math.floor(gameState.timeLeft / 60);
+  const secs = gameState.timeLeft % 60;
+  document.getElementById('timer').textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+function shiftRules() {
+  gameState.shiftHappened = true;
+  
+  // Randomly shift 60% of players to new rules
+  gameState.players.forEach(player => {
+    if (Math.random() < 0.6) {
+      const availableRules = gameState.rules.filter(r => r !== player.rule);
+      player.rule = availableRules[Math.floor(Math.random() * availableRules.length)];
+      player.shifted = true;
+    }
+  });
+  
+  saveGameState();
+  displayActiveRule();
+  
+  // Visual feedback
+  const ruleCard = document.getElementById('activeRuleDisplay');
+  ruleCard.classList.add('rule-shift');
+  setTimeout(() => ruleCard.classList.remove('rule-shift'), 500);
+}
+
+function sendMessage() {
+  const input = document.getElementById('messageInput');
+  const text = input.value.trim();
+  
+  if (!text) return;
+  
+  const message = {
+    author: gameState.currentPlayer.name,
+    text: text,
+    timestamp: Date.now()
+  };
+  
+  gameState.messages.push(message);
+  saveGameState();
+  
+  input.value = '';
+  displayMessages();
+}
+
+function displayMessages() {
+  const container = document.getElementById('chatMessages');
+  container.innerHTML = gameState.messages.map(msg => 
+    `<div class="message">
+      <div class="author">${msg.author}</div>
+      <div>${msg.text}</div>
+    </div>`
+  ).join('');
+  container.scrollTop = container.scrollHeight;
+}
+
+function startVoting() {
+  showScreen('voteScreen');
+  gameState.votingIndex = 0;
+  gameState.votes = {};
+  displayVoteOptions();
+}
+
+function displayVoteOptions() {
+  const targetPlayer = gameState.players[gameState.votingIndex];
+  
+  // Skip voting for yourself
+  if (targetPlayer.id === gameState.currentPlayer.id) {
+    gameState.votingIndex++;
+    if (gameState.votingIndex < gameState.players.length) {
+      displayVoteOptions();
+    } else {
+      calculateScores();
+    }
+    return;
+  }
+  
+  document.getElementById('votePlayerName').textContent = targetPlayer.name;
+  document.getElementById('votePlayerName2').textContent = targetPlayer.name;
+  
+  const optionsContainer = document.getElementById('voteOptions');
+  optionsContainer.innerHTML = gameState.rules.map((rule, i) => 
+    `<div class="vote-option" onclick="selectVote(${i})">
+      ${rule}
+    </div>`
+  ).join('');
+  
+  document.getElementById('submitVoteBtn').disabled = true;
+}
+
+let selectedVoteIndex = null;
+
+function selectVote(index) {
+  selectedVoteIndex = index;
+  
+  document.querySelectorAll('.vote-option').forEach((opt, i) => {
+    if (i === index) {
+      opt.classList.add('selected');
+    } else {
+      opt.classList.remove('selected');
+    }
+  });
+  
+  document.getElementById('submitVoteBtn').disabled = false;
+}
+
+function submitVote() {
+  const targetPlayer = gameState.players[gameState.votingIndex];
+  const votedRule = gameState.rules[selectedVoteIndex];
+  
+  if (!gameState.votes[gameState.currentPlayer.id]) {
+    gameState.votes[gameState.currentPlayer.id] = {};
+  }
+  
+  gameState.votes[gameState.currentPlayer.id][targetPlayer.id] = votedRule;
+  saveGameState();
+  
+  gameState.votingIndex++;
+  selectedVoteIndex = null;
+  
+  if (gameState.votingIndex < gameState.players.length) {
+    displayVoteOptions();
+  } else {
+    // Check if all players have voted
+    if (Object.keys(gameState.votes).length >= gameState.players.length - 1) {
+      calculateScores();
+    } else {
+      // Wait for other players
+      showScreen('resultsScreen');
+      document.getElementById('resultsContent').innerHTML = '<p style="text-align: center;">Waiting for other players to finish voting...</p>';
+    }
+  }
+}
+
+function calculateScores() {
+  const results = [];
+  
+  gameState.players.forEach(player => {
+    let correctGuesses = 0;
+    let totalGuesses = 0;
+    let timesDetected = 0;
+    
+    // Count correct guesses by this player
+    if (gameState.votes[player.id]) {
+      Object.entries(gameState.votes[player.id]).forEach(([targetId, guess]) => {
+        totalGuesses++;
+        const target = gameState.players.find(p => p.id === parseInt(targetId));
+        if (target && guess === target.rule) {
+          correctGuesses++;
+        }
+      });
+    }
+    
+    // Count how many detected this player's shift
+    if (player.shifted) {
+      gameState.players.forEach(other => {
+        if (other.id !== player.id && gameState.votes[other.id]) {
+          const guess = gameState.votes[other.id][player.id];
+          if (guess === player.rule) {
+            timesDetected++;
+          }
+        }
+      });
+    }
+    
+    // Scoring
+    const detectionPoints = correctGuesses * 10;
+    const stealthPoints = player.shifted ? Math.max(0, (gameState.players.length - 1 - timesDetected) * 15) : 0;
+    
+    player.detectionScore += detectionPoints;
+    player.adaptScore += stealthPoints;
+    player.score += detectionPoints + stealthPoints;
+    
+    results.push({
+      player,
+      correctGuesses,
+      totalGuesses,
+      timesDetected,
+      detectionPoints,
+      stealthPoints
+    });
+  });
+  
+  saveGameState();
+  displayResults(results);
+}
+
+function displayResults(results) {
+  showScreen('resultsScreen');
+  
+  const html = results.map(r => `
+    <div class="score-card">
+      <h3>${r.player.name} ${r.player.shifted ? '<span class="badge shift">SHIFTED</span>' : ''}</h3>
+      <div class="stat-row">
+        <span>Original Rule:</span>
+        <span><em>"${r.player.originalRule}"</em></span>
+      </div>
+      ${r.player.shifted ? `
+      <div class="stat-row">
+        <span>Shifted To:</span>
+        <span><em>"${r.player.rule}"</em></span>
+      </div>` : ''}
+      <div class="stat-row">
+        <span>Correct Guesses:</span>
+        <span>${r.correctGuesses}/${r.totalGuesses}</span>
+      </div>
+      <div class="stat-row">
+        <span>Detection Points:</span>
+        <span>+${r.detectionPoints}</span>
+      </div>
+      ${r.player.shifted ? `
+      <div class="stat-row">
+        <span>Stealth Points:</span>
+        <span>+${r.stealthPoints} (detected by ${r.timesDetected})</span>
+      </div>` : ''}
+      <div class="stat-row" style="border-top: 2px solid #667eea; margin-top: 8px; padding-top: 8px; font-weight: bold;">
+        <span>Total Score:</span>
+        <span>${r.player.score}</span>
+      </div>
+    </div>
+  `).join('');
+  
+  document.getElementById('resultsContent').innerHTML = html;
+}
+
+function nextRound() {
+  gameState.roundNumber++;
+  
+  if (gameState.roundNumber > 3) {
+    endGame();
+    return;
+  }
+  
+  // Reset for next round
+  const shuffledRules = [...gameState.rules].sort(() => Math.random() - 0.5);
+  gameState.players.forEach((player, i) => {
+    player.rule = shuffledRules[i % shuffledRules.length];
+    player.originalRule = player.rule;
+    player.shifted = false;
+  });
+  
+  gameState.currentPrompt = gameState.prompts[Math.floor(Math.random() * gameState.prompts.length)];
+  gameState.messages = [];
+  gameState.shiftHappened = false;
+  gameState.votes = {};
+  
+  saveGameState();
+  showScreen('ruleScreen');
+  displayCurrentRule();
+}
+
+function endGame() {
+  showScreen('scoresScreen');
+  
+  const sorted = [...gameState.players].sort((a, b) => b.score - a.score);
+  
+  const html = sorted.map((player, i) => `
+    <div class="score-card">
+      <h3>${i + 1}. ${player.name}</h3>
+      <div class="stat-row">
+        <span>Detection Score:</span>
+        <span>${player.detectionScore}</span>
+      </div>
+      <div class="stat-row">
+        <span>Adaptation Score:</span>
+        <span>${player.adaptScore}</span>
+      </div>
+      <div class="stat-row" style="font-weight: bold; font-size: 18px; color: #667eea;">
+        <span>Total:</span>
+        <span>${player.score}</span>
+      </div>
+    </div>
+  `).join('');
+  
+  document.getElementById('finalScores').innerHTML = html;
+}
+
+function resetGame() {
+  localStorage.removeItem(STORAGE_KEY);
+  location.reload();
+}
+
+function showScreen(screenId) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(screenId).classList.add('active');
+}
+
+// Initialize on load
+init();
+
+// Keep checking for updates
+setInterval(() => {
+  if (gameState.currentPlayer) {
+    const screen = document.querySelector('.screen.active');
+    if (screen.id === 'chatScreen') {
+      displayMessages();
+    }
+  }
+}, 2000);
+</script>
+
+</body>
+</html>

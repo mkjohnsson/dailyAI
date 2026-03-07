@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reangle — Daily AI Gen</title>
+  <meta name="description" content="You write a memory and watch it refract through different perspectives — the other person, a stranger, your future self — revealing blind spots in how you see your own life.">
+  <meta property="og:title" content="Reangle — Daily AI Gen">
+  <meta property="og:description" content="You write a memory and watch it refract through different perspectives — the other person, a stranger, your future self — revealing blind spots in how you see your own life.">
+  <meta property="og:url" content="https://dailyaigen.com/apps/2026-03-07-3/">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="https://dailyaigen.com/apps/2026-03-07-3/">
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: 'Georgia', serif;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    color: #e0e0e0;
+    min-height: 100vh;
+    padding: 20px;
+    overflow-x: hidden;
+  }
+
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 40px;
+    padding-top: 20px;
+  }
+
+  h1 {
+    font-size: 3em;
+    font-weight: 300;
+    letter-spacing: 8px;
+    background: linear-gradient(90deg, #00d4ff, #ff00ea);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 10px;
+  }
+
+  .tagline {
+    font-size: 0.9em;
+    opacity: 0.6;
+    font-style: italic;
+    letter-spacing: 1px;
+  }
+
+  .input-section {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 20px;
+    padding: 30px;
+    margin-bottom: 30px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+  }
+
+  .memory-input {
+    width: 100%;
+    min-height: 150px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    padding: 20px;
+    color: #e0e0e0;
+    font-family: 'Georgia', serif;
+    font-size: 1em;
+    line-height: 1.6;
+    resize: vertical;
+    margin-bottom: 20px;
+  }
+
+  .memory-input::placeholder {
+    color: rgba(255, 255, 255, 0.3);
+  }
+
+  .memory-input:focus {
+    outline: none;
+    border-color: #00d4ff;
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+  }
+
+  .generate-btn {
+    width: 100%;
+    padding: 15px;
+    background: linear-gradient(90deg, #00d4ff, #0090ff);
+    border: none;
+    border-radius: 12px;
+    color: white;
+    font-size: 1em;
+    font-weight: 600;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .generate-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(0, 212, 255, 0.3);
+  }
+
+  .generate-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .perspectives-container {
+    display: none;
+    margin-bottom: 30px;
+  }
+
+  .perspective-card {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 20px;
+    padding: 30px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    opacity: 0;
+    transform: translateY(20px);
+    animation: fadeInUp 0.6s ease forwards;
+  }
+
+  @keyframes fadeInUp {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .perspective-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .perspective-icon {
+    font-size: 2em;
+    margin-right: 15px;
+  }
+
+  .perspective-title {
+    font-size: 1.3em;
+    font-weight: 600;
+    letter-spacing: 1px;
+  }
+
+  .perspective-subtitle {
+    font-size: 0.85em;
+    opacity: 0.6;
+    font-style: italic;
+    margin-top: 5px;
+  }
+
+  .perspective-content {
+    line-height: 1.8;
+    font-size: 1em;
+    color: #d0d0d0;
+  }
+
+  .insights-section {
+    background: rgba(255, 100, 200, 0.1);
+    border: 1px solid rgba(255, 100, 200, 0.3);
+    border-radius: 20px;
+    padding: 30px;
+    margin-top: 30px;
+    display: none;
+  }
+
+  .insights-title {
+    font-size: 1.4em;
+    margin-bottom: 20px;
+    color: #ff64c8;
+  }
+
+  .insight-item {
+    margin-bottom: 15px;
+    padding-left: 20px;
+    border-left: 3px solid #ff64c8;
+    opacity: 0;
+    animation: fadeIn 0.6s ease forwards;
+  }
+
+  @keyframes fadeIn {
+    to { opacity: 1; }
+  }
+
+  .navigation {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-top: 30px;
+  }
+
+  .nav-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .nav-dot.active {
+    background: #00d4ff;
+    transform: scale(1.3);
+  }
+
+  .example-prompts {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 15px;
+  }
+
+  .example-prompt {
+    padding: 8px 15px;
+    background: rgba(0, 212, 255, 0.1);
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    border-radius: 20px;
+    font-size: 0.85em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .example-prompt:hover {
+    background: rgba(0, 212, 255, 0.2);
+    transform: translateY(-2px);
+  }
+
+  @media (max-width: 600px) {
+    h1 {
+      font-size: 2em;
+      letter-spacing: 4px;
+    }
+    
+    .perspective-card {
+      padding: 20px;
+    }
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>REANGLE</h1>
+      <div class="tagline">Your memory, through every lens</div>
+    </header>
+
+    <div class="input-section">
+      <div class="example-prompts">
+        <div class="example-prompt" data-text="I had a fight with my best friend about them canceling our plans last minute. I was furious but they seemed confused by my reaction.">Fight with friend</div>
+        <div class="example-prompt" data-text="I bombed a job interview. I could feel myself rambling and the interviewer's face went blank. I left feeling like a failure.">Job interview</div>
+        <div class="example-prompt" data-text="I remember my mom making pancakes on Saturday mornings when I was 8. The kitchen always smelled like maple syrup and she'd hum while cooking.">Childhood memory</div>
+      </div>
+      <textarea 
+        class="memory-input" 
+        placeholder="Write a memory... a conversation, a moment, an interaction. Be specific about what happened and how you felt."
+      ></textarea>
+      <button class="generate-btn">Reangle This Memory</button>
+    </div>
+
+    <div class="perspectives-container"></div>
+    <div class="navigation"></div>
+    <div class="insights-section"></div>
+  </div>
+
+  <script>
+    const perspectives = [
+      {
+        icon: '🪞',
+        title: 'Your Original View',
+        subtitle: 'How you experienced it',
+        generator: (memory) => {
+          const emotions = extractEmotions(memory);
+          const focus = extractMainFocus(memory);
+          return `You experienced this moment through the lens of ${emotions}. Your attention was drawn to ${focus}, and this shaped everything else about the memory. Notice what stands out to you — these details reveal what mattered most in that moment.`;
+        }
+      },
+      {
+        icon: '👤',
+        title: 'The Other Person',
+        subtitle: 'What they likely felt and saw',
+        generator: (memory) => {
+          const otherPerspective = inferOtherPerson(memory);
+          const theirFocus = inferTheirFocus(memory);
+          return `From their perspective, ${otherPerspective}. They were likely focused on ${theirFocus}. What you interpreted as one thing might have felt completely different to them. Their internal narrative was running parallel to yours, shaped by their own fears, hopes, and history you can't fully see.`;
+        }
+      },
+      {
+        icon: '👁️',
+        title: 'The Stranger Across the Room',
+        subtitle: 'An objective observer',
+        generator: (memory) => {
+          const observable = extractObservableBehavior(memory);
+          const context = extractContext(memory);
+          return `A stranger watching would have seen: ${observable}. Without access to your inner thoughts or history, they'd notice ${context}. The emotional weight you carried was invisible to them. They'd see the surface mechanics of the interaction, stripped of the meaning you assigned to it.`;
+        }
+      },
+      {
+        icon: '🎬',
+        title: 'The Documentary Narrator',
+        subtitle: 'The pattern, the larger story',
+        generator: (memory) => {
+          const pattern = identifyPattern(memory);
+          const theme = extractTheme(memory);
+          return `A documentary about your life would frame this as: ${pattern}. The narrator would emphasize ${theme}, connecting this moment to larger themes in your story. This wasn't just one isolated event — it's part of a recurring chapter, a motif that keeps appearing in different forms.`;
+        }
+      },
+      {
+        icon: '⏳',
+        title: 'Your Future Self (5 Years Later)',
+        subtitle: 'Distance and perspective',
+        generator: (memory) => {
+          const futureView = projectFutureView(memory);
+          const growth = identifyGrowthPoint(memory);
+          return `Looking back five years from now, you'd probably see this differently: ${futureView}. The things that felt crushing or critical now might ${growth}. You'd have more context, more experiences to compare it to. Some details that seem huge now will fade; others you barely noticed will turn out to matter more than you thought.`;
+        }
+      }
+    ];
+
+    const memoryInput = document.querySelector('.memory-input');
+    const generateBtn = document.querySelector('.generate-btn');
+    const perspectivesContainer = document.querySelector('.perspectives-container');
+    const navigation = document.querySelector('.navigation');
+    const insightsSection = document.querySelector('.insights-section');
+    const examplePrompts = document.querySelectorAll('.example-prompt');
+
+    let currentMemory = '';
+    let blindSpots = [];
+
+    examplePrompts.forEach(prompt => {
+      prompt.addEventListener('click', () => {
+        memoryInput.value = prompt.dataset.text;
+      });
+    });
+
+    generateBtn.addEventListener('click', () => {
+      const memory = memoryInput.value.trim();
+      if (!memory) return;
+
+      currentMemory = memory;
+      generatePerspectives(memory);
+      analyzeBlindSpots(memory);
+    });
+
+    function generatePerspectives(memory) {
+      perspectivesContainer.innerHTML = '';
+      navigation.innerHTML = '';
+      perspectivesContainer.style.display = 'block';
+
+      perspectives.forEach((perspective, index) => {
+        const card = document.createElement('div');
+        card.className = 'perspective-card';
+        card.style.animationDelay = `${index * 0.1}s`;
+
+        card.innerHTML = `
+          <div class="perspective-header">
+            <div class="perspective-icon">${perspective.icon}</div>
+            <div>
+              <div class="perspective-title">${perspective.title}</div>
+              <div class="perspective-subtitle">${perspective.subtitle}</div>
+            </div>
+          </div>
+          <div class="perspective-content">
+            ${perspective.generator(memory)}
+          </div>
+        `;
+
+        perspectivesContainer.appendChild(card);
+
+        const dot = document.createElement('div');
+        dot.className = 'nav-dot';
+        if (index === 0) dot.classList.add('active');
+        dot.addEventListener('click', () => {
+          card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          document.querySelectorAll('.nav-dot').forEach(d => d.classList.remove('active'));
+          dot.classList.add('active');
+        });
+        navigation.appendChild(dot);
+      });
+
+      // Scroll observer for navigation
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            const index = Array.from(perspectivesContainer.children).indexOf(entry.target);
+            document.querySelectorAll('.nav-dot').forEach((d, i) => {
+              d.classList.toggle('active', i === index);
+            });
+          }
+        });
+      }, { threshold: 0.5 });
+
+      document.querySelectorAll('.perspective-card').forEach(card => observer.observe(card));
+    }
+
+    function analyzeBlindSpots(memory) {
+      insightsSection.style.display = 'block';
+      blindSpots = identifyBlindSpots(memory);
+
+      insightsSection.innerHTML = `
+        <div class="insights-title">🔍 Your Blind Spots</div>
+        ${blindSpots.map((spot, i) => `
+          <div class="insight-item" style="animation-delay: ${i * 0.2}s">
+            ${spot}
+          </div>
+        `).join('')}
+      `;
+
+      insightsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // AI-like analysis functions (rule-based interpretation)
+    function extractEmotions(text) {
+      const emotions = {
+        anger: /furious|angry|mad|annoyed|frustrated/i,
+        sadness: /sad|depressed|down|disappointed|hurt/i,
+        anxiety: /anxious|nervous|worried|scared|stressed/i,
+        joy: /happy|excited|great|wonderful|amazing/i,
+        shame: /embarrassed|ashamed|humiliated|failure/i
+      };
+
+      for (let [emotion, pattern] of Object.entries(emotions)) {
+        if (pattern.test(text)) return emotion;
+      }
+      return 'complex emotions';
+    }
+
+    function extractMainFocus(text) {
+      if (/\bI\b.*?(said|told|asked)/i.test(text)) return 'what you said and how you said it';
+      if (/they|them|their/i.test(text)) return 'their reactions and responses';
+      if (/felt|feeling|feel/i.test(text)) return 'your internal emotional state';
+      return 'the details you chose to remember';
+    }
+
+    function inferOtherPerson(text) {
+      if (/confused|didn't understand/i.test(text)) return 'they were likely confused about why this mattered so much';
+      if (/cancel|plans/i.test(text)) return 'they may have had their own crisis or overwhelm you didn't see';
+      if (/interview/i.test(text)) return 'they were evaluating fit, not judging your worth as a person';
+      return 'they had their own pressures and context shaping their behavior';
+    }
+
+    function inferTheirFocus(text) {
+      if (/fight|argument/i.test(text)) return 'defending themselves or managing their own stress';
+      if (/interview/i.test(text)) return 'specific job requirements and team dynamics';
+      if (/mom|parent/i.test(text)) return 'making you happy, creating a moment of normalcy';
+      return 'something different than what you were focused on';
+    }
+
+    function extractObservableBehavior(text) {
+      if (/said|told/i.test(text)) return 'two people talking, with shifts in tone and body language';
+      if (/left|walked/i.test(text)) return 'someone leaving a situation, physical movement and exit';
+      if (/cooking|made/i.test(text)) return 'domestic routine, someone preparing food';
+      return 'an interaction between people, visible gestures and movements';
+    }
+
+    function extractContext(text) {
+      if (/face|expression/i.test(text)) return 'facial expressions and micro-reactions';
+      if (/smell|sound/i.test(text)) return 'the sensory environment around the interaction';
+      return 'the timing, setting, and external circumstances';
+    }
+
+    function identifyPattern(text) {
+      if (/fight|argument|mad/i.test(text)) return 'a recurring pattern of unmet expectations in relationships';
+      if (/failure|bombed/i.test(text)) return 'self-judgment during high-stakes performance moments';
+      if (/memory|remember/i.test(text)) return 'formative moments that shaped your sense of safety or love';
+      return 'a moment revealing deeper patterns in how you relate to others';
+    }
+
+    function extractTheme(text) {
+      if (/friend/i.test(text)) return 'the tension between independence and connection';
+      if (/job|work|interview/i.test(text)) return 'the gap between how you see yourself and how you perform under pressure';
+      if (/mom|dad|parent/i.test(text)) return 'early experiences that defined what care and attention feel like';
+      return 'the invisible rules you internalized about how the world works';
+    }
+
+    function projectFutureView(text) {
+      if (/fight/i.test(text)) return 'you\'d see this as a growth moment, maybe even a necessary conflict';
+      if (/interview/i.test(text)) return 'you\'d either have the job (and see this as a funny blip) or a better one (and see this as redirection)';
+      if (/childhood/i.test(text)) return 'you\'d feel gratitude for the stability, and maybe notice what was missing too';
+      return 'the emotional charge would have faded, replaced by understanding or acceptance';
+    }
+
+    function identifyGrowthPoint(text) {
+      if (/furious|angry/i.test(text)) return 'seem less personal, more about boundaries and communication';
+      if (/failure/i.test(text)) return 'feel like one data point among many, not a referendum on your value';
+      if (/remember/i.test(text)) return 'carry both sweetness and complexity, not just nostalgia';
+      return 'reveal more about the person you were becoming than the moment itself';
+    }
+
+    function identifyBlindSpots(text) {
+      const spots = [];
+
+      if (/\bI\b/i.test(text)) {
+        const iCount = (text.match(/\bI\b/gi) || []).length;
+        if (iCount > 5) spots.push('You used "I" heavily — your default lens is intensely self-focused, which can obscure others\' experiences.');
+      }
+
+      if (/felt|feeling/i.test(text) && !/they felt|their feeling/i.test(text)) {
+        spots.push('You described your emotions but not theirs — you might assume your feelings are more visible than they actually are.');
+      }
+
+      if (/should|supposed to|expected/i.test(text)) {
+        spots.push('You have strong expectations about how things "should" go — reality often disappoints when held against an invisible script.');
+      }
+
+      if (/always|never|every time/i.test(text)) {
+        spots.push('You use absolute language ("always," "never") — this amplifies hurt and makes patterns seem more fixed than they are.');
+      }
+
+      if (/but they|but then/i.test(text)) {
+        spots.push('You often pivot to "but" — this suggests conflict between what you hoped for and what happened.');
+      }
+
+      if (spots.length === 0) {
+        spots.push('You write with emotional clarity — you seem aware of multiple layers in the situation.');
+      }
+
+      return spots;
+    }
+  </script>
+</body>
+</html>

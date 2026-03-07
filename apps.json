@@ -1,5 +1,42 @@
 [
   {
+    "date": "2026-03-07",
+    "id": "2026-03-07-3",
+    "name": "Reangle",
+    "description": "You write a memory and watch it refract through different perspectives — the other person, a stranger, your future self — revealing blind spots in how you see your own life.",
+    "inspiration": "Adobe's AI can re-light scenes and change camera moves from a single static clip, transforming the perspective and mood of existing footage.",
+    "connection": "The idea of transforming a single fixed perspective into many possible ones sparked a concept about re-experiencing your own memories from angles you never had — not video, but the written memories of your life.",
+    "source_url": "https://blog.adobe.com/en/publish/2026/03/ai-video-relighting-camera-motion-premiere-pro-sneak",
+    "emoji": "🪞",
+    "category": "AI-inspired",
+    "image": true
+  },
+  {
+    "date": "2026-03-07",
+    "id": "2026-03-07-2",
+    "name": "Pressuredrop",
+    "description": "A severe weather monitoring tool that reveals barometric pressure trends and their rate of change — the critical metric that forecasts storms before they arrive.",
+    "inspiration": "The deadly bomb cyclone and tornado outbreak across the central U.S. highlights how rapidly dangerous weather can develop — people need a clear, glanceable way to understand not just current conditions but how fast pressure is dropping, which is the key signature of explosive storm intensification.",
+    "connection": "Open-Meteo provides hourly surface pressure, wind speed, precipitation, and other atmospheric variables for any location without authentication, making it ideal for tracking rapid pressure changes in real time.",
+    "source_url": "https://www.youtube.com/watch?v=yqqbIrimlGM",
+    "emoji": "🌀",
+    "category": "API tool",
+    "api": "Open-Meteo",
+    "image": true
+  },
+  {
+    "date": "2026-03-07",
+    "id": "2026-03-07",
+    "name": "Habitact",
+    "description": "A deceptive party game where players follow secret conversational rules that shift mid-chat, then vote on who was following which hidden behavioral pattern.",
+    "inspiration": "The San Diego Zoo's new elephant habitat uses hidden barriers, shifting feeding stations, and automated water features to encourage natural social behavior in a multigenerational herd.",
+    "connection": "The idea of designing an invisible environment that shapes social behavior — where the 'architecture' nudges interaction without participants realizing it — inspired a party game where players unknowingly influence each other through hidden rule systems.",
+    "source_url": "https://www.youtube.com/watch?v=tWf02WGK-o4",
+    "emoji": "🦣",
+    "category": "Fun/social",
+    "image": true
+  },
+  {
     "date": "2026-03-06",
     "id": "2026-03-06-3",
     "name": "Clerked",
