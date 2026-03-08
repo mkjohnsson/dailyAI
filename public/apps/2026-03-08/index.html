@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Moleping — Daily AI Gen</title>
+  <meta name="description" content="A tense social deduction grid game where you hide from hunters in the fog of war, but one teammate is secretly feeding your location to the enemy — vote wisely or shrink your team's vision.">
+  <meta property="og:title" content="Moleping — Daily AI Gen">
+  <meta property="og:description" content="A tense social deduction grid game where you hide from hunters in the fog of war, but one teammate is secretly feeding your location to the enemy — vote wisely or shrink your team's vision.">
+  <meta property="og:url" content="https://dailyaigen.com/apps/2026-03-08/">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="https://dailyaigen.com/apps/2026-03-08/">
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  body {
+    font-family: 'Courier New', monospace;
+    background: #0a0a0a;
+    color: #0f0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+  }
+  
+  #game-container {
+    max-width: 900px;
+    width: 100%;
+  }
+  
+  h1 {
+    text-align: center;
+    margin-bottom: 20px;
+    text-shadow: 0 0 10px #0f0;
+  }
+  
+  #setup-screen, #game-screen, #end-screen {
+    display: none;
+  }
+  
+  #setup-screen.active, #game-screen.active, #end-screen.active {
+    display: block;
+  }
+  
+  .setup-content {
+    background: #111;
+    border: 2px solid #0f0;
+    padding: 30px;
+    border-radius: 8px;
+    text-align: center;
+  }
+  
+  button {
+    background: #0a0a0a;
+    color: #0f0;
+    border: 2px solid #0f0;
+    padding: 12px 24px;
+    margin: 10px;
+    cursor: pointer;
+    font-family: 'Courier New', monospace;
+    font-size: 16px;
+    transition: all 0.2s;
+  }
+  
+  button:hover:not(:disabled) {
+    background: #0f0;
+    color: #000;
+    box-shadow: 0 0 15px #0f0;
+  }
+  
+  button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  
+  #grid {
+    display: grid;
+    grid-template-columns: repeat(15, 1fr);
+    gap: 2px;
+    background: #000;
+    padding: 10px;
+    border: 2px solid #0f0;
+    margin-bottom: 20px;
+  }
+  
+  .cell {
+    aspect-ratio: 1;
+    background: #0a0a0a;
+    border: 1px solid #1a1a1a;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.2s;
+  }
+  
+  .cell.visible {
+    background: #1a1a1a;
+    border-color: #333;
+  }
+  
+  .cell.hider {
+    background: #003300;
+    border-color: #0f0;
+  }
+  
+  .cell.hunter {
+    background: #330000;
+    border-color: #f00;
+  }
+  
+  .cell.ping {
+    animation: ping 1s ease-out;
+  }
+  
+  @keyframes ping {
+    0%, 100% { box-shadow: inset 0 0 10px #ff0; }
+    50% { box-shadow: inset 0 0 20px #ff0; }
+  }
+  
+  .cell-icon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 18px;
+  }
+  
+  #info-panel {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+  }
+  
+  .info-box {
+    background: #111;
+    border: 2px solid #0f0;
+    padding: 15px;
+    border-radius: 4px;
+  }
+  
+  .info-box h3 {
+    margin-bottom: 10px;
+    color: #0ff;
+  }
+  
+  #team-list {
+    list-style: none;
+  }
+  
+  .teammate {
+    padding: 8px;
+    margin: 5px 0;
+    background: #0a0a0a;
+    border: 1px solid #0f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .teammate.you {
+    border-color: #0ff;
+    background: #001a1a;
+  }
+  
+  .teammate.mole {
+    border-color: #f00;
+  }
+  
+  .teammate.cut {
+    opacity: 0.5;
+    border-color: #666;
+  }
+  
+  .vote-btn {
+    padding: 4px 12px;
+    font-size: 12px;
+  }
+  
+  #controls {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  
+  .direction-btn {
+    width: 60px;
+    height: 60px;
+    font-size: 24px;
+  }
+  
+  #log {
+    background: #111;
+    border: 2px solid #0f0;
+    padding: 15px;
+    height: 150px;
+    overflow-y: auto;
+    font-size: 12px;
+    line-height: 1.6;
+  }
+  
+  .log-entry {
+    margin-bottom: 5px;
+  }
+  
+  .log-warn {
+    color: #ff0;
+  }
+  
+  .log-danger {
+    color: #f00;
+  }
+  
+  .log-info {
+    color: #0ff;
+  }
+  
+  #end-screen {
+    text-align: center;
+  }
+  
+  .end-content {
+    background: #111;
+    border: 2px solid #0f0;
+    padding: 40px;
+    border-radius: 8px;
+  }
+  
+  .end-content h2 {
+    font-size: 36px;
+    margin-bottom: 20px;
+  }
+  
+  .winner {
+    color: #0f0;
+  }
+  
+  .loser {
+    color: #f00;
+  }
+</style>
+</head>
+<body>
+  <div id="game-container">
+    <h1>MOLEPING</h1>
+    
+    <div id="setup-screen" class="active">
+      <div class="setup-content">
+        <h2>Mission Brief</h2>
+        <p style="margin: 20px 0; line-height: 1.8;">
+          You and 3 teammates must evade 2 hunters in the fog of war.<br>
+          <strong style="color: #ff0;">BUT ONE OF YOU IS A MOLE.</strong><br><br>
+          Every 8 seconds, the mole's position is pinged to hunters.<br>
+          Vote to cut teammates from intel — but lose a loyal ally and your vision shrinks.<br>
+          Last hider standing wins. Mole wins if undetected when all others are caught.
+        </p>
+        <button onclick="startGame()">START MISSION</button>
+      </div>
+    </div>
+    
+    <div id="game-screen">
+      <div id="info-panel">
+        <div class="info-box">
+          <h3>TEAM STATUS</h3>
+          <ul id="team-list"></ul>
+        </div>
+        <div class="info-box">
+          <h3>INTEL</h3>
+          <div id="stats">
+            <div>Turn: <span id="turn">0</span></div>
+            <div>Vision Range: <span id="vision">2</span></div>
+            <div>Next Ping: <span id="ping-timer">8</span>s</div>
+            <div>Hiders Left: <span id="hiders-left">4</span></div>
+          </div>
+        </div>
+      </div>
+      
+      <div id="grid"></div>
+      
+      <div id="controls">
+        <button class="direction-btn" onclick="move('up')">↑</button>
+        <button class="direction-btn" onclick="move('down')">↓</button>
+        <button class="direction-btn" onclick="move('left')">←</button>
+        <button class="direction-btn" onclick="move('right')">→</button>
+        <button onclick="endTurn()">END TURN</button>
+      </div>
+      
+      <div id="log"></div>
+    </div>
+    
+    <div id="end-screen">
+      <div class="end-content">
+        <h2 id="end-title"></h2>
+        <p id="end-message"></p>
+        <button onclick="location.reload()">NEW MISSION</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+const GRID_SIZE = 15;
+const HIDER_COUNT = 4;
+const HUNTER_COUNT = 2;
+const PING_INTERVAL = 8;
+const BASE_VISION = 2;
+
+let gameState = {
+  grid: [],
+  players: [],
+  hunters: [],
+  currentPlayer: null,
+  moleId: null,
+  turn: 0,
+  pingCounter: PING_INTERVAL,
+  visionRange: BASE_VISION,
+  cutPlayers: [],
+  movedThisTurn: false,
+  votesThisTurn: new Set()
+};
+
+function startGame() {
+  document.getElementById('setup-screen').classList.remove('active');
+  document.getElementById('game-screen').classList.add('active');
+  
+  initGrid();
+  spawnPlayers();
+  gameState.moleId = Math.floor(Math.random() * HIDER_COUNT);
+  
+  gameState.currentPlayer = gameState.players.find(p => p.id === 0);
+  
+  addLog('Mission started. Stay hidden. Trust no one.', 'info');
+  if (gameState.currentPlayer.id === gameState.moleId) {
+    addLog('YOU ARE THE MOLE. Survive undetected while your team falls.', 'danger');
+  }
+  
+  updateUI();
+  renderGrid();
+}
+
+function initGrid() {
+  gameState.grid = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(null));
+}
+
+function spawnPlayers() {
+  // Spawn hiders in top-left quadrant
+  for (let i = 0; i < HIDER_COUNT; i++) {
+    let x, y;
+    do {
+      x = Math.floor(Math.random() * 5);
+      y = Math.floor(Math.random() * 5);
+    } while (gameState.grid[y][x]);
+    
+    const player = {
+      id: i,
+      x, y,
+      name: `Agent ${String.fromCharCode(65 + i)}`,
+      alive: true
+    };
+    gameState.players.push(player);
+    gameState.grid[y][x] = { type: 'hider', id: i };
+  }
+  
+  // Spawn hunters in bottom-right quadrant
+  for (let i = 0; i < HUNTER_COUNT; i++) {
+    let x, y;
+    do {
+      x = 10 + Math.floor(Math.random() * 5);
+      y = 10 + Math.floor(Math.random() * 5);
+    } while (gameState.grid[y][x]);
+    
+    const hunter = {
+      id: i,
+      x, y,
+      target: null
+    };
+    gameState.hunters.push(hunter);
+    gameState.grid[y][x] = { type: 'hunter', id: i };
+  }
+}
+
+function renderGrid() {
+  const gridEl = document.getElementById('grid');
+  gridEl.innerHTML = '';
+  
+  const player = gameState.currentPlayer;
+  const visionRange = gameState.visionRange;
+  
+  for (let y = 0; y < GRID_SIZE; y++) {
+    for (let x = 0; x < GRID_SIZE; x++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.dataset.x = x;
+      cell.dataset.y = y;
+      
+      const dist = Math.abs(x - player.x) + Math.abs(y - player.y);
+      
+      if (dist <= visionRange || (x === player.x && y === player.y)) {
+        cell.classList.add('visible');
+        
+        const content = gameState.grid[y][x];
+        if (content) {
+          cell.classList.add(content.type);
+          const icon = document.createElement('div');
+          icon.className = 'cell-icon';
+          
+          if (content.type === 'hider') {
+            const hider = gameState.players[content.id];
+            icon.textContent = hider.id === player.id ? '●' : '○';
+          } else {
+            icon.textContent = '◆';
+          }
+          cell.appendChild(icon);
+        }
+      }
+      
+      gridEl.appendChild(cell);
+    }
+  }
+}
+
+function move(direction) {
+  if (gameState.movedThisTurn) {
+    addLog('Already moved this turn.', 'warn');
+    return;
+  }
+  
+  const player = gameState.currentPlayer;
+  const oldX = player.x;
+  const oldY = player.y;
+  let newX = oldX;
+  let newY = oldY;
+  
+  if (direction === 'up') newY--;
+  if (direction === 'down') newY++;
+  if (direction === 'left') newX--;
+  if (direction === 'right') newX++;
+  
+  if (newX < 0 || newX >= GRID_SIZE || newY < 0 || newY >= GRID_SIZE) {
+    addLog('Cannot move off grid.', 'warn');
+    return;
+  }
+  
+  if (gameState.grid[newY][newX]) {
+    addLog('Cell occupied.', 'warn');
+    return;
+  }
+  
+  gameState.grid[oldY][oldX] = null;
+  player.x = newX;
+  player.y = newY;
+  gameState.grid[newY][newX] = { type: 'hider', id: player.id };
+  
+  gameState.movedThisTurn = true;
+  addLog(`Moved ${direction}.`);
+  renderGrid();
+}
+
+function endTurn() {
+  gameState.movedThisTurn = false;
+  gameState.votesThisTurn.clear();
+  gameState.turn++;
+  gameState.pingCounter--;
+  
+  if (gameState.pingCounter <= 0) {
+    executePing();
+    gameState.pingCounter = PING_INTERVAL;
+  }
+  
+  moveHunters();
+  checkCaptures();
+  
+  if (checkWinCondition()) return;
+  
+  updateUI();
+  renderGrid();
+}
+
+function executePing() {
+  const mole = gameState.players[gameState.moleId];
+  if (!mole.alive || gameState.cutPlayers.includes(mole.id)) return;
+  
+  addLog('⚠ POSITION PINGED TO HUNTERS', 'danger');
+  
+  // Show ping animation
+  const cells = document.querySelectorAll('.cell');
+  cells.forEach(cell => {
+    if (parseInt(cell.dataset.x) === mole.x && parseInt(cell.dataset.y) === mole.y) {
+      cell.classList.add('ping');
+      setTimeout(() => cell.classList.remove('ping'), 1000);
+    }
+  });
+  
+  // Hunters get the mole's position
+  gameState.hunters.forEach(hunter => {
+    hunter.target = { x: mole.x, y: mole.y };
+  });
+}
+
+function moveHunters() {
+  gameState.hunters.forEach(hunter => {
+    const oldX = hunter.x;
+    const oldY = hunter.y;
+    
+    let target = hunter.target;
+    if (!target) {
+      // Random movement
+      const dir = ['up', 'down', 'left', 'right'][Math.floor(Math.random() * 4)];
+      target = { x: oldX, y: oldY };
+      if (dir === 'up') target.y--;
+      if (dir === 'down') target.y++;
+      if (dir === 'left') target.x--;
+      if (dir === 'right') target.x++;
+    }
+    
+    // Move toward target
+    let newX = oldX;
+    let newY = oldY;
+    
+    if (target.x > oldX) newX++;
+    else if (target.x < oldX) newX--;
+    else if (target.y > oldY) newY++;
+    else if (target.y < oldY) newY--;
+    
+    if (newX >= 0 && newX < GRID_SIZE && newY >= 0 && newY < GRID_SIZE && !gameState.grid[newY][newX]) {
+      gameState.grid[oldY][oldX] = null;
+      hunter.x = newX;
+      hunter.y = newY;
+      gameState.grid[newY][newX] = { type: 'hunter', id: hunter.id };
+    }
+  });
+}
+
+function checkCaptures() {
+  gameState.hunters.forEach(hunter => {
+    gameState.players.forEach(player => {
+      if (player.alive && player.x === hunter.x && player.y === hunter.y) {
+        player.alive = false;
+        gameState.grid[player.y][player.x] = { type: 'hunter', id: hunter.id };
+        addLog(`${player.name} was captured!`, 'danger');
+      }
+    });
+  });
+}
+
+function voteToKick(playerId) {
+  if (playerId === gameState.currentPlayer.id) {
+    addLog('Cannot vote yourself out.', 'warn');
+    return;
+  }
+  
+  if (gameState.votesThisTurn.has(playerId)) {
+    addLog('Already voted this turn.', 'warn');
+    return;
+  }
+  
+  if (gameState.cutPlayers.includes(playerId)) {
+    addLog('Already cut from intel.', 'warn');
+    return;
+  }
+  
+  if (!gameState.players[playerId].alive) {
+    addLog('Player already captured.', 'warn');
+    return;
+  }
+  
+  gameState.votesThisTurn.add(playerId);
+  gameState.cutPlayers.push(playerId);
+  gameState.visionRange = Math.max(1, BASE_VISION - gameState.cutPlayers.length);
+  
+  const player = gameState.players[playerId];
+  addLog(`${player.name} cut from intel feed. Vision reduced.`, 'warn');
+  
+  updateUI();
+  renderGrid();
+}
+
+function checkWinCondition() {
+  const aliveHiders = gameState.players.filter(p => p.alive);
+  
+  if (aliveHiders.length === 0) {
+    endGame('MISSION FAILED', 'All agents captured.', false);
+    return true;
+  }
+  
+  if (aliveHiders.length === 1 && aliveHiders[0].id === gameState.currentPlayer.id) {
+    if (gameState.currentPlayer.id === gameState.moleId) {
+      endGame('MOLE VICTORY', 'You survived undetected while your team fell.', true);
+    } else {
+      endGame('SURVIVOR', 'You outlasted the others, but was the mole caught?', true);
+    }
+    return true;
+  }
+  
+  return false;
+}
+
+function endGame(title, message, won) {
+  document.getElementById('game-screen').classList.remove('active');
+  document.getElementById('end-screen').classList.add('active');
+  
+  const titleEl = document.getElementById('end-title');
+  titleEl.textContent = title;
+  titleEl.className = won ? 'winner' : 'loser';
+  
+  const mole = gameState.players[gameState.moleId];
+  document.getElementById('end-message').innerHTML = `
+    ${message}<br><br>
+    The mole was <strong>${mole.name}</strong>.<br>
+    ${gameState.cutPlayers.includes(mole.id) ? 'The mole was exposed!' : 'The mole remained hidden.'}
+  `;
+}
+
+function updateUI() {
+  document.getElementById('turn').textContent = gameState.turn;
+  document.getElementById('vision').textContent = gameState.visionRange;
+  document.getElementById('ping-timer').textContent = gameState.pingCounter;
+  document.getElementById('hiders-left').textContent = gameState.players.filter(p => p.alive).length;
+  
+  const teamList = document.getElementById('team-list');
+  teamList.innerHTML = '';
+  
+  gameState.players.forEach(player => {
+    const li = document.createElement('li');
+    li.className = 'teammate';
+    
+    if (player.id === gameState.currentPlayer.id) li.classList.add('you');
+    if (!player.alive) li.classList.add('cut');
+    if (gameState.cutPlayers.includes(player.id)) li.classList.add('cut');
+    
+    const name = document.createElement('span');
+    name.textContent = player.name + (player.id === gameState.currentPlayer.id ? ' (YOU)' : '');
+    if (!player.alive) name.textContent += ' [CAPTURED]';
+    li.appendChild(name);
+    
+    if (player.alive && player.id !== gameState.currentPlayer.id && !gameState.cutPlayers.includes(player.id)) {
+      const btn = document.createElement('button');
+      btn.className = 'vote-btn';
+      btn.textContent = 'CUT INTEL';
+      btn.onclick = () => voteToKick(player.id);
+      li.appendChild(btn);
+    }
+    
+    teamList.appendChild(li);
+  });
+}
+
+function addLog(message, type = '') {
+  const log = document.getElementById('log');
+  const entry = document.createElement('div');
+  entry.className = 'log-entry';
+  if (type) entry.classList.add(`log-${type}`);
+  entry.textContent = `[T${gameState.turn}] ${message}`;
+  log.appendChild(entry);
+  log.scrollTop = log.scrollHeight;
+}
+</script>
+</body>
+</html>

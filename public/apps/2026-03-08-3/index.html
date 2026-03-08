@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Converge — Daily AI Gen</title>
+  <meta name="description" content="A speech practice tool that visualizes your clarity in real-time as a particle swarm that tightens when you speak directly and spreads when you hedge or circle around your point.">
+  <meta property="og:title" content="Converge — Daily AI Gen">
+  <meta property="og:description" content="A speech practice tool that visualizes your clarity in real-time as a particle swarm that tightens when you speak directly and spreads when you hedge or circle around your point.">
+  <meta property="og:url" content="https://dailyaigen.com/apps/2026-03-08-3/">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="https://dailyaigen.com/apps/2026-03-08-3/">
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #0a0a0a;
+    color: #e0e0e0;
+    overflow: hidden;
+    height: 100vh;
+  }
+  
+  #canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  
+  .ui {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 20px;
+    pointer-events: none;
+  }
+  
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+  }
+  
+  .title {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+  }
+  
+  .metrics {
+    background: rgba(10, 10, 10, 0.8);
+    padding: 15px 20px;
+    border-radius: 8px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .metric {
+    font-size: 12px;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+  }
+  
+  .metric:last-child {
+    margin-bottom: 0;
+  }
+  
+  .metric-label {
+    color: #888;
+  }
+  
+  .metric-value {
+    font-weight: 600;
+    color: #fff;
+  }
+  
+  .controls {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 15px;
+    pointer-events: auto;
+  }
+  
+  button {
+    padding: 15px 30px;
+    font-size: 16px;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+  }
+  
+  #startBtn {
+    background: #3b82f6;
+    color: white;
+  }
+  
+  #startBtn:hover {
+    background: #2563eb;
+    transform: translateY(-2px);
+  }
+  
+  #startBtn.recording {
+    background: #ef4444;
+  }
+  
+  #startBtn.recording:hover {
+    background: #dc2626;
+  }
+  
+  #resetBtn {
+    background: rgba(255, 255, 255, 0.1);
+    color: #e0e0e0;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+  
+  #resetBtn:hover {
+    background: rgba(255, 255, 255, 0.15);
+  }
+  
+  .transcript {
+    position: fixed;
+    bottom: 110px;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: 600px;
+    background: rgba(10, 10, 10, 0.9);
+    padding: 15px 20px;
+    border-radius: 8px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 14px;
+    color: #ccc;
+    min-height: 40px;
+    max-height: 100px;
+    overflow-y: auto;
+  }
+  
+  .instruction {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    color: #666;
+    font-size: 18px;
+    max-width: 500px;
+    line-height: 1.6;
+  }
+  
+  .attempt-counter {
+    font-size: 14px;
+    color: #888;
+    margin-bottom: 10px;
+  }
+</style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+
+<div class="ui">
+  <div class="header">
+    <div class="title">Converge</div>
+    <div class="metrics">
+      <div class="attempt-counter">Attempt <span id="attemptNum">1</span></div>
+      <div class="metric">
+        <span class="metric-label">Spread</span>
+        <span class="metric-value" id="spread">0</span>
+      </div>
+      <div class="metric">
+        <span class="metric-label">Phrases</span>
+        <span class="metric-value" id="phraseCount">0</span>
+      </div>
+      <div class="metric">
+        <span class="metric-label">Direct Score</span>
+        <span class="metric-value" id="directScore">0%</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="instruction" id="instruction">
+  Click "Start Speaking" and talk about something difficult.<br>
+  Watch your words converge as you get clearer.
+</div>
+
+<div class="transcript" id="transcript" style="display: none;"></div>
+
+<div class="controls">
+  <button id="startBtn">Start Speaking</button>
+  <button id="resetBtn">New Attempt</button>
+</div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const startBtn = document.getElementById('startBtn');
+const resetBtn = document.getElementById('resetBtn');
+const transcriptEl = document.getElementById('transcript');
+const instructionEl = document.getElementById('instruction');
+const spreadEl = document.getElementById('spread');
+const phraseCountEl = document.getElementById('phraseCount');
+const directScoreEl = document.getElementById('directScore');
+const attemptNumEl = document.getElementById('attemptNum');
+
+let width, height, centerX, centerY;
+let particles = [];
+let ghostParticles = [];
+let isRecording = false;
+let recognition;
+let attemptNumber = 1;
+let currentTranscript = '';
+
+// Hedging words that indicate circling/uncertainty
+const hedgingWords = [
+  'like', 'um', 'uh', 'maybe', 'kind of', 'sort of', 'i think', 'i guess',
+  'probably', 'possibly', 'perhaps', 'might', 'could', 'just', 'actually',
+  'basically', 'literally', 'you know', 'i mean'
+];
+
+// Direct power words
+const directWords = [
+  'i want', 'i need', 'i will', 'i am', 'i feel', 'because', 'therefore',
+  'specifically', 'exactly', 'clearly', 'definitely', 'must', 'require'
+];
+
+function resize() {
+  width = canvas.width = window.innerWidth;
+  height = canvas.height = window.innerHeight;
+  centerX = width / 2;
+  centerY = height / 2;
+}
+
+class Particle {
+  constructor(text, isGhost = false) {
+    this.text = text;
+    this.isGhost = isGhost;
+    
+    // Start at center with random velocity
+    this.x = centerX + (Math.random() - 0.5) * 20;
+    this.y = centerY + (Math.random() - 0.5) * 20;
+    
+    // Analyze the text for hedging/directness
+    this.clarity = this.analyzeClarity(text);
+    
+    // More hedging = stronger outward force
+    // More direct = stronger inward pull
+    this.targetRadius = this.clarity < 0 ? 
+      Math.abs(this.clarity) * 300 : 
+      Math.abs(this.clarity) * 50;
+    
+    this.angle = Math.random() * Math.PI * 2;
+    this.vx = 0;
+    this.vy = 0;
+    this.alpha = isGhost ? 0.3 : 1;
+    this.size = isGhost ? 3 : 4;
+  }
+  
+  analyzeClarity(text) {
+    const lower = text.toLowerCase();
+    let score = 0;
+    
+    // Check for hedging words (negative score)
+    hedgingWords.forEach(word => {
+      if (lower.includes(word)) score -= 1;
+    });
+    
+    // Check for direct words (positive score)
+    directWords.forEach(word => {
+      if (lower.includes(word)) score += 1.5;
+    });
+    
+    // Penalize very long phrases (rambling)
+    if (text.split(' ').length > 10) score -= 0.5;
+    
+    // Reward conciseness
+    if (text.split(' ').length <= 5) score += 0.5;
+    
+    return score;
+  }
+  
+  update() {
+    // Calculate target position based on clarity
+    const targetX = centerX + Math.cos(this.angle) * this.targetRadius;
+    const targetY = centerY + Math.sin(this.angle) * this.targetRadius;
+    
+    // Move toward target with spring physics
+    const dx = targetX - this.x;
+    const dy = targetY - this.y;
+    
+    this.vx += dx * 0.02;
+    this.vy += dy * 0.02;
+    
+    // Damping
+    this.vx *= 0.9;
+    this.vy *= 0.9;
+    
+    this.x += this.vx;
+    this.y += this.vy;
+    
+    // Slow rotation
+    this.angle += 0.002;
+  }
+  
+  draw() {
+    ctx.save();
+    ctx.globalAlpha = this.alpha;
+    
+    // Draw connection to center
+    ctx.strokeStyle = this.isGhost ? '#333' : (this.clarity > 0 ? '#3b82f6' : '#ef4444');
+    ctx.lineWidth = this.isGhost ? 0.5 : 1;
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY);
+    ctx.lineTo(this.x, this.y);
+    ctx.stroke();
+    
+    // Draw particle
+    ctx.fillStyle = this.isGhost ? '#666' : (this.clarity > 0 ? '#60a5fa' : '#f87171');
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Draw text for non-ghost particles
+    if (!this.isGhost && particles.length < 30) {
+      ctx.fillStyle = '#fff';
+      ctx.font = '11px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(this.text.substring(0, 20), this.x, this.y - 10);
+    }
+    
+    ctx.restore();
+  }
+}
+
+function calculateMetrics() {
+  if (particles.length === 0) return;
+  
+  // Calculate average distance from center (spread)
+  const avgDist = particles.reduce((sum, p) => {
+    const dx = p.x - centerX;
+    const dy = p.y - centerY;
+    return sum + Math.sqrt(dx * dx + dy * dy);
+  }, 0) / particles.length;
+  
+  spreadEl.textContent = Math.round(avgDist);
+  phraseCountEl.textContent = particles.length;
+  
+  // Calculate directness score
+  const avgClarity = particles.reduce((sum, p) => sum + p.clarity, 0) / particles.length;
+  const directPercent = Math.max(0, Math.min(100, ((avgClarity + 2) / 4) * 100));
+  directScoreEl.textContent = Math.round(directPercent) + '%';
+}
+
+function animate() {
+  ctx.fillStyle = '#0a0a0a';
+  ctx.fillRect(0, 0, width, height);
+  
+  // Draw center point
+  ctx.fillStyle = '#444';
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, 6, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Update and draw ghost particles
+  ghostParticles.forEach(p => {
+    p.update();
+    p.draw();
+  });
+  
+  // Update and draw current particles
+  particles.forEach(p => {
+    p.update();
+    p.draw();
+  });
+  
+  calculateMetrics();
+  requestAnimationFrame(animate);
+}
+
+function initSpeechRecognition() {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    alert('Speech recognition not supported in this browser. Try Chrome.');
+    return;
+  }
+  
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SpeechRecognition();
+  recognition.continuous = true;
+  recognition.interimResults = true;
+  recognition.lang = 'en-US';
+  
+  let lastFinalTranscript = '';
+  
+  recognition.onresult = (event) => {
+    let interimTranscript = '';
+    let finalTranscript = '';
+    
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      const transcript = event.results[i][0].transcript;
+      if (event.results[i].isFinal) {
+        finalTranscript += transcript + ' ';
+      } else {
+        interimTranscript += transcript;
+      }
+    }
+    
+    // When we get a final result, create particles
+    if (finalTranscript && finalTranscript !== lastFinalTranscript) {
+      lastFinalTranscript = finalTranscript;
+      
+      // Split into phrases (roughly)
+      const phrases = finalTranscript.trim().split(/[,.;]/).filter(p => p.trim());
+      phrases.forEach(phrase => {
+        const trimmed = phrase.trim();
+        if (trimmed) {
+          particles.push(new Particle(trimmed));
+        }
+      });
+    }
+    
+    currentTranscript = lastFinalTranscript + interimTranscript;
+    transcriptEl.textContent = currentTranscript || 'Listening...';
+  };
+  
+  recognition.onerror = (event) => {
+    console.error('Speech recognition error:', event.error);
+  };
+}
+
+startBtn.addEventListener('click', () => {
+  if (!isRecording) {
+    isRecording = true;
+    startBtn.textContent = 'Stop Speaking';
+    startBtn.classList.add('recording');
+    instructionEl.style.display = 'none';
+    transcriptEl.style.display = 'block';
+    
+    if (!recognition) initSpeechRecognition();
+    if (recognition) recognition.start();
+  } else {
+    isRecording = false;
+    startBtn.textContent = 'Start Speaking';
+    startBtn.classList.remove('recording');
+    
+    if (recognition) recognition.stop();
+  }
+});
+
+resetBtn.addEventListener('click', () => {
+  // Save current particles as ghosts
+  ghostParticles = particles.map(p => {
+    const ghost = new Particle(p.text, true);
+    ghost.x = p.x;
+    ghost.y = p.y;
+    ghost.angle = p.angle;
+    ghost.targetRadius = p.targetRadius;
+    return ghost;
+  });
+  
+  // Clear current particles
+  particles = [];
+  currentTranscript = '';
+  transcriptEl.textContent = '';
+  attemptNumber++;
+  attemptNumEl.textContent = attemptNumber;
+  
+  // Stop recording if active
+  if (isRecording) {
+    isRecording = false;
+    startBtn.textContent = 'Start Speaking';
+    startBtn.classList.remove('recording');
+    if (recognition) recognition.stop();
+  }
+});
+
+window.addEventListener('resize', resize);
+resize();
+animate();
+</script>
+</body>
+</html>

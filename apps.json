@@ -1,5 +1,42 @@
 [
   {
+    "date": "2026-03-08",
+    "id": "2026-03-08-3",
+    "name": "Converge",
+    "description": "A speech practice tool that visualizes your clarity in real-time as a particle swarm that tightens when you speak directly and spreads when you hedge or circle around your point.",
+    "inspiration": "GPT-5.4 reduces tool search tokens by 47%, reflecting how AI models are learning to find what they need with dramatically less wasted effort.",
+    "connection": "The idea of 'searching more efficiently' made me think about how humans waste enormous cognitive effort searching for the right words during difficult conversations — what if you could see your own verbal flailing in real time and learn to converge faster?",
+    "source_url": "https://www.tldl.io/blog/ai-product-launches-march-2026",
+    "emoji": "🌀",
+    "category": "AI-inspired",
+    "image": true
+  },
+  {
+    "date": "2026-03-08",
+    "id": "2026-03-08-2",
+    "name": "Shockchart",
+    "description": "An interactive crisis correlation dashboard that fetches live crypto and asset data from CoinGecko, lets you annotate geopolitical events on a timeline, and calculates which assets absorbed or amplified shock during crisis moments.",
+    "inspiration": "With oil prices spiking, global conflict escalating, and markets losing 800 points, people are scrambling to understand how crisis events correlate with crypto movements — does Bitcoin act as a safe haven or crash alongside stocks? Investors need a tool that maps real-world geopolitical shocks against crypto price action to make informed decisions during volatility.",
+    "connection": "CoinGecko provides free historical and real-time price/volume data that can be plotted against user-annotated crisis events to reveal correlation patterns.",
+    "source_url": "https://www.youtube.com/watch?v=tWf02WGK-o4",
+    "emoji": "⚡",
+    "category": "API tool",
+    "api": "CoinGecko",
+    "image": true
+  },
+  {
+    "date": "2026-03-08",
+    "id": "2026-03-08",
+    "name": "Moleping",
+    "description": "A tense social deduction grid game where you hide from hunters in the fog of war, but one teammate is secretly feeding your location to the enemy — vote wisely or shrink your team's vision.",
+    "inspiration": "Russia providing Iran with targeting intelligence on American troop locations, creating a shadow layer of betrayal beneath the visible conflict.",
+    "connection": "The idea of a hidden informant feeding your opponent your exact position inspired a stealth game where your own map betrays you — someone on your team is leaking your location in real time.",
+    "source_url": "https://www.youtube.com/watch?v=yqqbIrimlGM",
+    "emoji": "📡",
+    "category": "Game",
+    "image": true
+  },
+  {
     "date": "2026-03-07",
     "id": "2026-03-07-3",
     "name": "Reangle",
