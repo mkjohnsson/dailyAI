@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Loadbearing — Daily AI Gen</title>
+  <meta name="description" content="Paste any text and watch it become a tower of physical blocks where important words glow and lock in place while filler words crumble — remove the dead weight to build a taller, more efficient structure.">
+  <meta property="og:title" content="Loadbearing — Daily AI Gen">
+  <meta property="og:description" content="Paste any text and watch it become a tower of physical blocks where important words glow and lock in place while filler words crumble — remove the dead weight to build a taller, more efficient structure.">
+  <meta property="og:url" content="https://dailyaigen.com/apps/2026-03-09-3/">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="https://dailyaigen.com/apps/2026-03-09-3/">
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Courier New', monospace;
+  background: #0a0a0a;
+  color: #fff;
+  overflow: hidden;
+}
+
+#container {
+  display: flex;
+  height: 100vh;
+}
+
+#input-panel {
+  width: 350px;
+  background: #111;
+  border-right: 2px solid #333;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  overflow-y: auto;
+}
+
+#input-panel h1 {
+  font-size: 24px;
+  color: #4a9eff;
+  letter-spacing: 2px;
+}
+
+#input-panel p {
+  font-size: 11px;
+  color: #888;
+  line-height: 1.5;
+}
+
+#text-input {
+  width: 100%;
+  height: 200px;
+  background: #0a0a0a;
+  border: 1px solid #333;
+  color: #fff;
+  padding: 10px;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  resize: none;
+}
+
+#build-btn {
+  padding: 12px;
+  background: #4a9eff;
+  border: none;
+  color: #000;
+  font-weight: bold;
+  cursor: pointer;
+  font-family: 'Courier New', monospace;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+#build-btn:hover {
+  background: #6bb0ff;
+}
+
+#stats {
+  font-size: 11px;
+  color: #aaa;
+  padding: 10px;
+  background: #0a0a0a;
+  border: 1px solid #333;
+}
+
+#stats div {
+  margin: 5px 0;
+}
+
+.stat-label {
+  color: #4a9eff;
+}
+
+#canvas-container {
+  flex: 1;
+  position: relative;
+}
+
+canvas {
+  display: block;
+}
+
+#tooltip {
+  position: absolute;
+  background: rgba(0,0,0,0.9);
+  border: 1px solid #4a9eff;
+  padding: 8px 12px;
+  font-size: 11px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+  white-space: nowrap;
+}
+
+#instructions {
+  font-size: 10px;
+  color: #666;
+  margin-top: 10px;
+}
+
+.efficiency-high {
+  color: #4aff88;
+}
+
+.efficiency-medium {
+  color: #ffa84a;
+}
+
+.efficiency-low {
+  color: #ff4a4a;
+}
+</style>
+</head>
+<body>
+
+<div id="container">
+  <div id="input-panel">
+    <h1>LOADBEARING</h1>
+    <p>Paste your text. Watch it become architecture. Remove the dead weight.</p>
+    
+    <textarea id="text-input" placeholder="Paste your email, essay, pitch, or any text here...">I really think that we should probably consider the possibility of maybe scheduling a meeting to discuss our approach going forward. It seems like it might be beneficial to potentially explore some options.</textarea>
+    
+    <button id="build-btn">Build Tower</button>
+    
+    <div id="stats">
+      <div><span class="stat-label">Total Blocks:</span> <span id="total-blocks">0</span></div>
+      <div><span class="stat-label">Load-bearing:</span> <span id="loadbearing-count">0</span></div>
+      <div><span class="stat-label">Dead Weight:</span> <span id="deadweight-count">0</span></div>
+      <div><span class="stat-label">Meaning Score:</span> <span id="meaning-score">0</span></div>
+      <div><span class="stat-label">Efficiency:</span> <span id="efficiency">0%</span></div>
+    </div>
+    
+    <div id="instructions">
+      Click on crumbling (translucent) blocks to remove them. Watch the tower restructure. Goal: maximize efficiency while maintaining meaning score.
+    </div>
+  </div>
+  
+  <div id="canvas-container">
+    <canvas id="canvas"></canvas>
+    <div id="tooltip"></div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const tooltip = document.getElementById('tooltip');
+
+let blocks = [];
+let originalMeaningScore = 0;
+let hoveredBlock = null;
+let isDragging = false;
+
+// Filler words and patterns
+const FILLER_WORDS = new Set([
+  'really', 'very', 'quite', 'just', 'actually', 'basically', 'literally',
+  'probably', 'maybe', 'perhaps', 'possibly', 'potentially', 'seems',
+  'like', 'somewhat', 'rather', 'fairly', 'pretty', 'kind', 'sort',
+  'i think', 'i believe', 'in my opinion', 'it seems', 'going forward',
+  'at this point', 'in order to', 'due to the fact', 'for the purpose of'
+]);
+
+const HEDGING_WORDS = new Set([
+  'might', 'could', 'should', 'would', 'may', 'can', 'appear', 'suggest'
+]);
+
+const COMMON_WORDS = new Set([
+  'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
+  'of', 'with', 'by', 'from', 'as', 'is', 'was', 'are', 'were', 'be',
+  'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will',
+  'that', 'this', 'these', 'those', 'it', 'its', 'we', 'our'
+]);
+
+function resizeCanvas() {
+  canvas.width = canvas.offsetWidth;
+  canvas.height = canvas.offsetHeight;
+}
+
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+class Block {
+  constructor(word, index, isLoadBearing) {
+    this.word = word;
+    this.index = index;
+    this.isLoadBearing = isLoadBearing;
+    this.width = Math.max(40, Math.min(word.length * 8, 120));
+    this.height = 25;
+    this.x = 0;
+    this.y = 0;
+    this.targetY = 0;
+    this.vy = 0;
+    this.removed = false;
+    this.crumbling = !isLoadBearing;
+    this.opacity = isLoadBearing ? 1 : 0.4;
+    this.glow = isLoadBearing ? Math.random() * 0.5 + 0.5 : 0;
+    this.rotation = 0;
+    this.targetRotation = 0;
+    this.wobble = 0;
+  }
+
+  update() {
+    // Physics
+    const diff = this.targetY - this.y;
+    this.vy += diff * 0.05;
+    this.vy *= 0.8;
+    this.y += this.vy;
+
+    // Rotation
+    this.rotation += (this.targetRotation - this.rotation) * 0.1;
+
+    // Glow animation for load-bearing
+    if (this.isLoadBearing) {
+      this.glow = 0.7 + Math.sin(Date.now() * 0.002 + this.index) * 0.3;
+    }
+
+    // Wobble for crumbling
+    if (this.crumbling && !this.removed) {
+      this.wobble = Math.sin(Date.now() * 0.005 + this.index) * 2;
+    }
+  }
+
+  draw() {
+    if (this.removed) return;
+
+    ctx.save();
+    ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
+    ctx.rotate(this.rotation + this.wobble * 0.01);
+
+    // Shadow for load-bearing
+    if (this.isLoadBearing) {
+      ctx.shadowColor = '#4a9eff';
+      ctx.shadowBlur = 15 * this.glow;
+    }
+
+    // Block
+    ctx.globalAlpha = this.opacity;
+    ctx.fillStyle = this.isLoadBearing ? '#1a4d7a' : '#3a2a1a';
+    ctx.fillRect(-this.width / 2, -this.height / 2, this.width, this.height);
+
+    // Border
+    ctx.strokeStyle = this.isLoadBearing ? `rgba(74, 158, 255, ${this.glow})` : 'rgba(100, 70, 40, 0.5)';
+    ctx.lineWidth = this.isLoadBearing ? 2 : 1;
+    ctx.strokeRect(-this.width / 2, -this.height / 2, this.width, this.height);
+
+    // Text
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = this.isLoadBearing ? '#fff' : '#666';
+    ctx.font = '11px Courier New';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(this.word, 0, 0);
+
+    ctx.restore();
+  }
+
+  contains(x, y) {
+    return x >= this.x && x <= this.x + this.width &&
+           y >= this.y && y <= this.y + this.height;
+  }
+}
+
+function analyzeText(text) {
+  const words = text.toLowerCase()
+    .replace(/[.,!?;:]/g, '')
+    .split(/\s+/)
+    .filter(w => w.length > 0);
+
+  const wordFreq = {};
+  words.forEach(w => wordFreq[w] = (wordFreq[w] || 0) + 1);
+
+  return words.map((word, i) => {
+    const isCommon = COMMON_WORDS.has(word);
+    const isFiller = FILLER_WORDS.has(word);
+    const isHedging = HEDGING_WORDS.has(word);
+    const isFrequent = wordFreq[word] > 2;
+    const isShort = word.length <= 2;
+
+    // Check for multi-word phrases
+    let isFillerPhrase = false;
+    if (i > 0) {
+      const twoWord = words[i-1] + ' ' + word;
+      if (FILLER_WORDS.has(twoWord)) isFillerPhrase = true;
+    }
+
+    const isLoadBearing = !isCommon && !isFiller && !isHedging && 
+                         !isFrequent && !isShort && !isFillerPhrase;
+
+    return new Block(word, i, isLoadBearing);
+  });
+}
+
+function layoutTower() {
+  const centerX = canvas.width / 2;
+  const baseY = canvas.height - 50;
+  const activeBlocks = blocks.filter(b => !b.removed);
+  
+  let currentY = baseY;
+  let currentRow = [];
+  let rowWidth = 0;
+  const maxRowWidth = 500;
+
+  activeBlocks.forEach((block, i) => {
+    if (rowWidth + block.width > maxRowWidth && currentRow.length > 0) {
+      // Place current row
+      placeRow(currentRow, centerX, currentY);
+      currentY -= 30;
+      currentRow = [block];
+      rowWidth = block.width;
+    } else {
+      currentRow.push(block);
+      rowWidth += block.width + 5;
+    }
+  });
+
+  if (currentRow.length > 0) {
+    placeRow(currentRow, centerX, currentY);
+  }
+
+  // Check for instability
+  checkStability();
+}
+
+function placeRow(row, centerX, y) {
+  const totalWidth = row.reduce((sum, b) => sum + b.width, 0) + (row.length - 1) * 5;
+  let x = centerX - totalWidth / 2;
+
+  row.forEach(block => {
+    block.x = x;
+    block.targetY = y;
+    x += block.width + 5;
+  });
+}
+
+function checkStability() {
+  // Simple stability check: if too many dead weight blocks, add wobble
+  const activeBlocks = blocks.filter(b => !b.removed);
+  const deadWeightCount = activeBlocks.filter(b => !b.isLoadBearing).length;
+  const ratio = deadWeightCount / activeBlocks.length;
+
+  activeBlocks.forEach(block => {
+    if (ratio > 0.5 && !block.isLoadBearing) {
+      block.targetRotation = (Math.random() - 0.5) * 0.2;
+    } else {
+      block.targetRotation = 0;
+    }
+  });
+}
+
+function calculateMeaningScore() {
+  const activeBlocks = blocks.filter(b => !b.removed);
+  const loadBearingCount = activeBlocks.filter(b => b.isLoadBearing).length;
+  return loadBearingCount * 10;
+}
+
+function updateStats() {
+  const activeBlocks = blocks.filter(b => !b.removed);
+  const loadBearingCount = activeBlocks.filter(b => b.isLoadBearing).length;
+  const deadWeightCount = activeBlocks.filter(b => !b.isLoadBearing).length;
+  const meaningScore = calculateMeaningScore();
+  
+  let efficiency = 0;
+  if (originalMeaningScore > 0) {
+    const compressionRatio = activeBlocks.length / blocks.length;
+    const meaningRetention = meaningScore / originalMeaningScore;
+    efficiency = Math.round((meaningRetention / compressionRatio) * 100);
+  }
+
+  document.getElementById('total-blocks').textContent = activeBlocks.length;
+  document.getElementById('loadbearing-count').textContent = loadBearingCount;
+  document.getElementById('deadweight-count').textContent = deadWeightCount;
+  document.getElementById('meaning-score').textContent = meaningScore;
+  
+  const effElem = document.getElementById('efficiency');
+  effElem.textContent = efficiency + '%';
+  effElem.className = efficiency > 120 ? 'efficiency-high' :
+                      efficiency > 80 ? 'efficiency-medium' : 'efficiency-low';
+}
+
+function animate() {
+  ctx.fillStyle = '#0a0a0a';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  blocks.forEach(block => {
+    block.update();
+    block.draw();
+  });
+
+  requestAnimationFrame(animate);
+}
+
+canvas.addEventListener('mousemove', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+
+  hoveredBlock = null;
+  for (let i = blocks.length - 1; i >= 0; i--) {
+    if (!blocks[i].removed && blocks[i].contains(x, y)) {
+      hoveredBlock = blocks[i];
+      break;
+    }
+  }
+
+  if (hoveredBlock) {
+    tooltip.style.left = e.clientX + 10 + 'px';
+    tooltip.style.top = e.clientY + 10 + 'px';
+    tooltip.style.opacity = 1;
+    tooltip.textContent = hoveredBlock.isLoadBearing ? 
+      `"${hoveredBlock.word}" — Load-bearing (locked)` :
+      `"${hoveredBlock.word}" — Dead weight (click to remove)`;
+    canvas.style.cursor = hoveredBlock.isLoadBearing ? 'default' : 'pointer';
+  } else {
+    tooltip.style.opacity = 0;
+    canvas.style.cursor = 'default';
+  }
+});
+
+canvas.addEventListener('click', (e) => {
+  if (hoveredBlock && !hoveredBlock.isLoadBearing) {
+    hoveredBlock.removed = true;
+    hoveredBlock.opacity = 0;
+    setTimeout(() => {
+      layoutTower();
+      updateStats();
+    }, 100);
+  }
+});
+
+document.getElementById('build-btn').addEventListener('click', () => {
+  const text = document.getElementById('text-input').value;
+  if (!text.trim()) return;
+
+  blocks = analyzeText(text);
+  layoutTower();
+  originalMeaningScore = calculateMeaningScore();
+  updateStats();
+});
+
+animate();
+
+// Build initial tower
+document.getElementById('build-btn').click();
+</script>
+
+</body>
+</html>

@@ -1,5 +1,42 @@
 [
   {
+    "date": "2026-03-09",
+    "id": "2026-03-09-3",
+    "name": "Loadbearing",
+    "description": "Paste any text and watch it become a tower of physical blocks where important words glow and lock in place while filler words crumble — remove the dead weight to build a taller, more efficient structure.",
+    "inspiration": "Olmo Hybrid combines transformer attention with linear recurrent layers to achieve the same accuracy using 49% fewer tokens — proving you can reach the same destination with radically less.",
+    "connection": "The idea of 'hybrid efficiency' — reaching equal quality through fewer, better-chosen elements — made me think about applying that to how people write: what if you could see which of your words are doing real work and which are just filler tokens burning compute for nothing?",
+    "source_url": "https://radicaldatascience.wordpress.com/2026/03/06/ai-news-briefs-bulletin-board-for-march-2026/",
+    "emoji": "🧱",
+    "category": "AI-inspired",
+    "image": true
+  },
+  {
+    "date": "2026-03-09",
+    "id": "2026-03-09-2",
+    "name": "Dayspan",
+    "description": "Compare the daylight patterns of two cities across an entire year with animated twilight gradients and a draggable today marker.",
+    "inspiration": "With conflict disrupting flights across the Middle East and drones forcing airport closures, thousands of travelers are stranded or rerouting through unfamiliar cities with wildly different daylight hours. But beyond crisis: anyone relocating, traveling, or working remotely across time zones struggles to viscerally understand how much usable daylight they'll actually have in a new place — not just sunrise/sunset times, but the shape of their day across seasons.",
+    "connection": "Sunrise-Sunset API provides precise dawn, sunrise, sunset, dusk, and day length for any coordinates and date, enabling a full seasonal daylight profile for any location on Earth.",
+    "source_url": "https://www.euronews.com/video/2025/03/09/latest-news-bulletin-march-9th-midday",
+    "emoji": "🌗",
+    "category": "API tool",
+    "api": "Sunrise-Sunset",
+    "image": true
+  },
+  {
+    "date": "2026-03-09",
+    "id": "2026-03-09",
+    "name": "Murmurate",
+    "description": "You breed swarms of glowing agents and watch them navigate a hostile, evolving landscape that learns from your tactics.",
+    "inspiration": "Iranian drone attack suspends flights at Dubai airport, with over 1,000 drones intercepted across UAE amid strikes on 11 countries.",
+    "connection": "The image of a thousand autonomous drones swarming across borders inspired a simulation where you cultivate and release swarms of simple agents that must self-organize to cross hostile, shifting territories — not as warfare, but as a living study in emergence and collective navigation.",
+    "source_url": "https://www.euronews.com/video/2025/03/09/latest-news-bulletin-march-9th-midday",
+    "emoji": "🐦‍⬛",
+    "category": "Simulation",
+    "image": true
+  },
+  {
     "date": "2026-03-08",
     "id": "2026-03-08-3",
     "name": "Converge",
