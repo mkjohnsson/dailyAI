@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SendWindow - Remittance Timing Tool — Daily AI Gen</title>
+  <meta name="description" content="A currency exchange timing advisor that analyzes 90 days of real rates to tell you whether to send money now or wait for a better deal.">
+  <meta property="og:title" content="SendWindow — Daily AI Gen">
+  <meta property="og:description" content="A currency exchange timing advisor that analyzes 90 days of real rates to tell you whether to send money now or wait for a better deal.">
+  <meta property="og:url" content="https://dailyaigen.com/apps/2026-03-10-2/">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="https://dailyaigen.com/apps/2026-03-10-2/">
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  padding: 20px;
+  color: #333;
+}
+
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  overflow: hidden;
+}
+
+.header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 30px;
+  text-align: center;
+}
+
+.header h1 {
+  font-size: 2.5em;
+  margin-bottom: 10px;
+}
+
+.header p {
+  opacity: 0.9;
+  font-size: 1.1em;
+}
+
+.content {
+  padding: 30px;
+}
+
+.input-section {
+  background: #f8f9fa;
+  padding: 25px;
+  border-radius: 12px;
+  margin-bottom: 30px;
+}
+
+.input-row {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+}
+
+.input-group {
+  flex: 1;
+  min-width: 150px;
+}
+
+.input-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #555;
+  font-size: 0.9em;
+}
+
+.input-group input,
+.input-group select {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 1em;
+  transition: border-color 0.3s;
+}
+
+.input-group input:focus,
+.input-group select:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.currency-pair {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.currency-pair select {
+  flex: 1;
+}
+
+.arrow {
+  color: #667eea;
+  font-size: 1.5em;
+  font-weight: bold;
+}
+
+.analyze-btn {
+  width: 100%;
+  padding: 15px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.analyze-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+.analyze-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+  display: none;
+}
+
+.loading.active {
+  display: block;
+}
+
+.spinner {
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #667eea;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.results {
+  display: none;
+}
+
+.results.active {
+  display: block;
+}
+
+.verdict {
+  padding: 25px;
+  border-radius: 12px;
+  margin-bottom: 25px;
+  border-left: 5px solid;
+}
+
+.verdict.send-now {
+  background: #d4edda;
+  border-color: #28a745;
+}
+
+.verdict.wait {
+  background: #fff3cd;
+  border-color: #ffc107;
+}
+
+.verdict.neutral {
+  background: #e7f3ff;
+  border-color: #17a2b8;
+}
+
+.verdict h2 {
+  margin-bottom: 10px;
+  font-size: 1.5em;
+}
+
+.verdict p {
+  font-size: 1.1em;
+  line-height: 1.6;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 15px;
+  margin-bottom: 25px;
+}
+
+.stat-card {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+}
+
+.stat-card .label {
+  font-size: 0.85em;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.stat-card .value {
+  font-size: 1.4em;
+  font-weight: 700;
+  color: #333;
+}
+
+.stat-card.highlight {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.stat-card.highlight .label {
+  color: rgba(255,255,255,0.9);
+}
+
+.stat-card.highlight .value {
+  color: white;
+}
+
+.chart-container {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 25px;
+}
+
+.chart-container h3 {
+  margin-bottom: 15px;
+  color: #555;
+}
+
+canvas {
+  width: 100% !important;
+  height: auto !important;
+}
+
+.impact {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 12px;
+}
+
+.impact h3 {
+  margin-bottom: 15px;
+  color: #555;
+}
+
+.impact-comparison {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+.impact-item {
+  padding: 15px;
+  background: white;
+  border-radius: 8px;
+}
+
+.impact-item .scenario {
+  font-size: 0.9em;
+  color: #666;
+  margin-bottom: 5px;
+}
+
+.impact-item .amount {
+  font-size: 1.3em;
+  font-weight: 700;
+  color: #333;
+}
+
+.error {
+  background: #f8d7da;
+  border: 1px solid #f5c6cb;
+  color: #721c24;
+  padding: 20px;
+  border-radius: 8px;
+  display: none;
+}
+
+.error.active {
+  display: block;
+}
+
+@media (max-width: 600px) {
+  .input-row {
+    flex-direction: column;
+  }
+  
+  .impact-comparison {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>💸 SendWindow</h1>
+    <p>Smart timing for international money transfers</p>
+  </div>
+  
+  <div class="content">
+    <div class="input-section">
+      <div class="input-row">
+        <div class="input-group">
+          <label>From Currency</label>
+          <select id="fromCurrency">
+            <option value="USD">USD - US Dollar</option>
+            <option value="EUR">EUR - Euro</option>
+            <option value="GBP">GBP - British Pound</option>
+            <option value="CAD">CAD - Canadian Dollar</option>
+            <option value="AUD">AUD - Australian Dollar</option>
+            <option value="JPY">JPY - Japanese Yen</option>
+            <option value="CHF">CHF - Swiss Franc</option>
+            <option value="CNY">CNY - Chinese Yuan</option>
+          </select>
+        </div>
+        
+        <div class="arrow">→</div>
+        
+        <div class="input-group">
+          <label>To Currency</label>
+          <select id="toCurrency">
+            <option value="PHP">PHP - Philippine Peso</option>
+            <option value="TRY">TRY - Turkish Lira</option>
+            <option value="INR">INR - Indian Rupee</option>
+            <option value="MXN">MXN - Mexican Peso</option>
+            <option value="BRL">BRL - Brazilian Real</option>
+            <option value="ZAR">ZAR - South African Rand</option>
+            <option value="THB">THB - Thai Baht</option>
+            <option value="IDR">IDR - Indonesian Rupiah</option>
+            <option value="EUR">EUR - Euro</option>
+            <option value="USD">USD - US Dollar</option>
+          </select>
+        </div>
+      </div>
+      
+      <div class="input-row">
+        <div class="input-group">
+          <label>Amount to Send</label>
+          <input type="number" id="amount" value="1000" min="1" step="0.01">
+        </div>
+        
+        <div class="input-group">
+          <label>Deadline (Optional)</label>
+          <input type="date" id="deadline">
+        </div>
+      </div>
+      
+      <button class="analyze-btn" id="analyzeBtn">Analyze Exchange Rate</button>
+    </div>
+    
+    <div class="error" id="error"></div>
+    
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <p>Fetching 90 days of exchange rates...</p>
+    </div>
+    
+    <div class="results" id="results">
+      <div class="verdict" id="verdict">
+        <h2 id="verdictTitle"></h2>
+        <p id="verdictText"></p>
+      </div>
+      
+      <div class="stats-grid" id="statsGrid"></div>
+      
+      <div class="chart-container">
+        <h3>90-Day Rate History</h3>
+        <canvas id="rateChart"></canvas>
+      </div>
+      
+      <div class="impact">
+        <h3>Financial Impact</h3>
+        <div class="impact-comparison" id="impactComparison"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+let chartInstance = null;
+
+document.getElementById('analyzeBtn').addEventListener('click', async () => {
+  const fromCurrency = document.getElementById('fromCurrency').value;
+  const toCurrency = document.getElementById('toCurrency').value;
+  const amount = parseFloat(document.getElementById('amount').value);
+  const deadline = document.getElementById('deadline').value;
+  
+  if (fromCurrency === toCurrency) {
+    showError('Please select different currencies');
+    return;
+  }
+  
+  if (amount <= 0) {
+    showError('Please enter a valid amount');
+    return;
+  }
+  
+  hideError();
+  showLoading();
+  hideResults();
+  
+  try {
+    const data = await fetchRateData(fromCurrency, toCurrency);
+    const analysis = analyzeRates(data, amount, fromCurrency, toCurrency, deadline);
+    displayResults(analysis, data, fromCurrency, toCurrency);
+  } catch (error) {
+    showError(error.message);
+    hideLoading();
+  }
+});
+
+async function fetchRateData(from, to) {
+  const endDate = new Date();
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - 90);
+  
+  const formatDate = (date) => date.toISOString().split('T')[0];
+  
+  const url = `https://api.frankfurter.app/${formatDate(startDate)}..${formatDate(endDate)}?from=${from}&to=${to}`;
+  
+  const response = await fetch(url);
+  
+  if (!response.ok) {
+    throw new Error('Failed to fetch exchange rate data. Please try again.');
+  }
+  
+  const data = await response.json();
+  
+  if (!data.rates || Object.keys(data.rates).length === 0) {
+    throw new Error('No rate data available for this currency pair');
+  }
+  
+  return data;
+}
+
+function analyzeRates(data, amount, from, to, deadline) {
+  const rates = [];
+  const dates = [];
+  
+  for (const [date, rateObj] of Object.entries(data.rates)) {
+    rates.push(rateObj[to]);
+    dates.push(date);
+  }
+  
+  const currentRate = rates[rates.length - 1];
+  const avgRate = rates.reduce((a, b) => a + b, 0) / rates.length;
+  
+  const variance = rates.reduce((sum, rate) => sum + Math.pow(rate - avgRate, 2), 0) / rates.length;
+  const stdDev = Math.sqrt(variance);
+  
+  const maxRate = Math.max(...rates);
+  const minRate = Math.min(...rates);
+  const maxDate = dates[rates.indexOf(maxRate)];
+  const minDate = dates[rates.indexOf(minRate)];
+  
+  const percentile = (rates.filter(r => r <= currentRate).length / rates.length) * 100;
+  
+  // Calculate trend (last 7 days vs previous 7 days)
+  const recentRates = rates.slice(-7);
+  const previousRates = rates.slice(-14, -7);
+  const recentAvg = recentRates.reduce((a, b) => a + b, 0) / recentRates.length;
+  const previousAvg = previousRates.reduce((a, b) => a + b, 0) / previousRates.length;
+  const trend = recentAvg > previousAvg ? 'up' : 'down';
+  
+  // Detect volatility spikes (days where rate changed > 1.5 std devs)
+  const volatilitySpikes = [];
+  for (let i = 1; i < rates.length; i++) {
+    const change = Math.abs(rates[i] - rates[i-1]);
+    if (change > stdDev * 1.5) {
+      volatilitySpikes.push({ date: dates[i], change });
+    }
+  }
+  
+  let verdict, verdictClass, recommendation;
+  
+  if (percentile >= 85) {
+    verdict = '🎯 Send Now — Excellent Rate';
+    verdictClass = 'send-now';
+    recommendation = `The current rate is in the top 15% of the last 90 days. This is a favorable time to send money.`;
+  } else if (percentile >= 50 && trend === 'up') {
+    verdict = '✅ Good Time to Send';
+    verdictClass = 'send-now';
+    recommendation = `The rate is above average and trending upward. Consider sending now before it potentially improves further.`;
+  } else if (percentile < 50 && trend === 'up') {
+    verdict = '⏳ Wait if You Can — Rate Improving';
+    verdictClass = 'wait';
+    recommendation = `The rate is below average but trending upward. If your deadline allows, waiting a few days might yield a better rate.`;
+  } else if (percentile < 50 && trend === 'down') {
+    verdict = '⚠️ Below Average — Consider Waiting';
+    verdictClass = 'wait';
+    recommendation = `The rate is below average and trending downward. Unless urgent, consider waiting for improvement.`;
+  } else {
+    verdict = 'ℹ️ Average Rate';
+    verdictClass = 'neutral';
+    recommendation = `The rate is near the 90-day average. It's a reasonable time to send.`;
+  }
+  
+  if (deadline) {
+    const daysUntilDeadline = Math.ceil((new Date(deadline) - new Date()) / (1000 * 60 * 60 * 24));
+    if (daysUntilDeadline <= 3) {
+      recommendation += ` Note: Your deadline is in ${daysUntilDeadline} day(s), which limits flexibility.`;
+    }
+  }
+  
+  return {
+    currentRate,
+    avgRate,
+    stdDev,
+    maxRate,
+    minRate,
+    maxDate,
+    minDate,
+    percentile,
+    trend,
+    verdict,
+    verdictClass,
+    recommendation,
+    rates,
+    dates,
+    amount,
+    volatilitySpikes
+  };
+}
+
+function displayResults(analysis, data, from, to) {
+  hideLoading();
+  
+  document.getElementById('verdictTitle').textContent = analysis.verdict;
+  document.getElementById('verdictText').textContent = analysis.recommendation;
+  document.getElementById('verdict').className = `verdict ${analysis.verdictClass}`;
+  
+  const statsGrid = document.getElementById('statsGrid');
+  statsGrid.innerHTML = `
+    <div class="stat-card highlight">
+      <div class="label">Current Rate</div>
+      <div class="value">${analysis.currentRate.toFixed(4)}</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">90-Day Average</div>
+      <div class="value">${analysis.avgRate.toFixed(4)}</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Best Rate (${new Date(analysis.maxDate).toLocaleDateString()})</div>
+      <div class="value">${analysis.maxRate.toFixed(4)}</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Worst Rate (${new Date(analysis.minDate).toLocaleDateString()})</div>
+      <div class="value">${analysis.minRate.toFixed(4)}</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Current Percentile</div>
+      <div class="value">${Math.round(analysis.percentile)}%</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Recent Trend</div>
+      <div class="value">${analysis.trend === 'up' ? '📈 Up' : '📉 Down'}</div>
+    </div>
+  `;
+  
+  const youReceiveNow = analysis.amount * analysis.currentRate;
+  const youReceiveBest = analysis.amount * analysis.maxRate;
+  const youReceiveWorst = analysis.amount * analysis.minRate;
+  const potentialGain = youReceiveBest - youReceiveNow;
+  const potentialLoss = youReceiveNow - youReceiveWorst;
+  
+  const impactComparison = document.getElementById('impactComparison');
+  impactComparison.innerHTML = `
+    <div class="impact-item">
+      <div class="scenario">You receive today</div>
+      <div class="amount">${youReceiveNow.toFixed(2)} ${to}</div>
+    </div>
+    <div class="impact-item">
+      <div class="scenario">At best 90-day rate</div>
+      <div class="amount">${youReceiveBest.toFixed(2)} ${to}</div>
+      <div class="scenario" style="color: ${potentialGain > 0 ? '#28a745' : '#dc3545'}; margin-top: 5px;">
+        ${potentialGain > 0 ? '+' : ''}${potentialGain.toFixed(2)} ${to} difference
+      </div>
+    </div>
+    <div class="impact-item">
+      <div class="scenario">At worst 90-day rate</div>
+      <div class="amount">${youReceiveWorst.toFixed(2)} ${to}</div>
+      <div class="scenario" style="color: ${potentialLoss > 0 ? '#28a745' : '#dc3545'}; margin-top: 5px;">
+        ${potentialLoss > 0 ? '+' : ''}${potentialLoss.toFixed(2)} ${to} avoided
+      </div>
+    </div>
+    <div class="impact-item">
+      <div class="scenario">Volatility spikes detected</div>
+      <div class="amount">${analysis.volatilitySpikes.length}</div>
+      <div class="scenario" style="margin-top: 5px;">
+        ${analysis.volatilitySpikes.length > 5 ? 'High volatility period' : 'Relatively stable'}
+      </div>
+    </div>
+  `;
+  
+  renderChart(analysis, from, to);
+  showResults();
+}
+
+function renderChart(analysis, from, to) {
+  const ctx = document.getElementById('rateChart').getContext('2d');
+  
+  if (chartInstance) {
+    chartInstance.destroy();
+  }
+  
+  const maxIdx = analysis.rates.indexOf(analysis.maxRate);
+  const minIdx = analysis.rates.indexOf(analysis.minRate);
+  
+  const pointColors = analysis.rates.map((rate, idx) => {
+    if (idx === maxIdx) return '#28a745';
+    if (idx === minIdx) return '#dc3545';
+    if (idx === analysis.rates.length - 1) return '#667eea';
+    return '#764ba2';
+  });
+  
+  const pointRadii = analysis.rates.map((rate, idx) => {
+    if (idx === maxIdx || idx === minIdx || idx === analysis.rates.length - 1) return 6;
+    return 2;
+  });
+  
+  chartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: analysis.dates.map(d => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })),
+      datasets: [
+        {
+          label: `${from}/${to} Rate`,
+          data: analysis.rates,
+          borderColor: '#667eea',
+          backgroundColor: 'rgba(102, 126, 234, 0.1)',
+          pointBackgroundColor: pointColors,
+          pointRadius: pointRadii,
+          pointHoverRadius: 8,
+          tension: 0.3,
+          fill: true
+        },
+        {
+          label: '90-Day Average',
+          data: Array(analysis.rates.length).fill(analysis.avgRate),
+          borderColor: '#ffc107',
+          borderDash: [5, 5],
+          borderWidth: 2,
+          pointRadius: 0,
+          fill: false
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      aspectRatio: 2.5,
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top'
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              let label = context.dataset.label || '';
+              if (label) {
+                label += ': ';
+              }
+              label += context.parsed.y.toFixed(4);
+              
+              const idx = context.dataIndex;
+              if (idx === maxIdx) label += ' (Best)';
+              if (idx === minIdx) label += ' (Worst)';
+              if (idx === analysis.rates.length - 1) label += ' (Today)';
+              
+              return label;
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: false,
+          ticks: {
+            callback: function(value) {
+              return value.toFixed(4);
+            }
+          }
+        },
+        x: {
+          ticks: {
+            maxTicksLimit: 10
+          }
+        }
+      }
+    }
+  });
+}
+
+function showLoading() {
+  document.getElementById('loading').classList.add('active');
+}
+
+function hideLoading() {
+  document.getElementById('loading').classList.remove('active');
+}
+
+function showResults() {
+  document.getElementById('results').classList.add('active');
+}
+
+function hideResults() {
+  document.getElementById('results').classList.remove('active');
+}
+
+function showError(message) {
+  const errorDiv = document.getElementById('error');
+  errorDiv.textContent = message;
+  errorDiv.classList.add('active');
+}
+
+function hideError() {
+  document.getElementById('error').classList.remove('active');
+}
+
+// Set default deadline to 7 days from now
+const defaultDeadline = new Date();
+defaultDeadline.setDate(defaultDeadline.getDate() + 7);
+document.getElementById('deadline').value = defaultDeadline.toISOString().split('T')[0];
+</script>
+</body>
+</html>

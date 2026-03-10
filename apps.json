@@ -1,5 +1,42 @@
 [
   {
+    "date": "2026-03-10",
+    "id": "2026-03-10-3",
+    "name": "Halfspoken",
+    "description": "A compression challenge game where you rewrite text at 50% length and compete for the highest semantic preservation score against friends or globally.",
+    "inspiration": "Ai2's Olmo Hybrid blends transformer attention with linear recurrent layers to match full model performance using 49% fewer tokens — proving you can get the same result with radically less.",
+    "connection": "The idea of achieving the same output with far fewer resources made me think about human communication — what if you could see which of your words actually carry meaning and challenge yourself to say the same thing in half the words?",
+    "source_url": "https://radicaldatascience.wordpress.com/2026/03/06/ai-news-briefs-bulletin-board-for-march-2026/",
+    "emoji": "✂️",
+    "category": "AI-inspired",
+    "image": true
+  },
+  {
+    "date": "2026-03-10",
+    "id": "2026-03-10-2",
+    "name": "SendWindow",
+    "description": "A currency exchange timing advisor that analyzes 90 days of real rates to tell you whether to send money now or wait for a better deal.",
+    "inspiration": "With oil prices surging past $110/barrel due to the Iran-Israel conflict and Strait of Hormuz disruptions, people sending money internationally — migrant workers, freelancers, importers — need to understand whether to transfer now or wait, because currency rates are shifting rapidly in response to geopolitical shocks.",
+    "connection": "Frankfurter provides daily ECB exchange rates with full historical data, enabling users to see exactly how currency pairs have moved during crisis periods and spot the optimal transfer window.",
+    "source_url": "https://www.youtube.com/watch?v=yy8a0K78ck0",
+    "emoji": "💸",
+    "category": "API tool",
+    "api": "Frankfurter",
+    "image": true
+  },
+  {
+    "date": "2026-03-10",
+    "id": "2026-03-10",
+    "name": "Otherlife",
+    "description": "Two players race to redraw each other's portraits through increasingly absurd life pivots, then vote on which alternate-timeline version they'd actually want to meet.",
+    "inspiration": "Former Nepali rapper Balendra Shah's dramatic leap from music artist to prime minister, captivating the world with his unlikely transformation.",
+    "connection": "The idea of someone's identity dramatically shifting inspired a game where two people take turns morphing each other's self-portraits through absurd career and life pivots, watching their visual identity warp in real-time.",
+    "source_url": "https://www.youtube.com/watch?v=yy8a0K78ck0",
+    "emoji": "🎭",
+    "category": "Fun/social",
+    "image": true
+  },
+  {
     "date": "2026-03-09",
     "id": "2026-03-09-3",
     "name": "Loadbearing",
