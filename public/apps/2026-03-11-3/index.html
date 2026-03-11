@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tiermind — Daily AI Gen</title>
+  <meta name="description" content="A memory-management game where you compress a week of life into vivid, gist, or forgotten tiers, then face consequences when the past suddenly matters.">
+  <meta property="og:title" content="Tiermind — Daily AI Gen">
+  <meta property="og:description" content="A memory-management game where you compress a week of life into vivid, gist, or forgotten tiers, then face consequences when the past suddenly matters.">
+  <meta property="og:url" content="https://dailyaigen.com/apps/2026-03-11-3/">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="https://dailyaigen.com/apps/2026-03-11-3/">
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  body {
+    font-family: 'Courier New', monospace;
+    background: #1a1a1a;
+    color: #e0e0e0;
+    overflow: hidden;
+    height: 100vh;
+  }
+  
+  #game-container {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  #header {
+    background: #0a0a0a;
+    padding: 15px 20px;
+    border-bottom: 2px solid #333;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  #day-info {
+    font-size: 18px;
+    color: #4a9eff;
+  }
+  
+  #stats {
+    display: flex;
+    gap: 20px;
+    font-size: 14px;
+  }
+  
+  .stat {
+    opacity: 0.7;
+  }
+  
+  #main-area {
+    flex: 1;
+    display: flex;
+    position: relative;
+  }
+  
+  #memory-stream {
+    flex: 1;
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  
+  .memory-card {
+    background: linear-gradient(135deg, #2a2a2a, #1f1f1f);
+    border: 2px solid #444;
+    border-radius: 8px;
+    padding: 25px;
+    width: 400px;
+    max-width: 90%;
+    cursor: grab;
+    position: absolute;
+    transition: transform 0.2s, box-shadow 0.2s;
+    user-select: none;
+  }
+  
+  .memory-card:active {
+    cursor: grabbing;
+  }
+  
+  .memory-card.dragging {
+    opacity: 0.7;
+    transform: rotate(3deg) scale(1.05);
+    z-index: 1000;
+  }
+  
+  .memory-type {
+    font-size: 11px;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+  }
+  
+  .memory-content {
+    font-size: 16px;
+    line-height: 1.6;
+    margin-bottom: 12px;
+  }
+  
+  .memory-detail {
+    font-size: 13px;
+    color: #999;
+    font-style: italic;
+  }
+  
+  #tiers {
+    width: 280px;
+    background: #0f0f0f;
+    border-left: 2px solid #333;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    gap: 15px;
+  }
+  
+  .tier {
+    border: 2px dashed #444;
+    border-radius: 8px;
+    padding: 15px;
+    min-height: 120px;
+    transition: all 0.3s;
+  }
+  
+  .tier.drag-over {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: #666;
+  }
+  
+  .tier-header {
+    font-size: 14px;
+    font-weight: bold;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .tier-count {
+    font-size: 11px;
+    opacity: 0.6;
+  }
+  
+  #tier-vivid {
+    border-color: #ff6b6b;
+  }
+  
+  #tier-vivid .tier-header {
+    color: #ff6b6b;
+  }
+  
+  #tier-gist {
+    border-color: #ffd93d;
+  }
+  
+  #tier-gist .tier-header {
+    color: #ffd93d;
+  }
+  
+  #tier-forget {
+    border-color: #666;
+  }
+  
+  #tier-forget .tier-header {
+    color: #999;
+  }
+  
+  .stored-memory {
+    font-size: 11px;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 5px 8px;
+    margin-top: 5px;
+    border-radius: 4px;
+    opacity: 0.8;
+  }
+  
+  #event-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.95);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+  }
+  
+  #event-overlay.active {
+    display: flex;
+  }
+  
+  #event-content {
+    background: #1a1a1a;
+    border: 2px solid #4a9eff;
+    border-radius: 12px;
+    padding: 40px;
+    max-width: 600px;
+    width: 90%;
+  }
+  
+  .event-title {
+    font-size: 24px;
+    color: #4a9eff;
+    margin-bottom: 20px;
+  }
+  
+  .event-description {
+    font-size: 16px;
+    line-height: 1.6;
+    margin-bottom: 25px;
+  }
+  
+  .choice-btn {
+    background: #2a2a2a;
+    border: 2px solid #444;
+    color: #e0e0e0;
+    padding: 12px 20px;
+    margin: 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    transition: all 0.2s;
+  }
+  
+  .choice-btn:hover {
+    background: #333;
+    border-color: #666;
+  }
+  
+  .outcome {
+    margin-top: 20px;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  
+  .outcome.success {
+    border-left: 4px solid #6bff6b;
+  }
+  
+  .outcome.partial {
+    border-left: 4px solid #ffd93d;
+  }
+  
+  .outcome.failure {
+    border-left: 4px solid #ff6b6b;
+  }
+  
+  #continue-btn {
+    margin-top: 20px;
+    background: #4a9eff;
+    border: none;
+    padding: 12px 30px;
+  }
+  
+  #continue-btn:hover {
+    background: #5fadff;
+  }
+
+  #game-over {
+    text-align: center;
+  }
+
+  .final-score {
+    font-size: 48px;
+    color: #4a9eff;
+    margin: 20px 0;
+  }
+
+  #instruction {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 18px;
+    color: #666;
+    text-align: center;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+<div id="game-container">
+  <div id="header">
+    <div id="day-info">Day 1 — Monday Morning</div>
+    <div id="stats">
+      <div class="stat">Memories Sorted: <span id="sorted-count">0</span>/5</div>
+      <div class="stat">Score: <span id="score">0</span></div>
+    </div>
+  </div>
+  
+  <div id="main-area">
+    <div id="memory-stream">
+      <div id="instruction">Drag memories to the right →</div>
+    </div>
+    
+    <div id="tiers">
+      <div class="tier" id="tier-vivid" data-tier="vivid">
+        <div class="tier-header">
+          <span>VIVID</span>
+          <span class="tier-count" id="vivid-count">0/2</span>
+        </div>
+        <div style="font-size: 10px; opacity: 0.5; margin-top: 5px;">Perfect recall, limited slots</div>
+        <div id="vivid-list"></div>
+      </div>
+      
+      <div class="tier" id="tier-gist" data-tier="gist">
+        <div class="tier-header">
+          <span>GIST</span>
+          <span class="tier-count" id="gist-count">0/∞</span>
+        </div>
+        <div style="font-size: 10px; opacity: 0.5; margin-top: 5px;">Compressed, detail loss</div>
+        <div id="gist-list"></div>
+      </div>
+      
+      <div class="tier" id="tier-forget" data-tier="forget">
+        <div class="tier-header">
+          <span>FORGET</span>
+          <span class="tier-count" id="forget-count">0/∞</span>
+        </div>
+        <div style="font-size: 10px; opacity: 0.5; margin-top: 5px;">Gone forever</div>
+        <div id="forget-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="event-overlay">
+  <div id="event-content"></div>
+</div>
+
+<script>
+const DAYS = [
+  {
+    name: "Monday Morning",
+    memories: [
+      { type: "conversation", content: "Your boss mentions a client meeting on Thursday at 2pm", detail: "Conference room B, bring the Q3 report" },
+      { type: "face", content: "A new coworker named Sarah introduces herself", detail: "Curly red hair, Boston accent, marketing dept" },
+      { type: "number", content: "Coffee shop receipt: $4.75", detail: "Large oat milk latte, blueberry muffin" },
+      { type: "emotion", content: "Annoyance when someone cuts you off in traffic", detail: "Blue sedan, license plate started with 7XK" },
+      { type: "landscape", content: "Construction on Maple Street forces a detour", detail: "Orange cones, left turn onto Oak instead" }
+    ],
+    event: {
+      title: "Monday Afternoon",
+      description: "Your boss stops by your desk: 'Hey, can you remind me when that client meeting is? And which room we booked?'",
+      memoryKey: "conversation",
+      vivid: { text: "You confidently say: 'Thursday at 2pm, Conference room B. I'll bring the Q3 report.'", score: 15 },
+      gist: { text: "You remember it's Thursday... afternoon? 'I think 2 or 3pm? Let me double-check the room...'", score: 7 },
+      forget: { text: "You freeze. 'Um... this week sometime? I'll check my calendar and ping you.'", score: 0 }
+    }
+  },
+  {
+    name: "Tuesday",
+    memories: [
+      { type: "conversation", content: "Friend texts: 'Dinner Friday? That Thai place you love, 7pm'", detail: "Sticky rice and mango for dessert!" },
+      { type: "number", content: "Parking meter code: Zone 4B", detail: "Two-hour limit, $3/hour" },
+      { type: "emotion", content: "Relief when you find your lost earbuds", detail: "They were in your jacket pocket" },
+      { type: "face", content: "Elderly woman at the crosswalk smiles at you", detail: "Purple hat, walking a small terrier" },
+      { type: "landscape", content: "Sunset turns the clouds pink and orange", detail: "View from your apartment window, 6:47pm" }
+    ],
+    event: {
+      title: "Tuesday Evening",
+      description: "Parking enforcement officer is writing a ticket by your car. She asks: 'Do you know what zone you parked in?'",
+      memoryKey: "number",
+      vivid: { text: "'Zone 4B, officer. I paid for two hours.' She checks her device and nods. No ticket.", score: 15 },
+      gist: { text: "'Zone 4... something?' She frowns. 'Close enough. Just be careful.' Warning issued.", score: 7 },
+      forget: { text: "'I... don't remember?' She hands you a $45 ticket. 'Check the signs next time.'", score: -5 }
+    }
+  },
+  {
+    name: "Wednesday",
+    memories: [
+      { type: "face", content: "Sarah from marketing waves at you in the hallway", detail: "She's carrying a stack of presentation boards" },
+      { type: "emotion", content: "Joy when your favorite song comes on the radio", detail: "'September' by Earth, Wind & Fire" },
+      { type: "conversation", content: "Dentist office confirms cleaning appointment: Next Monday, 10am", detail: "Dr. Chen, bring insurance card" },
+      { type: "number", content: "Wifi password at the cafe: BlueSky2024", detail: "Written on a small chalkboard by the counter" },
+      { type: "landscape", content: "Cherry blossoms blooming in the park", detail: "Pink petals cover the pathway near the fountain" }
+    ],
+    event: {
+      title: "Wednesday Lunch",
+      description: "You run into Sarah from marketing. She lights up: 'Hey! I'm so bad with names, remind me...?'",
+      memoryKey: "face",
+      vivid: { text: "You remember her clearly: 'You're Sarah! How's the marketing dept treating you?'", score: 15 },
+      gist: { text: "You remember she's new, but not her name: 'Hey! Settling in okay?' She seems slightly deflated.", score: 5 },
+      forget: { text: "'Oh, hi...' You have no idea who she is. She looks hurt and walks away quickly.", score: -5 }
+    }
+  },
+  {
+    name: "Thursday",
+    memories: [
+      { type: "landscape", content: "Road closure on Oak Street due to water main break", detail: "Signs reroute you down Pine Ave instead" },
+      { type: "emotion", content: "Pride when your project gets praised in a meeting", detail: "Manager says it's 'exactly what we needed'" },
+      { type: "number", content: "Gym locker combination: 18-34-9", detail: "Top row, locker #47" },
+      { type: "conversation", content: "Neighbor mentions their cat is missing", detail: "Orange tabby named Mango, very friendly" },
+      { type: "face", content: "Barista draws a heart in your latte foam", detail: "She has a nose ring and a sleeve tattoo" }
+    ],
+    event: {
+      title: "Thursday Evening",
+      description: "Your neighbor stops you: 'Have you seen an orange cat around? Mango got out this morning.'",
+      memoryKey: "conversation",
+      vivid: { text: "'Yes! Mango, right? I'll keep an eye out — very friendly cat?' Your neighbor is grateful.", score: 15 },
+      gist: { text: "'Someone mentioned a missing cat... orange, I think?' It's vague but shows you care.", score: 8 },
+      forget: { text: "'A cat? No, sorry, haven't seen anything.' The neighbor looks disappointed.", score: 0 }
+    }
+  },
+  {
+    name: "Friday",
+    memories: [
+      { type: "conversation", content: "Your friend reminds you: 'Still on for tonight? Thai place, 7pm!'", detail: "Should I order the duck curry again?" },
+      { type: "number", content: "Gas pump total: $48.32", detail: "12.4 gallons, Shell station on River Road" },
+      { type: "emotion", content: "Frustration when your computer crashes mid-work", detail: "Lost 20 minutes of unsaved spreadsheet edits" },
+      { type: "landscape", content: "First raindrops of the week start falling", detail: "Dark clouds rolling in from the west" },
+      { type: "face", content: "Kid at the grocery store stares at you with wide eyes", detail: "Clutching a stuffed dinosaur, maybe 4 years old" }
+    ],
+    event: {
+      title: "Friday 6pm",
+      description: "Your friend texts: 'Running late, can you grab us a table? What was the name of the place again?'",
+      memoryKey: "conversation",
+      vivid: { text: "'The Thai place, 7pm — I'll get us a table!' You arrive and everything goes smoothly.", score: 20 },
+      gist: { text: "'Uh... Thai food, right? Let me look it up.' You're 15 minutes late finding the place.", score: 8 },
+      forget: { text: "You completely forgot about dinner plans. Your friend is furious.", score: -10 }
+    }
+  }
+];
+
+let currentDay = 0;
+let currentMemoryIndex = 0;
+let score = 0;
+let memoryStorage = { vivid: [], gist: [], forget: [] };
+let draggedElement = null;
+let currentMemory = null;
+
+function startDay() {
+  currentMemoryIndex = 0;
+  memoryStorage = { vivid: [], gist: [], forget: [] };
+  updateTierCounts();
+  document.getElementById('day-info').textContent = `Day ${currentDay + 1} — ${DAYS[currentDay].name}`;
+  showNextMemory();
+}
+
+function showNextMemory() {
+  const day = DAYS[currentDay];
+  
+  if (currentMemoryIndex >= day.memories.length) {
+    triggerEvent();
+    return;
+  }
+  
+  const memory = day.memories[currentMemoryIndex];
+  currentMemory = memory;
+  
+  const card = document.createElement('div');
+  card.className = 'memory-card';
+  card.innerHTML = `
+    <div class="memory-type">${memory.type}</div>
+    <div class="memory-content">${memory.content}</div>
+    <div class="memory-detail">${memory.detail}</div>
+  `;
+  
+  card.addEventListener('mousedown', startDrag);
+  card.addEventListener('touchstart', startDrag);
+  
+  const stream = document.getElementById('memory-stream');
+  const instruction = document.getElementById('instruction');
+  if (instruction) instruction.style.display = 'none';
+  stream.innerHTML = '';
+  stream.appendChild(card);
+}
+
+function startDrag(e) {
+  e.preventDefault();
+  draggedElement = e.currentTarget;
+  draggedElement.classList.add('dragging');
+  
+  document.addEventListener('mousemove', drag);
+  document.addEventListener('mouseup', endDrag);
+  document.addEventListener('touchmove', drag);
+  document.addEventListener('touchend', endDrag);
+}
+
+function drag(e) {
+  if (!draggedElement) return;
+  
+  const touch = e.touches ? e.touches[0] : e;
+  draggedElement.style.position = 'fixed';
+  draggedElement.style.left = touch.clientX - 200 + 'px';
+  draggedElement.style.top = touch.clientY - 100 + 'px';
+  draggedElement.style.pointerEvents = 'none';
+  
+  const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+  document.querySelectorAll('.tier').forEach(t => t.classList.remove('drag-over'));
+  
+  if (elementBelow) {
+    const tier = elementBelow.closest('.tier');
+    if (tier) tier.classList.add('drag-over');
+  }
+}
+
+function endDrag(e) {
+  if (!draggedElement) return;
+  
+  const touch = e.changedTouches ? e.changedTouches[0] : e;
+  const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+  const tier = elementBelow?.closest('.tier');
+  
+  document.removeEventListener('mousemove', drag);
+  document.removeEventListener('mouseup', endDrag);
+  document.removeEventListener('touchmove', drag);
+  document.removeEventListener('touchend', endDrag);
+  
+  if (tier) {
+    const tierType = tier.dataset.tier;
+    
+    if (tierType === 'vivid' && memoryStorage.vivid.length >= 2) {
+      draggedElement.remove();
+      draggedElement = null;
+      return;
+    }
+    
+    memoryStorage[tierType].push(currentMemory);
+    updateTierCounts();
+    
+    currentMemoryIndex++;
+    const sorted = document.getElementById('sorted-count');
+    sorted.textContent = currentMemoryIndex;
+    
+    draggedElement.remove();
+    showNextMemory();
+  } else {
+    draggedElement.classList.remove('dragging');
+    draggedElement.style.position = 'absolute';
+    draggedElement.style.left = '50%';
+    draggedElement.style.top = '50%';
+    draggedElement.style.transform = 'translate(-50%, -50%)';
+  }
+  
+  draggedElement = null;
+}
+
+function updateTierCounts() {
+  document.getElementById('vivid-count').textContent = `${memoryStorage.vivid.length}/2`;
+  document.getElementById('gist-count').textContent = `${memoryStorage.gist.length}/∞`;
+  document.getElementById('forget-count').textContent = `${memoryStorage.forget.length}/∞`;
+  
+  ['vivid', 'gist', 'forget'].forEach(tier => {
+    const list = document.getElementById(`${tier}-list`);
+    list.innerHTML = memoryStorage[tier].map(m => 
+      `<div class="stored-memory">${m.type}: ${m.content.substring(0, 30)}...</div>`
+    ).join('');
+  });
+}
+
+function triggerEvent() {
+  const day = DAYS[currentDay];
+  const event = day.event;
+  
+  const relevantMemory = day.memories.find(m => m.type === event.memoryKey);
+  let tier = 'forget';
+  
+  if (memoryStorage.vivid.includes(relevantMemory)) tier = 'vivid';
+  else if (memoryStorage.gist.includes(relevantMemory)) tier = 'gist';
+  
+  const outcome = event[tier];
+  
+  const overlay = document.getElementById('event-overlay');
+  const content = document.getElementById('event-content');
+  
+  content.innerHTML = `
+    <div class="event-title">${event.title}</div>
+    <div class="event-description">${event.description}</div>
+    <div class="outcome ${tier === 'vivid' ? 'success' : tier === 'gist' ? 'partial' : 'failure'}">
+      ${outcome.text}
+      <br><br>
+      <strong>${outcome.score > 0 ? '+' : ''}${outcome.score} points</strong>
+    </div>
+    <button class="choice-btn" id="continue-btn">Continue</button>
+  `;
+  
+  score += outcome.score;
+  document.getElementById('score').textContent = score;
+  
+  overlay.classList.add('active');
+  
+  document.getElementById('continue-btn').addEventListener('click', () => {
+    overlay.classList.remove('active');
+    currentDay++;
+    
+    if (currentDay >= DAYS.length) {
+      showGameOver();
+    } else {
+      startDay();
+    }
+  });
+}
+
+function showGameOver() {
+  const overlay = document.getElementById('event-overlay');
+  const content = document.getElementById('event-content');
+  
+  let message = '';
+  if (score >= 70) message = 'Remarkable recall. You navigated the week with precision.';
+  else if (score >= 40) message = 'Decent memory work. Some details slipped, but you managed.';
+  else if (score >= 10) message = 'Struggling to hold it together. Life is blurry at the edges.';
+  else message = 'Overwhelmed. The week passed in fragments and regret.';
+  
+  content.innerHTML = `
+    <div id="game-over">
+      <div class="event-title">Week Complete</div>
+      <div class="final-score">${score} points</div>
+      <div class="event-description">${message}</div>
+      <button class="choice-btn" id="continue-btn" onclick="location.reload()">Play Again</button>
+    </div>
+  `;
+  
+  overlay.classList.add('active');
+}
+
+startDay();
+</script>
+</body>
+</html>

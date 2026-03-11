@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Eruptia - Volcanic Real Estate Simulator — Daily AI Gen</title>
+  <meta name="description" content="A volcano hurls pianos, lobsters, and divorce papers onto your island where you stack them into absurd housing while villagers move in and complain about living in a lobster-piano tower.">
+  <meta property="og:title" content="Eruptia — Daily AI Gen">
+  <meta property="og:description" content="A volcano hurls pianos, lobsters, and divorce papers onto your island where you stack them into absurd housing while villagers move in and complain about living in a lobster-piano tower.">
+  <meta property="og:url" content="https://dailyaigen.com/apps/2026-03-11/">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="https://dailyaigen.com/apps/2026-03-11/">
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  body {
+    font-family: 'Comic Sans MS', cursive;
+    overflow: hidden;
+    background: linear-gradient(to bottom, #87CEEB 0%, #F4A460 60%, #D2691E 100%);
+    cursor: default;
+  }
+  
+  #game-container {
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+  }
+  
+  #volcano {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 120px solid transparent;
+    border-right: 120px solid transparent;
+    border-bottom: 200px solid #8B4513;
+    z-index: 1;
+  }
+  
+  #volcano::before {
+    content: '';
+    position: absolute;
+    top: -30px;
+    left: -30px;
+    width: 60px;
+    height: 60px;
+    background: radial-gradient(circle, #FF4500, #8B0000);
+    border-radius: 50%;
+    animation: glow 2s ease-in-out infinite;
+  }
+  
+  @keyframes glow {
+    0%, 100% { opacity: 0.6; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.2); }
+  }
+  
+  .object {
+    position: absolute;
+    cursor: grab;
+    user-select: none;
+    font-size: 48px;
+    transition: transform 0.1s;
+    z-index: 10;
+  }
+  
+  .object:active {
+    cursor: grabbing;
+    z-index: 1000;
+  }
+  
+  .object.flying {
+    animation: fly 2s ease-out forwards;
+    pointer-events: none;
+  }
+  
+  @keyframes fly {
+    0% {
+      transform: translateY(0) rotate(0deg) scale(0.5);
+      opacity: 0;
+    }
+    20% {
+      opacity: 1;
+    }
+    50% {
+      transform: translateY(-400px) rotate(720deg) scale(1);
+    }
+    100% {
+      transform: translateY(0) rotate(1080deg) scale(1);
+      opacity: 1;
+    }
+  }
+  
+  #timer {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.7);
+    color: #FF6347;
+    padding: 15px 30px;
+    border-radius: 10px;
+    font-size: 24px;
+    font-weight: bold;
+    z-index: 100;
+  }
+  
+  #stats {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    background: rgba(255,255,255,0.9);
+    padding: 15px;
+    border-radius: 10px;
+    z-index: 100;
+    min-width: 200px;
+  }
+  
+  #reviews {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: rgba(255,255,255,0.9);
+    padding: 15px;
+    border-radius: 10px;
+    z-index: 100;
+    max-width: 300px;
+    max-height: 400px;
+    overflow-y: auto;
+  }
+  
+  .review {
+    background: #FFF8DC;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-left: 4px solid #FF6347;
+    border-radius: 4px;
+    font-size: 12px;
+  }
+  
+  .villager {
+    position: absolute;
+    font-size: 24px;
+    z-index: 5;
+    animation: walk 3s linear infinite;
+  }
+  
+  @keyframes walk {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(30px); }
+  }
+  
+  .eruption-warning {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255,0,0,0.9);
+    color: white;
+    padding: 30px 60px;
+    border-radius: 20px;
+    font-size: 48px;
+    font-weight: bold;
+    z-index: 200;
+    animation: pulse 0.5s ease-in-out 3;
+    pointer-events: none;
+  }
+  
+  @keyframes pulse {
+    0%, 100% { transform: translate(-50%, -50%) scale(1); }
+    50% { transform: translate(-50%, -50%) scale(1.2); }
+  }
+</style>
+</head>
+<body>
+<div id="game-container">
+  <div id="volcano"></div>
+  <div id="timer">Next Eruption: <span id="countdown">30</span>s</div>
+  <div id="stats">
+    <h3>📊 Island Stats</h3>
+    <div>Height: <span id="height">0</span> units</div>
+    <div>Objects: <span id="object-count">0</span></div>
+    <div>Villagers: <span id="villager-count">0</span></div>
+  </div>
+  <div id="reviews">
+    <h3>🏠 Resident Reviews</h3>
+    <div id="review-list"></div>
+  </div>
+</div>
+
+<script>
+const objects = [
+  '🎹', '🦞', '📄', '🏰', '🚗', '🦖', '🎪', '🗿', '🎺', '🦅',
+  '🛁', '🎰', '🦈', '🎭', '🚁', '🗽', '🎨', '🦏', '🎪', '🗼',
+  '🎸', '🦒', '📺', '🎡', '🚂', '🗻', '🎯', '🦜', '📻', '🎢'
+];
+
+const reviews = [
+  "The lobster on the 3rd floor keeps pinching me. 2/5 stars.",
+  "Great piano acoustics but my ceiling is a divorce decree. Awkward.",
+  "The inflatable castle neighbor parties EVERY NIGHT.",
+  "I live in a stack of grand pianos. My rent is a song. Literally.",
+  "Woke up to find a dinosaur as my new roommate. He's neat.",
+  "The structural integrity is questionable but the views are AMAZING.",
+  "My apartment is a bathtub on top of a car. I've accepted my fate.",
+  "Statue of Liberty makes a terrible downstairs neighbor. Too judgy.",
+  "Living in a helicopter-lobster hybrid. Better than my last place.",
+  "The volcano landlord is... intense. But cheap rent!",
+  "I share a toilet with a saxophone. We make it work.",
+  "My floor is a ferris wheel. Commute is disorienting.",
+  "Divorce papers make surprisingly good insulation.",
+  "The shark in unit 4B is actually pretty chill.",
+  "I requested a studio. Got a circus tent on a train. Close enough."
+];
+
+let gameObjects = [];
+let villagers = [];
+let timeLeft = 30;
+let objectCount = 0;
+let draggedObject = null;
+let dragOffset = { x: 0, y: 0 };
+
+const container = document.getElementById('game-container');
+const countdownEl = document.getElementById('countdown');
+const heightEl = document.getElementById('height');
+const objectCountEl = document.getElementById('object-count');
+const villagerCountEl = document.getElementById('villager-count');
+const reviewListEl = document.getElementById('review-list');
+
+function createObject(emoji, x, y, flying = true) {
+  const obj = document.createElement('div');
+  obj.className = 'object' + (flying ? ' flying' : '');
+  obj.textContent = emoji;
+  obj.style.left = x + 'px';
+  obj.style.top = y + 'px';
+  
+  const data = {
+    element: obj,
+    emoji: emoji,
+    x: x,
+    y: y,
+    width: 48,
+    height: 48
+  };
+  
+  obj.addEventListener('mousedown', startDrag);
+  
+  if (flying) {
+    setTimeout(() => {
+      obj.classList.remove('flying');
+      obj.style.left = x + 'px';
+      obj.style.top = y + 'px';
+    }, 2000);
+  }
+  
+  container.appendChild(obj);
+  gameObjects.push(data);
+  updateStats();
+  
+  return data;
+}
+
+function startDrag(e) {
+  if (e.target.classList.contains('flying')) return;
+  
+  draggedObject = gameObjects.find(obj => obj.element === e.target);
+  if (!draggedObject) return;
+  
+  const rect = draggedObject.element.getBoundingClientRect();
+  dragOffset.x = e.clientX - rect.left;
+  dragOffset.y = e.clientY - rect.top;
+  
+  draggedObject.element.style.zIndex = 1000;
+}
+
+document.addEventListener('mousemove', (e) => {
+  if (!draggedObject) return;
+  
+  const x = e.clientX - dragOffset.x;
+  const y = e.clientY - dragOffset.y;
+  
+  draggedObject.x = Math.max(0, Math.min(window.innerWidth - draggedObject.width, x));
+  draggedObject.y = Math.max(0, Math.min(window.innerHeight - draggedObject.height, y));
+  
+  draggedObject.element.style.left = draggedObject.x + 'px';
+  draggedObject.element.style.top = draggedObject.y + 'px';
+});
+
+document.addEventListener('mouseup', () => {
+  if (draggedObject) {
+    draggedObject.element.style.zIndex = 10;
+    draggedObject = null;
+    updateStats();
+  }
+});
+
+function erupt() {
+  // Warning
+  const warning = document.createElement('div');
+  warning.className = 'eruption-warning';
+  warning.textContent = '🌋 ERUPTION! 🌋';
+  container.appendChild(warning);
+  
+  setTimeout(() => warning.remove(), 1500);
+  
+  // Launch objects
+  const launchCount = Math.floor(Math.random() * 5) + 3;
+  
+  for (let i = 0; i < launchCount; i++) {
+    setTimeout(() => {
+      const emoji = objects[Math.floor(Math.random() * objects.length)];
+      const startX = window.innerWidth / 2 - 24;
+      const startY = window.innerHeight - 100;
+      const endX = Math.random() * (window.innerWidth - 100) + 50;
+      const endY = Math.random() * (window.innerHeight - 200) + 100;
+      
+      const obj = createObject(emoji, endX, endY, true);
+    }, i * 200);
+  }
+  
+  // Reset timer
+  timeLeft = 30;
+  
+  // Maybe spawn a villager
+  if (Math.random() < 0.6 && gameObjects.length > 3) {
+    setTimeout(() => spawnVillager(), 2500);
+  }
+}
+
+function spawnVillager() {
+  const villager = document.createElement('div');
+  villager.className = 'villager';
+  villager.textContent = ['🧑', '👨', '👩', '🧔', '👴', '👵'][Math.floor(Math.random() * 6)];
+  villager.style.left = Math.random() * (window.innerWidth - 50) + 'px';
+  villager.style.bottom = '10px';
+  
+  container.appendChild(villager);
+  villagers.push(villager);
+  
+  // Add review
+  setTimeout(() => {
+    const review = document.createElement('div');
+    review.className = 'review';
+    review.textContent = reviews[Math.floor(Math.random() * reviews.length)];
+    reviewListEl.insertBefore(review, reviewListEl.firstChild);
+    
+    // Keep only last 5 reviews
+    while (reviewListEl.children.length > 5) {
+      reviewListEl.removeChild(reviewListEl.lastChild);
+    }
+  }, 1000);
+  
+  updateStats();
+}
+
+function updateStats() {
+  objectCountEl.textContent = gameObjects.length;
+  villagerCountEl.textContent = villagers.length;
+  
+  // Calculate "height" - lowest Y position (higher on screen = lower Y value)
+  let lowestY = window.innerHeight;
+  gameObjects.forEach(obj => {
+    if (obj.y < lowestY) lowestY = obj.y;
+  });
+  const height = Math.max(0, Math.floor((window.innerHeight - lowestY) / 10));
+  heightEl.textContent = height;
+}
+
+// Timer
+setInterval(() => {
+  timeLeft--;
+  countdownEl.textContent = timeLeft;
+  
+  if (timeLeft <= 0) {
+    erupt();
+  }
+}, 1000);
+
+// Initial eruption
+setTimeout(() => erupt(), 1000);
+</script>
+</body>
+</html>

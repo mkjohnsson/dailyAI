@@ -1,5 +1,42 @@
 [
   {
+    "date": "2026-03-11",
+    "id": "2026-03-11-3",
+    "name": "Tiermind",
+    "description": "A memory-management game where you compress a week of life into vivid, gist, or forgotten tiers, then face consequences when the past suddenly matters.",
+    "inspiration": "DeepSeek V4's MODEL1 tiered KV cache system that cuts memory by 40% by deciding what's worth remembering in detail versus what can be compressed.",
+    "connection": "The idea of a tiered memory system — some things stored vividly, others compressed, others dropped entirely — mirrors how human memory works after traumatic or intense experiences, inspiring a game about managing a mind that can't hold everything.",
+    "source_url": "https://blog.mean.ceo/new-ai-model-releases-news-march-2026/",
+    "emoji": "🧠",
+    "category": "AI-inspired",
+    "image": true
+  },
+  {
+    "date": "2026-03-11",
+    "id": "2026-03-11-2",
+    "name": "Threatcast",
+    "description": "Enter any U.S. city to see a 7-day hourly weather threat heatmap with danger scores, daily verdicts, and a draggable trip window to check if your travel time hits hazardous conditions.",
+    "inspiration": "With over 100 million Americans under severe weather alerts and deadly storm outbreaks compounding across the central U.S., people need a quick way to assess whether upcoming weather at their location poses genuine danger versus routine bad weather — especially for planning travel, outdoor work, or deciding whether to shelter.",
+    "connection": "Open-Meteo provides hourly and daily forecast data including wind speed, precipitation, thunderstorm probability, and weather codes that can be programmatically scored into a danger assessment without any API key.",
+    "source_url": "https://www.youtube.com/watch?v=pgwcaQen0xc",
+    "emoji": "⛈️",
+    "category": "API tool",
+    "api": "Open-Meteo",
+    "image": true
+  },
+  {
+    "date": "2026-03-11",
+    "id": "2026-03-11",
+    "name": "Eruptia",
+    "description": "A volcano hurls pianos, lobsters, and divorce papers onto your island where you stack them into absurd housing while villagers move in and complain about living in a lobster-piano tower.",
+    "inspiration": "Kilauea volcano erupts, spewing ash plumes and dramatic lava flows in an ongoing cycle of explosive activity.",
+    "connection": "What if a volcano wasn't destructive but creative — erupting not lava but random, absurd objects, and you had to build a civilization from whatever nonsense it spewed out?",
+    "source_url": "https://www.youtube.com/watch?v=pgwcaQen0xc",
+    "emoji": "🌋",
+    "category": "Weird/absurd",
+    "image": true
+  },
+  {
     "date": "2026-03-10",
     "id": "2026-03-10-3",
     "name": "Halfspoken",
