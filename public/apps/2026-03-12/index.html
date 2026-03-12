@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Redline: Diplomatic Absurdity — Daily AI Gen</title>
+  <meta name="description" content="Two players negotiate an absurd treaty by proposing clauses to protect secret demands while sacrificing throwaway items, racing against three walkouts before mutually assured dessert destruction.">
+  <meta property="og:title" content="Redline — Daily AI Gen">
+  <meta property="og:description" content="Two players negotiate an absurd treaty by proposing clauses to protect secret demands while sacrificing throwaway items, racing against three walkouts before mutually assured dessert destruction.">
+  <meta property="og:url" content="https://dailyaigen.com/apps/2026-03-12/">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="https://dailyaigen.com/apps/2026-03-12/">
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  body {
+    font-family: 'Courier New', monospace;
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+    color: #333;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+  }
+  
+  .container {
+    background: #f4f1e8;
+    border: 3px solid #8b4513;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+    max-width: 900px;
+    width: 100%;
+    padding: 30px;
+    position: relative;
+  }
+  
+  .stamp {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 80px;
+    height: 80px;
+    border: 3px solid #c41e3a;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: #c41e3a;
+    transform: rotate(15deg);
+    opacity: 0.7;
+    font-size: 11px;
+    text-align: center;
+  }
+  
+  h1 {
+    font-size: 32px;
+    text-align: center;
+    margin-bottom: 10px;
+    color: #1e3c72;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+  }
+  
+  .subtitle {
+    text-align: center;
+    font-size: 14px;
+    margin-bottom: 30px;
+    color: #666;
+    font-style: italic;
+  }
+  
+  .scenario {
+    background: #fff;
+    padding: 15px;
+    border-left: 4px solid #c41e3a;
+    margin-bottom: 20px;
+    font-size: 16px;
+  }
+  
+  .player-section {
+    background: #fff;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 2px solid #ddd;
+  }
+  
+  .player-header {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 15px;
+    color: #1e3c72;
+  }
+  
+  .cards {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 15px;
+  }
+  
+  .card {
+    background: #fffacd;
+    padding: 10px;
+    border: 1px solid #daa520;
+    font-size: 13px;
+    flex: 1;
+    min-width: 150px;
+  }
+  
+  .card.demand {
+    background: #ffe4e1;
+    border-color: #c41e3a;
+  }
+  
+  .card-label {
+    font-weight: bold;
+    font-size: 10px;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+    color: #666;
+  }
+  
+  .treaty {
+    background: #fff;
+    padding: 20px;
+    border: 2px solid #1e3c72;
+    margin: 20px 0;
+    max-height: 300px;
+    overflow-y: auto;
+  }
+  
+  .treaty-header {
+    font-size: 18px;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 15px;
+    text-decoration: underline;
+  }
+  
+  .clause {
+    margin-bottom: 15px;
+    padding: 10px;
+    background: #f9f9f9;
+    border-left: 3px solid #1e3c72;
+  }
+  
+  .clause-num {
+    font-weight: bold;
+    color: #1e3c72;
+  }
+  
+  .controls {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+  }
+  
+  button {
+    padding: 12px 24px;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    border: 2px solid #1e3c72;
+    background: #fff;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex: 1;
+    min-width: 120px;
+  }
+  
+  button:hover:not(:disabled) {
+    background: #1e3c72;
+    color: #fff;
+  }
+  
+  button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  
+  button.danger {
+    border-color: #c41e3a;
+    color: #c41e3a;
+  }
+  
+  button.danger:hover:not(:disabled) {
+    background: #c41e3a;
+    color: #fff;
+  }
+  
+  input[type="text"] {
+    width: 100%;
+    padding: 10px;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    border: 2px solid #ddd;
+    margin-bottom: 10px;
+  }
+  
+  .walkout-tracker {
+    text-align: center;
+    margin: 20px 0;
+    font-size: 18px;
+    font-weight: bold;
+  }
+  
+  .walkout-dot {
+    display: inline-block;
+    width: 15px;
+    height: 15px;
+    background: #ddd;
+    border-radius: 50%;
+    margin: 0 5px;
+  }
+  
+  .walkout-dot.used {
+    background: #c41e3a;
+  }
+  
+  .final-treaty {
+    background: #fff;
+    padding: 30px;
+    border: 3px solid #1e3c72;
+    margin-top: 20px;
+  }
+  
+  .score-section {
+    background: #fffacd;
+    padding: 15px;
+    margin: 20px 0;
+    border: 2px solid #daa520;
+  }
+  
+  .hidden {
+    display: none;
+  }
+  
+  .turn-indicator {
+    background: #1e3c72;
+    color: #fff;
+    padding: 10px;
+    text-align: center;
+    margin-bottom: 20px;
+    font-weight: bold;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="stamp" id="stamp">TOP SECRET</div>
+  
+  <h1>🏛️ Redline 🏛️</h1>
+  <div class="subtitle">A Diplomatic Negotiation Game</div>
+  
+  <div id="setup">
+    <div class="scenario" id="scenarioText"></div>
+    <div class="controls">
+      <button onclick="startGame()">Begin Negotiations</button>
+    </div>
+  </div>
+  
+  <div id="game" class="hidden">
+    <div class="walkout-tracker">
+      Walkouts Remaining: 
+      <span class="walkout-dot" id="w1"></span>
+      <span class="walkout-dot" id="w2"></span>
+      <span class="walkout-dot" id="w3"></span>
+    </div>
+    
+    <div class="turn-indicator" id="turnIndicator"></div>
+    
+    <div class="player-section" id="player1Section">
+      <div class="player-header">Player 1: <span id="p1name"></span></div>
+      <div class="cards" id="p1Cards"></div>
+    </div>
+    
+    <div class="player-section" id="player2Section">
+      <div class="player-header">Player 2: <span id="p2name"></span></div>
+      <div class="cards" id="p2Cards"></div>
+    </div>
+    
+    <div class="treaty">
+      <div class="treaty-header">Treaty Clauses</div>
+      <div id="clauses"></div>
+      <div id="noClauses" style="text-align: center; color: #999;">No clauses yet. Propose the first one below.</div>
+    </div>
+    
+    <div id="proposeSection">
+      <input type="text" id="proposalInput" placeholder="Type your proposed clause here...">
+      <div class="controls">
+        <button onclick="proposeClause()">Propose Clause</button>
+      </div>
+    </div>
+    
+    <div id="respondSection" class="hidden">
+      <div style="background: #fffacd; padding: 15px; margin-bottom: 15px; border: 2px solid #daa520;">
+        <strong>Proposed Clause:</strong> <span id="currentProposal"></span>
+      </div>
+      <div class="controls">
+        <button onclick="acceptClause()">✓ Accept</button>
+        <button onclick="counterClause()">✎ Counter-Propose</button>
+        <button class="danger" onclick="walkOut()">✗ Walk Out</button>
+      </div>
+    </div>
+    
+    <div class="controls" style="margin-top: 20px;">
+      <button onclick="finalizeTreaty()">Finalize Treaty</button>
+    </div>
+  </div>
+  
+  <div id="results" class="hidden">
+    <div class="final-treaty" id="finalTreaty"></div>
+    <div class="controls">
+      <button onclick="copyTreaty()">📋 Copy Treaty</button>
+      <button onclick="location.reload()">New Game</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const scenarios = [
+  {
+    title: "The Great Pizza Empire Division",
+    p1: "Northern Crust Coalition",
+    p2: "Southern Cheese Alliance",
+    demands: [
+      "Control of all pepperoni supplies",
+      "Exclusive rights to thin crust technology",
+      "Ownership of the sacred pizza oven",
+      "All Friday night delivery profits",
+      "The legendary cheese grater",
+      "Veto power over pineapple usage"
+    ],
+    sacrifices: [
+      "Mushroom farming territories",
+      "The anchovies stockpile",
+      "Breadstick production facilities",
+      "Calzone naming rights",
+      "Garlic knot recipes",
+      "Pizza box design contracts"
+    ]
+  },
+  {
+    title: "The Cats vs Dogs Armistice",
+    p1: "Feline Federation",
+    p2: "Canine Commonwealth",
+    demands: [
+      "Exclusive windowsill rights",
+      "Control of the treat cupboard",
+      "Supreme nap time protections",
+      "Ban on vacuum cleaners",
+      "Unrestricted zoomie hours",
+      "The comfy couch cushion"
+    ],
+    sacrifices: [
+      "Sharing the water bowl",
+      "Alternating walk schedules",
+      "Joint toy ownership",
+      "Compromise on dinner time",
+      "Shared belly rub quotas",
+      "The old blanket in the corner"
+    ]
+  },
+  {
+    title: "The Streaming Wars Treaty",
+    p1: "House of Binge",
+    p2: "Kingdom of Queue",
+    demands: [
+      "Control of the remote",
+      "Autoplay privileges",
+      "Veto power on reality TV",
+      "The recliner seat",
+      "Snack bowl positioning rights",
+      "No spoilers protection law"
+    ],
+    sacrifices: [
+      "Occasional documentary viewing",
+      "Shared subtitle preferences",
+      "Volume control negotiations",
+      "Pause button equality",
+      "Genre rotation schedule",
+      "Second screen scrolling limits"
+    ]
+  }
+];
+
+let gameState = {
+  scenario: null,
+  currentPlayer: 1,
+  walkoutsUsed: 0,
+  clauses: [],
+  currentProposal: null,
+  player1: { demands: [], sacrifices: [] },
+  player2: { demands: [], sacrifices: [] },
+  startTime: null,
+  turnCount: 0
+};
+
+function shuffle(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+function initGame() {
+  gameState.scenario = scenarios[Math.floor(Math.random() * scenarios.length)];
+  document.getElementById('scenarioText').innerHTML = `
+    <strong>${gameState.scenario.title}</strong><br>
+    ${gameState.scenario.p1} vs ${gameState.scenario.p2}
+  `;
+}
+
+function startGame() {
+  const allDemands = shuffle([...gameState.scenario.demands]);
+  const allSacrifices = shuffle([...gameState.scenario.sacrifices]);
+  
+  gameState.player1.demands = allDemands.slice(0, 3);
+  gameState.player1.sacrifices = allSacrifices.slice(0, 3);
+  gameState.player2.demands = allDemands.slice(3, 6);
+  gameState.player2.sacrifices = allSacrifices.slice(3, 6);
+  
+  gameState.startTime = Date.now();
+  
+  document.getElementById('setup').classList.add('hidden');
+  document.getElementById('game').classList.remove('hidden');
+  document.getElementById('stamp').textContent = 'IN PROGRESS';
+  
+  document.getElementById('p1name').textContent = gameState.scenario.p1;
+  document.getElementById('p2name').textContent = gameState.scenario.p2;
+  
+  renderPlayerCards();
+  updateTurnIndicator();
+}
+
+function renderPlayerCards() {
+  const p1Cards = document.getElementById('p1Cards');
+  const p2Cards = document.getElementById('p2Cards');
+  
+  p1Cards.innerHTML = '';
+  p2Cards.innerHTML = '';
+  
+  gameState.player1.demands.forEach(d => {
+    p1Cards.innerHTML += `<div class="card demand"><div class="card-label">Must Have</div>${d}</div>`;
+  });
+  gameState.player1.sacrifices.forEach(s => {
+    p1Cards.innerHTML += `<div class="card"><div class="card-label">Can Sacrifice</div>${s}</div>`;
+  });
+  
+  gameState.player2.demands.forEach(d => {
+    p2Cards.innerHTML += `<div class="card demand"><div class="card-label">Must Have</div>${d}</div>`;
+  });
+  gameState.player2.sacrifices.forEach(s => {
+    p2Cards.innerHTML += `<div class="card"><div class="card-label">Can Sacrifice</div>${s}</div>`;
+  });
+}
+
+function updateTurnIndicator() {
+  const name = gameState.currentPlayer === 1 ? gameState.scenario.p1 : gameState.scenario.p2;
+  document.getElementById('turnIndicator').textContent = `${name}'s Turn to Propose`;
+}
+
+function proposeClause() {
+  const input = document.getElementById('proposalInput');
+  const text = input.value.trim();
+  
+  if (!text) {
+    alert('Please type a clause first!');
+    return;
+  }
+  
+  gameState.currentProposal = {
+    text: text,
+    proposedBy: gameState.currentPlayer
+  };
+  
+  input.value = '';
+  
+  document.getElementById('proposeSection').classList.add('hidden');
+  document.getElementById('respondSection').classList.remove('hidden');
+  document.getElementById('currentProposal').textContent = text;
+  
+  const otherPlayer = gameState.currentPlayer === 1 ? 2 : 1;
+  const otherName = otherPlayer === 1 ? gameState.scenario.p1 : gameState.scenario.p2;
+  document.getElementById('turnIndicator').textContent = `${otherName}'s Turn to Respond`;
+  
+  gameState.turnCount++;
+}
+
+function acceptClause() {
+  gameState.clauses.push(gameState.currentProposal.text);
+  renderClauses();
+  
+  gameState.currentPlayer = gameState.currentPlayer === 1 ? 2 : 1;
+  
+  document.getElementById('respondSection').classList.add('hidden');
+  document.getElementById('proposeSection').classList.remove('hidden');
+  updateTurnIndicator();
+  
+  gameState.currentProposal = null;
+}
+
+function counterClause() {
+  document.getElementById('respondSection').classList.add('hidden');
+  document.getElementById('proposeSection').classList.remove('hidden');
+  updateTurnIndicator();
+  
+  alert('Counter-propose by typing a modified version of the clause.');
+  gameState.currentProposal = null;
+}
+
+function walkOut() {
+  gameState.walkoutsUsed++;
+  
+  const dots = ['w1', 'w2', 'w3'];
+  document.getElementById(dots[gameState.walkoutsUsed - 1]).classList.add('used');
+  
+  if (gameState.walkoutsUsed >= 3) {
+    endGameFailure();
+    return;
+  }
+  
+  gameState.currentPlayer = gameState.currentPlayer === 1 ? 2 : 1;
+  
+  document.getElementById('respondSection').classList.add('hidden');
+  document.getElementById('proposeSection').classList.remove('hidden');
+  updateTurnIndicator();
+  
+  gameState.currentProposal = null;
+}
+
+function renderClauses() {
+  const clausesDiv = document.getElementById('clauses');
+  const noClauses = document.getElementById('noClauses');
+  
+  if (gameState.clauses.length === 0) {
+    noClauses.style.display = 'block';
+    return;
+  }
+  
+  noClauses.style.display = 'none';
+  clausesDiv.innerHTML = '';
+  
+  gameState.clauses.forEach((clause, i) => {
+    clausesDiv.innerHTML += `
+      <div class="clause">
+        <span class="clause-num">Article ${i + 1}:</span> ${clause}
+      </div>
+    `;
+  });
+}
+
+function finalizeTreaty() {
+  if (gameState.clauses.length === 0) {
+    alert('You need at least one clause to finalize the treaty!');
+    return;
+  }
+  
+  const timeTaken = Math.floor((Date.now() - gameState.startTime) / 1000);
+  
+  const p1Score = calculateScore(gameState.player1);
+  const p2Score = calculateScore(gameState.player2);
+  
+  document.getElementById('game').classList.add('hidden');
+  document.getElementById('results').classList.remove('hidden');
+  document.getElementById('stamp').textContent = 'RATIFIED';
+  
+  let treaty = `═══════════════════════════════════════\n`;
+  treaty += `     ${gameState.scenario.title.toUpperCase()}\n`;
+  treaty += `          OFFICIAL TREATY DOCUMENT\n`;
+  treaty += `═══════════════════════════════════════\n\n`;
+  treaty += `BETWEEN: ${gameState.scenario.p1}\n`;
+  treaty += `AND: ${gameState.scenario.p2}\n\n`;
+  treaty += `Negotiation Time: ${timeTaken} seconds\n`;
+  treaty += `Turns Taken: ${gameState.turnCount}\n`;
+  treaty += `Diplomatic Incidents: ${gameState.walkoutsUsed}/3\n\n`;
+  treaty += `───────────────────────────────────────\n`;
+  treaty += `TREATY PROVISIONS:\n`;
+  treaty += `───────────────────────────────────────\n\n`;
+  
+  gameState.clauses.forEach((clause, i) => {
+    treaty += `Article ${i + 1}: ${clause}\n\n`;
+  });
+  
+  treaty += `───────────────────────────────────────\n`;
+  treaty += `SCORECARD:\n`;
+  treaty += `───────────────────────────────────────\n\n`;
+  treaty += `${gameState.scenario.p1}:\n`;
+  treaty += `  Demands Secured: ${p1Score.demands}/3\n`;
+  treaty += `  Items Sacrificed: ${p1Score.sacrifices}/3\n`;
+  treaty += `  Effectiveness: ${p1Score.total}%\n\n`;
+  treaty += `${gameState.scenario.p2}:\n`;
+  treaty += `  Demands Secured: ${p2Score.demands}/3\n`;
+  treaty += `  Items Sacrificed: ${p2Score.sacrifices}/3\n`;
+  treaty += `  Effectiveness: ${p2Score.total}%\n\n`;
+  
+  const winner = p1Score.total > p2Score.total ? gameState.scenario.p1 : 
+                 p2Score.total > p1Score.total ? gameState.scenario.p2 : 
+                 'TIE';
+  
+  if (winner !== 'TIE') {
+    treaty += `VICTOR: ${winner}\n\n`;
+  } else {
+    treaty += `OUTCOME: Perfect Balance Achieved\n\n`;
+  }
+  
+  treaty += `═══════════════════════════════════════\n`;
+  treaty += `This treaty is legally binding in the\n`;
+  treaty += `Court of Absurd International Relations.\n`;
+  treaty += `═══════════════════════════════════════`;
+  
+  document.getElementById('finalTreaty').innerHTML = `<pre>${treaty}</pre>`;
+  gameState.finalTreatyText = treaty;
+}
+
+function calculateScore(player) {
+  const clausesText = gameState.clauses.join(' ').toLowerCase();
+  
+  let demandsSecured = 0;
+  player.demands.forEach(d => {
+    if (clausesText.includes(d.toLowerCase())) {
+      demandsSecured++;
+    }
+  });
+  
+  let sacrificesMade = 0;
+  player.sacrifices.forEach(s => {
+    if (clausesText.includes(s.toLowerCase())) {
+      sacrificesMade++;
+    }
+  });
+  
+  const demandScore = (demandsSecured / 3) * 60;
+  const sacrificeScore = (sacrificesMade / 3) * 20;
+  const speedBonus = Math.max(0, 20 - gameState.turnCount);
+  
+  return {
+    demands: demandsSecured,
+    sacrifices: sacrificesMade,
+    total: Math.round(demandScore + sacrificeScore + speedBonus)
+  };
+}
+
+function endGameFailure() {
+  document.getElementById('game').classList.add('hidden');
+  document.getElementById('results').classList.remove('hidden');
+  document.getElementById('stamp').textContent = 'FAILED';
+  
+  let treaty = `═══════════════════════════════════════\n`;
+  treaty += `     ${gameState.scenario.title.toUpperCase()}\n`;
+  treaty += `     ⚠️ NEGOTIATIONS COLLAPSED ⚠️\n`;
+  treaty += `═══════════════════════════════════════\n\n`;
+  treaty += `After ${gameState.turnCount} turns and 3 walkouts,\n`;
+  treaty += `${gameState.scenario.p1} and ${gameState.scenario.p2}\n`;
+  treaty += `have triggered MUTUALLY ASSURED DESSERT DESTRUCTION.\n\n`;
+  treaty += `All pizza/treaties/snacks have been destroyed.\n`;
+  treaty += `Nobody wins. Everybody loses.\n\n`;
+  treaty += `Better luck next time, diplomats.\n`;
+  treaty += `═══════════════════════════════════════`;
+  
+  document.getElementById('finalTreaty').innerHTML = `<pre>${treaty}</pre>`;
+  gameState.finalTreatyText = treaty;
+}
+
+function copyTreaty() {
+  navigator.clipboard.writeText(gameState.finalTreatyText).then(() => {
+    alert('Treaty copied to clipboard! Share it with the world.');
+  });
+}
+
+initGame();
+</script>
+
+</body>
+</html>

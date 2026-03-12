@@ -1,5 +1,42 @@
 [
   {
+    "date": "2026-03-12",
+    "id": "2026-03-12-3",
+    "name": "Halfbaked",
+    "description": "Match famous dishes using random cuisine toolkits while minimizing ingredients, scored by an AI taste model that evaluates flavor profile similarity.",
+    "inspiration": "Olmo Hybrid blends transformer attention with linear recurrent layers to match full model accuracy using 49% fewer tokens — proving you can radically cut what you need by mixing two different architectures.",
+    "connection": "The idea of blending two fundamentally different systems to achieve the same result with half the resources sparked a cooking game where you fuse two wildly different cuisines to recreate a target dish using as few ingredients as possible.",
+    "source_url": "https://radicaldatascience.wordpress.com/2026/03/10/ai-news-briefs-bulletin-board-for-march-2026/",
+    "emoji": "🧬",
+    "category": "AI-inspired",
+    "image": true
+  },
+  {
+    "date": "2026-03-12",
+    "id": "2026-03-12-2",
+    "name": "Shockrate",
+    "description": "A geopolitical currency impact analyzer that overlays major crisis events on forex timelines to reveal which currencies crashed, recovered, or stayed resilient during global shocks.",
+    "inspiration": "With oil prices spiking from the Iran-Israel-US conflict and Trump visiting China amid trade deal speculation, currencies in conflict-adjacent and oil-dependent economies are swinging wildly. People with money, family, or business ties to these regions need to understand how geopolitical shocks ripple through exchange rates — not just today's rate, but the pattern around crisis events.",
+    "connection": "Frankfurter provides free historical exchange rate data from the ECB, enabling day-by-day tracking of how currency pairs moved before, during, and after specific geopolitical events.",
+    "source_url": "https://www.youtube.com/watch?v=rcwi27zrYUU",
+    "emoji": "📉",
+    "category": "API tool",
+    "api": "Frankfurter",
+    "image": true
+  },
+  {
+    "date": "2026-03-12",
+    "id": "2026-03-12",
+    "name": "Redline",
+    "description": "Two players negotiate an absurd treaty by proposing clauses to protect secret demands while sacrificing throwaway items, racing against three walkouts before mutually assured dessert destruction.",
+    "inspiration": "Iran lists three conditions for halting the war, each side demanding impossible concessions before peace can begin.",
+    "connection": "The absurdity of negotiating with someone who has completely different dealbreakers sparked an idea for a game where two players must reach agreement while holding secret, contradictory red lines.",
+    "source_url": "https://www.youtube.com/watch?v=rcwi27zrYUU",
+    "emoji": "🕊️",
+    "category": "Fun/social",
+    "image": true
+  },
+  {
     "date": "2026-03-11",
     "id": "2026-03-11-3",
     "name": "Tiermind",
