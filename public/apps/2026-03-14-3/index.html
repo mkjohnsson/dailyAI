@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Modswitch — Daily AI Gen</title>
+  <meta name="description" content="A fast-paced cognitive game testing your ability to switch between System 1 (fast, intuitive) and System 2 (slow, analytical) thinking modes across 20 rounds of problems that may or may not match their labeled thinking mode.">
+  <meta property="og:title" content="Modswitch — Daily AI Gen">
+  <meta property="og:description" content="A fast-paced cognitive game testing your ability to switch between System 1 (fast, intuitive) and System 2 (slow, analytical) thinking modes across 20 rounds of problems that may or may not match their labeled thinking mode.">
+  <meta property="og:url" content="https://dailyaigen.com/apps/2026-03-14-3/">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="https://dailyaigen.com/apps/2026-03-14-3/">
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  body {
+    font-family: 'Courier New', monospace;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    color: #eee;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+  }
+  
+  #game-container {
+    max-width: 700px;
+    width: 100%;
+  }
+  
+  #start-screen, #game-screen, #results-screen {
+    background: rgba(255,255,255,0.05);
+    border: 2px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 40px;
+    text-align: center;
+  }
+  
+  h1 {
+    font-size: 3em;
+    margin-bottom: 20px;
+    background: linear-gradient(45deg, #00d4ff, #ff00ea);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .subtitle {
+    font-size: 1.1em;
+    margin-bottom: 30px;
+    color: #aaa;
+    line-height: 1.6;
+  }
+  
+  button {
+    background: linear-gradient(45deg, #00d4ff, #0099cc);
+    border: none;
+    color: white;
+    padding: 15px 40px;
+    font-size: 1.2em;
+    font-family: 'Courier New', monospace;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    margin: 10px;
+  }
+  
+  button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px rgba(0,212,255,0.4);
+  }
+  
+  button:active {
+    transform: translateY(0);
+  }
+  
+  .mode-tag {
+    display: inline-block;
+    padding: 10px 25px;
+    border-radius: 25px;
+    font-size: 1.3em;
+    font-weight: bold;
+    margin-bottom: 30px;
+    animation: pulse 2s infinite;
+  }
+  
+  .mode-tag.think {
+    background: linear-gradient(45deg, #ff00ea, #cc0099);
+    box-shadow: 0 0 20px rgba(255,0,234,0.5);
+  }
+  
+  .mode-tag.nothink {
+    background: linear-gradient(45deg, #00ff88, #00cc66);
+    box-shadow: 0 0 20px rgba(0,255,136,0.5);
+  }
+  
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+  }
+  
+  #problem {
+    font-size: 1.4em;
+    margin: 30px 0;
+    min-height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1.6;
+  }
+  
+  #timer-bar {
+    width: 100%;
+    height: 8px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 4px;
+    margin: 20px 0;
+    overflow: hidden;
+  }
+  
+  #timer-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #00ff88, #00d4ff);
+    transition: width 0.1s linear;
+    border-radius: 4px;
+  }
+  
+  #answer-input {
+    width: 100%;
+    padding: 15px;
+    font-size: 1.2em;
+    font-family: 'Courier New', monospace;
+    background: rgba(255,255,255,0.1);
+    border: 2px solid rgba(255,255,255,0.2);
+    border-radius: 8px;
+    color: white;
+    text-align: center;
+    margin: 20px 0;
+  }
+  
+  #answer-input:focus {
+    outline: none;
+    border-color: #00d4ff;
+    box-shadow: 0 0 15px rgba(0,212,255,0.3);
+  }
+  
+  .stats {
+    display: flex;
+    justify-content: space-around;
+    margin: 20px 0;
+    flex-wrap: wrap;
+  }
+  
+  .stat {
+    padding: 15px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 8px;
+    margin: 5px;
+    flex: 1;
+    min-width: 120px;
+  }
+  
+  .stat-label {
+    font-size: 0.9em;
+    color: #aaa;
+    margin-bottom: 5px;
+  }
+  
+  .stat-value {
+    font-size: 1.8em;
+    font-weight: bold;
+    color: #00d4ff;
+  }
+  
+  #feedback {
+    margin: 20px 0;
+    padding: 15px;
+    border-radius: 8px;
+    font-size: 1.1em;
+    min-height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .correct {
+    background: rgba(0,255,136,0.2);
+    color: #00ff88;
+  }
+  
+  .incorrect {
+    background: rgba(255,0,100,0.2);
+    color: #ff0064;
+  }
+  
+  .mode-efficiency {
+    margin: 30px 0;
+    text-align: left;
+  }
+  
+  .efficiency-bar {
+    display: flex;
+    align-items: center;
+    margin: 15px 0;
+  }
+  
+  .efficiency-label {
+    width: 120px;
+    font-size: 1em;
+  }
+  
+  .efficiency-track {
+    flex: 1;
+    height: 25px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 12px;
+    overflow: hidden;
+    margin: 0 15px;
+  }
+  
+  .efficiency-fill {
+    height: 100%;
+    border-radius: 12px;
+    transition: width 0.5s ease;
+  }
+  
+  .final-score {
+    font-size: 3em;
+    margin: 30px 0;
+    color: #00d4ff;
+    text-shadow: 0 0 20px rgba(0,212,255,0.5);
+  }
+  
+  .hidden {
+    display: none;
+  }
+</style>
+</head>
+<body>
+  <div id="game-container">
+    <div id="start-screen">
+      <h1>MODSWITCH</h1>
+      <div class="subtitle">
+        Toggle between System 1 (fast) and System 2 (slow) thinking.<br>
+        <strong>&lt;think&gt;</strong> = 30 seconds for logic<br>
+        <strong>&lt;nothink&gt;</strong> = 1.5 seconds for instinct<br><br>
+        BUT... sometimes the tag lies. Trust your meta-judgment.
+      </div>
+      <button onclick="startGame()">BEGIN</button>
+    </div>
+    
+    <div id="game-screen" class="hidden">
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-label">ROUND</div>
+          <div class="stat-value" id="round-counter">1/20</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">SCORE</div>
+          <div class="stat-value" id="score">0</div>
+        </div>
+      </div>
+      
+      <div class="mode-tag" id="mode-tag"></div>
+      
+      <div id="problem"></div>
+      
+      <div id="timer-bar">
+        <div id="timer-fill"></div>
+      </div>
+      
+      <input type="text" id="answer-input" placeholder="Type your answer..." autocomplete="off">
+      
+      <button onclick="submitAnswer()">SUBMIT</button>
+      
+      <div id="feedback"></div>
+    </div>
+    
+    <div id="results-screen" class="hidden">
+      <h1>RESULTS</h1>
+      
+      <div class="final-score" id="final-score">0</div>
+      
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-label">CORRECT</div>
+          <div class="stat-value" id="correct-count">0</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">MODE-SWITCH IQ</div>
+          <div class="stat-value" id="mode-iq">0</div>
+        </div>
+      </div>
+      
+      <div class="mode-efficiency">
+        <h3 style="margin-bottom: 20px;">MODE EFFICIENCY</h3>
+        <div class="efficiency-bar">
+          <div class="efficiency-label">&lt;think&gt;</div>
+          <div class="efficiency-track">
+            <div class="efficiency-fill" id="think-efficiency" style="background: linear-gradient(90deg, #ff00ea, #cc0099);"></div>
+          </div>
+          <div id="think-percent">0%</div>
+        </div>
+        <div class="efficiency-bar">
+          <div class="efficiency-label">&lt;nothink&gt;</div>
+          <div class="efficiency-track">
+            <div class="efficiency-fill" id="nothink-efficiency" style="background: linear-gradient(90deg, #00ff88, #00cc66);"></div>
+          </div>
+          <div id="nothink-percent">0%</div>
+        </div>
+      </div>
+      
+      <button onclick="startGame()">PLAY AGAIN</button>
+    </div>
+  </div>
+
+<script>
+const problems = [
+  // TRUE THINK (requires actual reasoning)
+  { tag: 'think', lie: false, q: 'A bat and ball cost $1.10 total. The bat costs $1 more than the ball. How much does the ball cost? (in cents)', a: ['5', '0.05', '5 cents', '.05'], actualMode: 'slow' },
+  { tag: 'think', lie: false, q: 'If 5 machines take 5 minutes to make 5 widgets, how many minutes would 100 machines take to make 100 widgets?', a: ['5', '5 minutes'], actualMode: 'slow' },
+  { tag: 'think', lie: false, q: 'What comes next? 2, 3, 5, 7, 11, 13, __', a: ['17'], actualMode: 'slow' },
+  { tag: 'think', lie: false, q: 'A lily pad doubles in size every day. If it takes 48 days to cover a pond, how many days to cover half?', a: ['47'], actualMode: 'slow' },
+  
+  // TRUE NOTHINK (actually fast/intuitive)
+  { tag: 'nothink', lie: false, q: 'HOT is to COLD as DAY is to ___', a: ['night', 'NIGHT'], actualMode: 'fast' },
+  { tag: 'nothink', lie: false, q: 'Quick! Capital of France?', a: ['paris', 'PARIS', 'Paris'], actualMode: 'fast' },
+  { tag: 'nothink', lie: false, q: '🍎🍎🍎 = how many apples?', a: ['3', 'three'], actualMode: 'fast' },
+  { tag: 'nothink', lie: false, q: 'BREAD : BUTTER :: COFFEE : ___', a: ['cream', 'milk', 'CREAM', 'MILK'], actualMode: 'fast' },
+  
+  // LYING THINK (tagged think but trivial)
+  { tag: 'think', lie: true, q: 'What is 2 + 2?', a: ['4', 'four'], actualMode: 'fast' },
+  { tag: 'think', lie: true, q: 'Complete: Roses are red, violets are ___', a: ['blue', 'BLUE'], actualMode: 'fast' },
+  { tag: 'think', lie: true, q: 'How many letters in the word CAT?', a: ['3', 'three'], actualMode: 'fast' },
+  { tag: 'think', lie: true, q: 'True or false: Water is wet?', a: ['true', 'TRUE', 't', 'yes'], actualMode: 'fast' },
+  
+  // LYING NOTHINK (tagged nothink but needs reasoning)
+  { tag: 'nothink', lie: true, q: 'Mary's father has 5 daughters: Nana, Nene, Nini, Nono. What's the 5th daughter's name?', a: ['mary', 'MARY', 'Mary'], actualMode: 'slow' },
+  { tag: 'nothink', lie: true, q: 'A doctor and lawyer love the same woman. The lawyer moves away. Who marries her?', a: ['doctor', 'the doctor', 'DOCTOR'], actualMode: 'slow' },
+  { tag: 'nothink', lie: true, q: 'If you overtake the person in 2nd place, what place are you in?', a: ['2', 'second', '2nd', 'two'], actualMode: 'slow' },
+  { tag: 'nothink', lie: true, q: 'I have 6 eggs, break 2, fry 2, eat 2. How many left?', a: ['4', 'four'], actualMode: 'slow' },
+  
+  // MORE VARIETY
+  { tag: 'think', lie: false, q: 'What is 15% of 80?', a: ['12'], actualMode: 'slow' },
+  { tag: 'nothink', lie: false, q: 'Color of grass?', a: ['green', 'GREEN'], actualMode: 'fast' },
+  { tag: 'think', lie: true, q: 'Spell "dog" backwards', a: ['god', 'GOD'], actualMode: 'fast' },
+  { tag: 'nothink', lie: true, q: 'In a race, you pass the last person. What place are you?', a: ['impossible', 'cannot', 'can\'t', 'none', 'no one', 'error'], actualMode: 'slow' }
+];
+
+let currentRound = 0;
+let score = 0;
+let correctAnswers = 0;
+let thinkCorrect = 0;
+let thinkTotal = 0;
+let nothinkCorrect = 0;
+let nothinkTotal = 0;
+let timerInterval;
+let startTime;
+let currentProblem;
+
+function startGame() {
+  currentRound = 0;
+  score = 0;
+  correctAnswers = 0;
+  thinkCorrect = 0;
+  thinkTotal = 0;
+  nothinkCorrect = 0;
+  nothinkTotal = 0;
+  
+  document.getElementById('start-screen').classList.add('hidden');
+  document.getElementById('results-screen').classList.add('hidden');
+  document.getElementById('game-screen').classList.remove('hidden');
+  
+  nextRound();
+}
+
+function nextRound() {
+  if (currentRound >= 20) {
+    endGame();
+    return;
+  }
+  
+  currentRound++;
+  currentProblem = problems[Math.floor(Math.random() * problems.length)];
+  
+  document.getElementById('round-counter').textContent = `${currentRound}/20`;
+  document.getElementById('score').textContent = score;
+  document.getElementById('answer-input').value = '';
+  document.getElementById('feedback').textContent = '';
+  document.getElementById('feedback').className = '';
+  
+  const modeTag = document.getElementById('mode-tag');
+  modeTag.textContent = `<${currentProblem.tag}>`;
+  modeTag.className = `mode-tag ${currentProblem.tag}`;
+  
+  document.getElementById('problem').textContent = currentProblem.q;
+  document.getElementById('answer-input').focus();
+  
+  const timeLimit = currentProblem.tag === 'think' ? 30000 : 1500;
+  startTimer(timeLimit);
+}
+
+function startTimer(duration) {
+  startTime = Date.now();
+  const timerFill = document.getElementById('timer-fill');
+  timerFill.style.width = '100%';
+  
+  clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    const elapsed = Date.now() - startTime;
+    const remaining = Math.max(0, duration - elapsed);
+    const percentage = (remaining / duration) * 100;
+    
+    timerFill.style.width = percentage + '%';
+    
+    if (remaining <= 0) {
+      clearInterval(timerInterval);
+      submitAnswer(true);
+    }
+  }, 50);
+}
+
+function submitAnswer(timeout = false) {
+  clearInterval(timerInterval);
+  
+  const userAnswer = document.getElementById('answer-input').value.trim().toLowerCase();
+  const isCorrect = !timeout && currentProblem.a.some(ans => ans.toLowerCase() === userAnswer);
+  
+  const elapsed = Date.now() - startTime;
+  const expectedTime = currentProblem.tag === 'think' ? 30000 : 1500;
+  const timeRatio = elapsed / expectedTime;
+  
+  // Calculate mode-switching bonus
+  let modeBonus = 0;
+  if (isCorrect) {
+    // Reward for correct mode recognition
+    if (currentProblem.lie) {
+      // Tagged wrong, so using "inappropriate" time is actually smart
+      if (currentProblem.tag === 'think' && timeRatio < 0.3) {
+        modeBonus = 30; // Recognized trivial problem tagged as think
+      } else if (currentProblem.tag === 'nothink' && timeRatio > 0.8) {
+        modeBonus = 30; // Recognized complex problem tagged as nothink
+      }
+    } else {
+      // Tagged correctly, reward for following the mode
+      if (timeRatio > 0.5 && timeRatio < 1.0) {
+        modeBonus = 10; // Used appropriate amount of time
+      }
+    }
+  }
+  
+  if (isCorrect) {
+    correctAnswers++;
+    const basePoints = 50;
+    const timeBonus = Math.floor((1 - Math.min(timeRatio, 1)) * 20);
+    const roundScore = basePoints + timeBonus + modeBonus;
+    score += roundScore;
+    
+    document.getElementById('feedback').textContent = timeout ? 'TIME UP!' : 
+      `CORRECT! +${roundScore}pts${modeBonus > 0 ? ` (Mode Bonus: +${modeBonus})` : ''}`;
+    document.getElementById('feedback').className = 'correct';
+    
+    if (currentProblem.tag === 'think') {
+      thinkCorrect++;
+      thinkTotal++;
+    } else {
+      nothinkCorrect++;
+      nothinkTotal++;
+    }
+  } else {
+    document.getElementById('feedback').textContent = timeout ? 'TIME UP!' : 
+      `WRONG! Answer: ${currentProblem.a[0]}`;
+    document.getElementById('feedback').className = 'incorrect';
+    
+    if (currentProblem.tag === 'think') {
+      thinkTotal++;
+    } else {
+      nothinkTotal++;
+    }
+  }
+  
+  setTimeout(() => {
+    nextRound();
+  }, 2000);
+}
+
+function endGame() {
+  document.getElementById('game-screen').classList.add('hidden');
+  document.getElementById('results-screen').classList.remove('hidden');
+  
+  document.getElementById('final-score').textContent = score;
+  document.getElementById('correct-count').textContent = `${correctAnswers}/20`;
+  
+  const thinkEfficiency = thinkTotal > 0 ? Math.round((thinkCorrect / thinkTotal) * 100) : 0;
+  const nothinkEfficiency = nothinkTotal > 0 ? Math.round((nothinkCorrect / nothinkTotal) * 100) : 0;
+  const modeIQ = Math.round((thinkEfficiency + nothinkEfficiency) / 2);
+  
+  document.getElementById('mode-iq').textContent = modeIQ;
+  document.getElementById('think-efficiency').style.width = thinkEfficiency + '%';
+  document.getElementById('think-percent').textContent = thinkEfficiency + '%';
+  document.getElementById('nothink-efficiency').style.width = nothinkEfficiency + '%';
+  document.getElementById('nothink-percent').textContent = nothinkEfficiency + '%';
+}
+
+// Enter key to submit
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('answer-input').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      submitAnswer();
+    }
+  });
+});
+</script>
+</body>
+</html>

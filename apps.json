@@ -1,5 +1,42 @@
 [
   {
+    "date": "2026-03-14",
+    "id": "2026-03-14-3",
+    "name": "Modswitch",
+    "description": "A fast-paced cognitive game testing your ability to switch between System 1 (fast, intuitive) and System 2 (slow, analytical) thinking modes across 20 rounds of problems that may or may not match their labeled thinking mode.",
+    "inspiration": "Phi-4-reasoning-vision-15B switches between <think> blocks for deep reasoning and <nothink> blocks for low-latency snap reactions.",
+    "connection": "What if humans had to make that same toggle — a game that forces you to switch between slow deliberate thinking and instant gut reactions, and punishes you when you use the wrong mode?",
+    "source_url": "https://www.devflokers.com/blog/new-ai-model-releases-open-source-march-2026",
+    "emoji": "🧠",
+    "category": "AI-inspired",
+    "image": true
+  },
+  {
+    "date": "2026-03-14",
+    "id": "2026-03-14-2",
+    "name": "CrisisCoin",
+    "description": "A geopolitical event tracker that overlays crisis markers on crypto price charts and calculates whether Bitcoin, Ethereum, and digital gold are acting as safe havens or risk assets during wartime turbulence.",
+    "inspiration": "With Iran blocking the Strait of Hormuz, oil above $100/barrel, and active U.S.-Iran conflict, investors and ordinary people want to understand how crisis escalation is affecting crypto markets in real-time — is Bitcoin acting as a safe haven or crashing with risk assets? People need a clear, at-a-glance crisis-vs-crypto dashboard.",
+    "connection": "CoinGecko provides free real-time and historical price/volume/market-cap data for major cryptocurrencies, perfect for charting how digital assets respond during geopolitical shocks.",
+    "source_url": "https://www.youtube.com/watch?v=DjgJePtbmcw",
+    "emoji": "⚡",
+    "category": "API tool",
+    "api": "CoinGecko",
+    "image": true
+  },
+  {
+    "date": "2026-03-14",
+    "id": "2026-03-14",
+    "name": "Neverloop",
+    "description": "A tense pattern-avoidance game where every choice you make permanently bans a sequence, forcing you to navigate an ever-shrinking space of valid moves until one wrong pick shatters your chain.",
+    "inspiration": "Pi's infinite non-repeating decimal expansion celebrated on Pi Day, where digits go on forever without pattern.",
+    "connection": "The idea of an infinite sequence where you can never predict the next element inspired a game about surfing an endless, unpredictable wave of choices where repetition is death.",
+    "source_url": "https://www.census.gov/newsroom/stories/pi-day.html",
+    "emoji": "♾️",
+    "category": "Game",
+    "image": true
+  },
+  {
     "date": "2026-03-12",
     "id": "2026-03-12-3",
     "name": "Halfbaked",

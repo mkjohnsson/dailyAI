@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neverloop — Daily AI Gen</title>
+  <meta name="description" content="A tense pattern-avoidance game where every choice you make permanently bans a sequence, forcing you to navigate an ever-shrinking space of valid moves until one wrong pick shatters your chain.">
+  <meta property="og:title" content="Neverloop — Daily AI Gen">
+  <meta property="og:description" content="A tense pattern-avoidance game where every choice you make permanently bans a sequence, forcing you to navigate an ever-shrinking space of valid moves until one wrong pick shatters your chain.">
+  <meta property="og:url" content="https://dailyaigen.com/apps/2026-03-14/">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="https://dailyaigen.com/apps/2026-03-14/">
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: 'Courier New', monospace;
+    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+    color: #fff;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    overflow-x: hidden;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 30px;
+  }
+
+  h1 {
+    font-size: 3em;
+    letter-spacing: 8px;
+    color: #00ffff;
+    text-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+    margin-bottom: 10px;
+  }
+
+  .tagline {
+    font-size: 0.9em;
+    color: #888;
+    letter-spacing: 2px;
+  }
+
+  .game-container {
+    max-width: 900px;
+    width: 100%;
+  }
+
+  .stats {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+    gap: 15px;
+  }
+
+  .stat-box {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 15px 25px;
+    border-radius: 8px;
+    border: 1px solid rgba(0, 255, 255, 0.3);
+    text-align: center;
+    min-width: 140px;
+  }
+
+  .stat-label {
+    font-size: 0.8em;
+    color: #888;
+    margin-bottom: 5px;
+  }
+
+  .stat-value {
+    font-size: 2em;
+    color: #00ffff;
+    font-weight: bold;
+  }
+
+  .chain-display {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 20px;
+    border-radius: 12px;
+    border: 2px solid rgba(0, 255, 255, 0.2);
+    margin-bottom: 30px;
+    min-height: 120px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .symbol {
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5em;
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(0, 255, 255, 0.4);
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    animation: symbolAppear 0.3s ease;
+  }
+
+  @keyframes symbolAppear {
+    from {
+      transform: scale(0) rotate(180deg);
+      opacity: 0;
+    }
+    to {
+      transform: scale(1) rotate(0);
+      opacity: 1;
+    }
+  }
+
+  .symbol.danger {
+    border-color: rgba(255, 100, 100, 0.6);
+    background: rgba(255, 50, 50, 0.2);
+  }
+
+  .symbol-choices {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+  }
+
+  .choice-btn {
+    width: 80px;
+    height: 80px;
+    font-size: 2.5em;
+    background: rgba(0, 255, 255, 0.1);
+    border: 3px solid rgba(0, 255, 255, 0.5);
+    color: #00ffff;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: 'Courier New', monospace;
+  }
+
+  .choice-btn:hover:not(:disabled) {
+    background: rgba(0, 255, 255, 0.3);
+    transform: scale(1.1);
+    box-shadow: 0 0 30px rgba(0, 255, 255, 0.4);
+  }
+
+  .choice-btn:active:not(:disabled) {
+    transform: scale(0.95);
+  }
+
+  .choice-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    border-color: #444;
+    color: #444;
+  }
+
+  .forbidden-info {
+    background: rgba(255, 50, 50, 0.1);
+    border: 1px solid rgba(255, 50, 50, 0.3);
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+
+  .forbidden-info h3 {
+    color: #ff6b6b;
+    margin-bottom: 10px;
+    font-size: 1.1em;
+  }
+
+  .forbidden-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    max-height: 150px;
+    overflow-y: auto;
+  }
+
+  .forbidden-pattern {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 1.2em;
+    border: 1px solid rgba(255, 100, 100, 0.4);
+    letter-spacing: 3px;
+  }
+
+  .controls {
+    text-align: center;
+    margin-top: 20px;
+  }
+
+  .btn {
+    padding: 12px 30px;
+    font-size: 1.1em;
+    background: rgba(0, 255, 255, 0.2);
+    border: 2px solid #00ffff;
+    color: #00ffff;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 2px;
+    transition: all 0.2s ease;
+    margin: 0 10px;
+  }
+
+  .btn:hover {
+    background: rgba(0, 255, 255, 0.4);
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+  }
+
+  .game-over {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.3s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .game-over.show {
+    display: flex;
+  }
+
+  .game-over-content {
+    background: linear-gradient(135deg, #1a1a2e 0%, #0f0f1e 100%);
+    padding: 40px;
+    border-radius: 16px;
+    border: 3px solid #ff6b6b;
+    text-align: center;
+    max-width: 500px;
+    animation: shatter 0.5s ease;
+  }
+
+  @keyframes shatter {
+    0% { transform: scale(1); }
+    25% { transform: scale(1.1) rotate(2deg); }
+    50% { transform: scale(0.9) rotate(-2deg); }
+    75% { transform: scale(1.05) rotate(1deg); }
+    100% { transform: scale(1) rotate(0); }
+  }
+
+  .game-over h2 {
+    font-size: 3em;
+    color: #ff6b6b;
+    margin-bottom: 20px;
+    text-shadow: 0 0 20px rgba(255, 107, 107, 0.5);
+  }
+
+  .game-over .final-score {
+    font-size: 2em;
+    color: #00ffff;
+    margin-bottom: 20px;
+  }
+
+  .game-over .collision-info {
+    background: rgba(255, 107, 107, 0.1);
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(255, 107, 107, 0.3);
+  }
+
+  .instructions {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid rgba(0, 255, 255, 0.2);
+    margin-bottom: 20px;
+    font-size: 0.9em;
+    line-height: 1.6;
+  }
+
+  .instructions h3 {
+    color: #00ffff;
+    margin-bottom: 10px;
+  }
+
+  @media (max-width: 600px) {
+    h1 {
+      font-size: 2em;
+      letter-spacing: 4px;
+    }
+
+    .choice-btn {
+      width: 60px;
+      height: 60px;
+      font-size: 2em;
+    }
+
+    .symbol {
+      width: 40px;
+      height: 40px;
+      font-size: 1.2em;
+    }
+  }
+</style>
+</head>
+<body>
+  <header>
+    <h1>NEVERLOOP</h1>
+    <p class="tagline">Never repeat. Never loop.</p>
+  </header>
+
+  <div class="game-container">
+    <div class="instructions">
+      <h3>How to Play</h3>
+      <p>Build a chain by choosing symbols. Every subsequence you create becomes forbidden. If you accidentally create a pattern you've made before (of ANY length), you shatter. The longer your chain, the harder it gets.</p>
+    </div>
+
+    <div class="stats">
+      <div class="stat-box">
+        <div class="stat-label">CHAIN LENGTH</div>
+        <div class="stat-value" id="chainLength">0</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">FORBIDDEN PATTERNS</div>
+        <div class="stat-value" id="forbiddenCount">0</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">BEST SCORE</div>
+        <div class="stat-value" id="bestScore">0</div>
+      </div>
+    </div>
+
+    <div class="chain-display" id="chainDisplay">
+      <span style="color: #666; font-size: 0.9em;">Your chain will appear here...</span>
+    </div>
+
+    <div class="symbol-choices" id="symbolChoices">
+      <button class="choice-btn" data-symbol="◆">◆</button>
+      <button class="choice-btn" data-symbol="●">●</button>
+      <button class="choice-btn" data-symbol="■">■</button>
+      <button class="choice-btn" data-symbol="▲">▲</button>
+    </div>
+
+    <div class="forbidden-info">
+      <h3>Recently Forbidden Patterns</h3>
+      <div class="forbidden-list" id="forbiddenList">
+        <span style="color: #666; font-size: 0.9em;">None yet...</span>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="btn" id="resetBtn">New Game</button>
+      <button class="btn" id="undoBtn">Undo Last</button>
+    </div>
+  </div>
+
+  <div class="game-over" id="gameOver">
+    <div class="game-over-content">
+      <h2>SHATTERED!</h2>
+      <div class="final-score">Chain Length: <span id="finalScore">0</span></div>
+      <div class="collision-info">
+        <strong>Collision Detected:</strong><br>
+        Pattern "<span id="collisionPattern"></span>" was already used
+      </div>
+      <button class="btn" id="playAgainBtn">Play Again</button>
+    </div>
+  </div>
+
+<script>
+class NeverloopGame {
+  constructor() {
+    this.chain = [];
+    this.forbiddenPatterns = new Set();
+    this.recentlyForbidden = [];
+    this.symbols = ['◆', '●', '■', '▲'];
+    this.bestScore = parseInt(localStorage.getItem('neverloopBest')) || 0;
+    
+    this.chainDisplay = document.getElementById('chainDisplay');
+    this.chainLengthEl = document.getElementById('chainLength');
+    this.forbiddenCountEl = document.getElementById('forbiddenCount');
+    this.bestScoreEl = document.getElementById('bestScore');
+    this.forbiddenListEl = document.getElementById('forbiddenList');
+    this.gameOverEl = document.getElementById('gameOver');
+    this.finalScoreEl = document.getElementById('finalScore');
+    this.collisionPatternEl = document.getElementById('collisionPattern');
+    
+    this.init();
+  }
+
+  init() {
+    this.updateBestScore();
+    
+    document.querySelectorAll('.choice-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const symbol = btn.dataset.symbol;
+        this.addSymbol(symbol);
+      });
+    });
+
+    document.getElementById('resetBtn').addEventListener('click', () => this.reset());
+    document.getElementById('undoBtn').addEventListener('click', () => this.undo());
+    document.getElementById('playAgainBtn').addEventListener('click', () => {
+      this.gameOverEl.classList.remove('show');
+      this.reset();
+    });
+
+    this.updateUI();
+  }
+
+  getAllSubsequences(arr) {
+    const subsequences = [];
+    for (let i = 0; i < arr.length; i++) {
+      for (let j = i + 1; j <= arr.length; j++) {
+        const subseq = arr.slice(i, j);
+        if (subseq.length >= 1) {
+          subsequences.push(subseq.join(''));
+        }
+      }
+    }
+    return subsequences;
+  }
+
+  addSymbol(symbol) {
+    const testChain = [...this.chain, symbol];
+    
+    // Get all new subsequences that would be created
+    const newSubsequences = this.getAllSubsequences(testChain);
+    
+    // Check if any would collide with existing forbidden patterns
+    for (const subseq of newSubsequences) {
+      if (this.forbiddenPatterns.has(subseq) && !this.chain.join('').includes(subseq)) {
+        // Collision! Game over
+        this.gameOver(subseq);
+        return;
+      }
+    }
+
+    // Safe to add
+    this.chain.push(symbol);
+    
+    // Add all subsequences to forbidden (except single symbols, or we'd run out immediately)
+    const allSubseqs = this.getAllSubsequences(this.chain);
+    const newForbidden = [];
+    
+    for (const subseq of allSubseqs) {
+      if (subseq.length >= 2 && !this.forbiddenPatterns.has(subseq)) {
+        this.forbiddenPatterns.add(subseq);
+        newForbidden.push(subseq);
+      }
+    }
+
+    // Keep track of recently forbidden for display
+    this.recentlyForbidden = [...newForbidden.slice(-20)].reverse();
+    
+    this.updateUI();
+  }
+
+  undo() {
+    if (this.chain.length === 0) return;
+    
+    const removed = this.chain.pop();
+    
+    // Rebuild forbidden patterns from scratch
+    this.forbiddenPatterns.clear();
+    const allSubseqs = this.getAllSubsequences(this.chain);
+    for (const subseq of allSubseqs) {
+      if (subseq.length >= 2) {
+        this.forbiddenPatterns.add(subseq);
+      }
+    }
+    
+    this.recentlyForbidden = Array.from(this.forbiddenPatterns).slice(-20).reverse();
+    this.updateUI();
+  }
+
+  gameOver(collisionPattern) {
+    this.finalScoreEl.textContent = this.chain.length;
+    this.collisionPatternEl.textContent = collisionPattern;
+    this.gameOverEl.classList.add('show');
+    
+    if (this.chain.length > this.bestScore) {
+      this.bestScore = this.chain.length;
+      localStorage.setItem('neverloopBest', this.bestScore);
+      this.updateBestScore();
+    }
+  }
+
+  reset() {
+    this.chain = [];
+    this.forbiddenPatterns.clear();
+    this.recentlyForbidden = [];
+    this.updateUI();
+  }
+
+  updateBestScore() {
+    this.bestScoreEl.textContent = this.bestScore;
+  }
+
+  updateUI() {
+    // Update chain display
+    if (this.chain.length === 0) {
+      this.chainDisplay.innerHTML = '<span style="color: #666; font-size: 0.9em;">Your chain will appear here...</span>';
+    } else {
+      this.chainDisplay.innerHTML = this.chain.map((symbol, i) => {
+        const isDanger = i >= this.chain.length - 3;
+        return `<div class="symbol ${isDanger ? 'danger' : ''}">${symbol}</div>`;
+      }).join('');
+    }
+
+    // Update stats
+    this.chainLengthEl.textContent = this.chain.length;
+    this.forbiddenCountEl.textContent = this.forbiddenPatterns.size;
+
+    // Update forbidden list
+    if (this.recentlyForbidden.length === 0) {
+      this.forbiddenListEl.innerHTML = '<span style="color: #666; font-size: 0.9em;">None yet...</span>';
+    } else {
+      this.forbiddenListEl.innerHTML = this.recentlyForbidden
+        .map(pattern => `<div class="forbidden-pattern">${pattern}</div>`)
+        .join('');
+    }
+
+    // Enable/disable undo button
+    document.getElementById('undoBtn').disabled = this.chain.length === 0;
+  }
+}
+
+// Start the game
+const game = new NeverloopGame();
+</script>
+</body>
+</html>

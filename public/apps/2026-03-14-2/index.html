@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CrisisCoin - Wartime Crypto Pulse — Daily AI Gen</title>
+  <meta name="description" content="A geopolitical event tracker that overlays crisis markers on crypto price charts and calculates whether Bitcoin, Ethereum, and digital gold are acting as safe havens or risk assets during wartime turbulence.">
+  <meta property="og:title" content="CrisisCoin — Daily AI Gen">
+  <meta property="og:description" content="A geopolitical event tracker that overlays crisis markers on crypto price charts and calculates whether Bitcoin, Ethereum, and digital gold are acting as safe havens or risk assets during wartime turbulence.">
+  <meta property="og:url" content="https://dailyaigen.com/apps/2026-03-14-2/">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="https://dailyaigen.com/apps/2026-03-14-2/">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0"></script>
+<script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Courier New', monospace;
+  background: linear-gradient(135deg, #0a0e27 0%, #1a1a2e 100%);
+  color: #e0e0e0;
+  padding: 20px;
+  min-height: 100vh;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 30px;
+  padding: 20px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+}
+
+h1 {
+  font-size: 2.5em;
+  color: #ff6b6b;
+  text-shadow: 0 0 20px rgba(255,107,107,0.5);
+  letter-spacing: 3px;
+}
+
+.subtitle {
+  color: #888;
+  margin-top: 10px;
+  font-size: 0.9em;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+  font-size: 1.2em;
+  color: #4ecdc4;
+}
+
+.spinner {
+  border: 3px solid rgba(78, 205, 196, 0.1);
+  border-top: 3px solid #4ecdc4;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin: 20px auto;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.error {
+  background: rgba(255,107,107,0.1);
+  border: 1px solid #ff6b6b;
+  padding: 20px;
+  border-radius: 8px;
+  margin: 20px 0;
+  text-align: center;
+}
+
+.dashboard {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.asset-card {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.asset-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--accent-color), transparent);
+}
+
+.asset-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.asset-name {
+  font-size: 1.4em;
+  font-weight: bold;
+  color: var(--accent-color);
+}
+
+.asset-price {
+  font-size: 1.8em;
+  color: #fff;
+  margin: 10px 0;
+}
+
+.price-change {
+  font-size: 0.9em;
+  padding: 4px 8px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.positive {
+  background: rgba(78, 205, 196, 0.2);
+  color: #4ecdc4;
+}
+
+.negative {
+  background: rgba(255, 107, 107, 0.2);
+  color: #ff6b6b;
+}
+
+.safe-haven-score {
+  background: rgba(255,255,255,0.05);
+  padding: 15px;
+  border-radius: 8px;
+  margin-top: 15px;
+  border-left: 3px solid var(--accent-color);
+}
+
+.score-value {
+  font-size: 2em;
+  font-weight: bold;
+  color: var(--accent-color);
+}
+
+.score-label {
+  font-size: 0.8em;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.events-section {
+  margin-top: 30px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.section-title {
+  font-size: 1.5em;
+  color: #ff6b6b;
+  margin-bottom: 20px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.event-input {
+  display: grid;
+  grid-template-columns: 2fr 1fr auto;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+input, button {
+  padding: 12px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 6px;
+  color: #e0e0e0;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9em;
+}
+
+button {
+  cursor: pointer;
+  background: rgba(78, 205, 196, 0.2);
+  border-color: #4ecdc4;
+  color: #4ecdc4;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: all 0.3s;
+}
+
+button:hover {
+  background: rgba(78, 205, 196, 0.3);
+  transform: translateY(-2px);
+}
+
+.event-markers {
+  display: grid;
+  gap: 15px;
+}
+
+.event-card {
+  background: rgba(255,255,255,0.03);
+  border-left: 4px solid var(--event-severity);
+  padding: 15px;
+  border-radius: 6px;
+  position: relative;
+}
+
+.event-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  margin-bottom: 10px;
+}
+
+.event-title {
+  font-weight: bold;
+  color: #fff;
+  font-size: 1.1em;
+}
+
+.event-date {
+  color: #888;
+  font-size: 0.85em;
+}
+
+.event-impacts {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.impact-metric {
+  background: rgba(0,0,0,0.3);
+  padding: 8px;
+  border-radius: 4px;
+  text-align: center;
+}
+
+.impact-label {
+  font-size: 0.7em;
+  color: #888;
+  text-transform: uppercase;
+}
+
+.impact-value {
+  font-size: 1.1em;
+  font-weight: bold;
+  margin-top: 4px;
+}
+
+.delete-btn {
+  background: rgba(255,107,107,0.2);
+  border-color: #ff6b6b;
+  color: #ff6b6b;
+  padding: 6px 12px;
+  font-size: 0.8em;
+  margin-top: 10px;
+}
+
+.chart-container {
+  margin-top: 30px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 20px;
+  height: 400px;
+}
+
+input[type="date"] {
+  color-scheme: dark;
+}
+
+.volatility-high { color: #ff6b6b; }
+.volatility-medium { color: #ffd93d; }
+.volatility-low { color: #4ecdc4; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>⚔️ CRISISСOIN ⚔️</h1>
+  <div class="subtitle">Wartime Crypto Pulse · Safe Haven Tracker</div>
+</div>
+
+<div id="loading" class="loading">
+  <div class="spinner"></div>
+  <div>Fetching live market data from CoinGecko...</div>
+</div>
+
+<div id="error" class="error" style="display:none;"></div>
+
+<div id="dashboard" class="dashboard" style="display:none;"></div>
+
+<div id="chartSection" class="chart-container" style="display:none;">
+  <canvas id="priceChart"></canvas>
+</div>
+
+<div id="eventsSection" class="events-section" style="display:none;">
+  <div class="section-title">⚠️ Geopolitical Event Markers</div>
+  <div class="event-input">
+    <input type="text" id="eventTitle" placeholder="Event description (e.g., 'Hormuz blockade announced')">
+    <input type="date" id="eventDate">
+    <button onclick="addEvent()">Add Event</button>
+  </div>
+  <div id="eventMarkers" class="event-markers"></div>
+</div>
+
+<script>
+const COINS = [
+  { id: 'bitcoin', name: 'Bitcoin', symbol: 'BTC', color: '#f7931a' },
+  { id: 'ethereum', name: 'Ethereum', symbol: 'ETH', color: '#627eea' },
+  { id: 'pax-gold', name: 'PAX Gold', symbol: 'PAXG', color: '#d4af37' }
+];
+
+let marketData = {};
+let priceHistory = {};
+let events = [];
+let chart;
+
+// Pre-loaded crisis events
+const preloadedEvents = [
+  { title: 'Kharg Island bombing', date: '2025-01-15', severity: 'high' },
+  { title: 'Hormuz blockade announced', date: '2025-01-20', severity: 'critical' },
+  { title: 'Oil hits $100', date: '2025-01-22', severity: 'medium' }
+];
+
+async function fetchMarketData() {
+  try {
+    const response = await fetch(
+      `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${COINS.map(c => c.id).join(',')}&order=market_cap_desc&sparkline=false&price_change_percentage=1h,24h,7d`
+    );
+    
+    if (!response.ok) throw new Error(`API Error: ${response.status}`);
+    
+    const data = await response.json();
+    
+    data.forEach(coin => {
+      marketData[coin.id] = coin;
+    });
+    
+    return data;
+  } catch (error) {
+    throw new Error(`Failed to fetch market data: ${error.message}`);
+  }
+}
+
+async function fetchPriceHistory(coinId) {
+  try {
+    const response = await fetch(
+      `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=30&interval=daily`
+    );
+    
+    if (!response.ok) throw new Error(`API Error: ${response.status}`);
+    
+    const data = await response.json();
+    priceHistory[coinId] = data;
+    return data;
+  } catch (error) {
+    console.error(`Failed to fetch history for ${coinId}:`, error);
+    return null;
+  }
+}
+
+function calculateSafeHavenScore(coin) {
+  const data = marketData[coin.id];
+  if (!data) return 0;
+  
+  // Safe haven logic:
+  // - Positive price changes during crisis = higher score
+  // - Lower volatility = higher score
+  // - Higher volume = confirmation
+  
+  const price1h = data.price_change_percentage_1h_in_currency || 0;
+  const price24h = data.price_change_percentage_24h_in_currency || 0;
+  const price7d = data.price_change_percentage_7d_in_currency || 0;
+  
+  // Weighted average favoring recent performance
+  const priceScore = (price1h * 0.5 + price24h * 0.3 + price7d * 0.2);
+  
+  // Volume vs market cap ratio (higher = more interest)
+  const volumeRatio = (data.total_volume / data.market_cap) * 100;
+  
+  // Combine scores (scale -100 to +100)
+  const score = Math.max(-100, Math.min(100, priceScore * 5 + volumeRatio * 2));
+  
+  return Math.round(score);
+}
+
+function getSafeHavenLabel(score) {
+  if (score > 30) return 'Strong Safe Haven';
+  if (score > 10) return 'Moderate Safe Haven';
+  if (score > -10) return 'Neutral';
+  if (score > -30) return 'Risk Asset Behavior';
+  return 'High Risk Asset';
+}
+
+function renderDashboard() {
+  const dashboard = document.getElementById('dashboard');
+  dashboard.innerHTML = '';
+  
+  COINS.forEach(coin => {
+    const data = marketData[coin.id];
+    if (!data) return;
+    
+    const score = calculateSafeHavenScore(coin);
+    const label = getSafeHavenLabel(score);
+    
+    const change24h = data.price_change_percentage_24h || 0;
+    const isPositive = change24h >= 0;
+    
+    const card = document.createElement('div');
+    card.className = 'asset-card';
+    card.style.setProperty('--accent-color', coin.color);
+    
+    card.innerHTML = `
+      <div class="asset-header">
+        <div class="asset-name">${coin.symbol}</div>
+        <img src="${data.image}" width="32" height="32" alt="${coin.name}">
+      </div>
+      <div class="asset-price">$${data.current_price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+      <div class="price-change ${isPositive ? 'positive' : 'negative'}">
+        ${isPositive ? '▲' : '▼'} ${Math.abs(change24h).toFixed(2)}% (24h)
+      </div>
+      <div style="margin-top: 10px; font-size: 0.85em; color: #888;">
+        1h: <span class="${data.price_change_percentage_1h_in_currency >= 0 ? 'positive' : 'negative'}">${(data.price_change_percentage_1h_in_currency || 0).toFixed(2)}%</span> · 
+        7d: <span class="${data.price_change_percentage_7d_in_currency >= 0 ? 'positive' : 'negative'}">${(data.price_change_percentage_7d_in_currency || 0).toFixed(2)}%</span>
+      </div>
+      <div class="safe-haven-score">
+        <div class="score-label">Safe Haven Score</div>
+        <div class="score-value" style="color: ${score > 10 ? '#4ecdc4' : score < -10 ? '#ff6b6b' : '#ffd93d'}">${score > 0 ? '+' : ''}${score}</div>
+        <div style="margin-top: 5px; font-size: 0.85em; color: #aaa;">${label}</div>
+      </div>
+      <div style="margin-top: 10px; font-size: 0.8em; color: #666;">
+        Vol: $${(data.total_volume / 1e9).toFixed(2)}B · MCap: $${(data.market_cap / 1e9).toFixed(2)}B
+      </div>
+    `;
+    
+    dashboard.appendChild(card);
+  });
+}
+
+function renderChart() {
+  const canvas = document.getElementById('priceChart');
+  const ctx = canvas.getContext('2d');
+  
+  if (chart) chart.destroy();
+  
+  const datasets = COINS.map(coin => {
+    const history = priceHistory[coin.id];
+    if (!history) return null;
+    
+    return {
+      label: coin.symbol,
+      data: history.prices.map(p => ({ x: p[0], y: p[1] })),
+      borderColor: coin.color,
+      backgroundColor: coin.color + '20',
+      tension: 0.4,
+      pointRadius: 0,
+      borderWidth: 2
+    };
+  }).filter(Boolean);
+  
+  chart = new Chart(ctx, {
+    type: 'line',
+    data: { datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        mode: 'index',
+        intersect: false
+      },
+      plugins: {
+        legend: {
+          labels: { color: '#e0e0e0', font: { family: "'Courier New', monospace" } }
+        },
+        tooltip: {
+          backgroundColor: 'rgba(0,0,0,0.8)',
+          titleFont: { family: "'Courier New', monospace" },
+          bodyFont: { family: "'Courier New', monospace" }
+        }
+      },
+      scales: {
+        x: {
+          type: 'time',
+          time: { unit: 'day' },
+          grid: { color: 'rgba(255,255,255,0.1)' },
+          ticks: { color: '#888' }
+        },
+        y: {
+          grid: { color: 'rgba(255,255,255,0.1)' },
+          ticks: { 
+            color: '#888',
+            callback: value => '$' + value.toLocaleString()
+          }
+        }
+      }
+    }
+  });
+  
+  // Add event markers
+  events.forEach(event => {
+    const eventTime = new Date(event.date).getTime();
+    chart.options.plugins.annotation = chart.options.plugins.annotation || { annotations: {} };
+    chart.options.plugins.annotation.annotations[event.date] = {
+      type: 'line',
+      xMin: eventTime,
+      xMax: eventTime,
+      borderColor: event.severity === 'critical' ? '#ff6b6b' : event.severity === 'high' ? '#ff9f43' : '#ffd93d',
+      borderWidth: 2,
+      borderDash: [5, 5],
+      label: {
+        content: event.title,
+        enabled: true,
+        position: 'top',
+        backgroundColor: 'rgba(0,0,0,0.8)',
+        color: '#fff'
+      }
+    };
+  });
+  
+  chart.update();
+}
+
+function calculateEventImpact(event) {
+  const eventTime = new Date(event.date).getTime();
+  const impacts = {};
+  
+  COINS.forEach(coin => {
+    const history = priceHistory[coin.id];
+    if (!history) return;
+    
+    // Find closest price points
+    const prices = history.prices;
+    let eventIdx = prices.findIndex(p => p[0] >= eventTime);
+    if (eventIdx === -1) eventIdx = prices.length - 1;
+    
+    const eventPrice = prices[eventIdx]?.[1] || 0;
+    const price1hAfter = prices[Math.min(eventIdx + 1, prices.length - 1)]?.[1] || eventPrice;
+    const price24hAfter = prices[Math.min(eventIdx + 2, prices.length - 1)]?.[1] || eventPrice;
+    const price7dAfter = prices[Math.min(eventIdx + 7, prices.length - 1)]?.[1] || eventPrice;
+    
+    const change1h = ((price1hAfter - eventPrice) / eventPrice * 100);
+    const change24h = ((price24hAfter - eventPrice) / eventPrice * 100);
+    const change7d = ((price7dAfter - eventPrice) / eventPrice * 100);
+    
+    // Calculate volatility (simplified)
+    const recentPrices = prices.slice(Math.max(0, eventIdx - 7), eventIdx + 7).map(p => p[1]);
+    const avgPrice = recentPrices.reduce((a, b) => a + b, 0) / recentPrices.length;
+    const variance = recentPrices.reduce((sum, p) => sum + Math.pow(p - avgPrice, 2), 0) / recentPrices.length;
+    const volatility = Math.sqrt(variance) / avgPrice * 100;
+    
+    impacts[coin.id] = { change1h, change24h, change7d, volatility };
+  });
+  
+  return impacts;
+}
+
+function renderEvents() {
+  const container = document.getElementById('eventMarkers');
+  container.innerHTML = '';
+  
+  events.forEach((event, idx) => {
+    const impacts = calculateEventImpact(event);
+    const severityColor = event.severity === 'critical' ? '#ff6b6b' : 
+                          event.severity === 'high' ? '#ff9f43' : '#ffd93d';
+    
+    const card = document.createElement('div');
+    card.className = 'event-card';
+    card.style.setProperty('--event-severity', severityColor);
+    
+    let impactHTML = '';
+    COINS.forEach(coin => {
+      const impact = impacts[coin.id];
+      if (!impact) return;
+      
+      const volClass = impact.volatility > 5 ? 'volatility-high' : 
+                       impact.volatility > 2 ? 'volatility-medium' : 'volatility-low';
+      
+      impactHTML += `
+        <div style="margin-top: 15px;">
+          <div style="font-weight: bold; color: ${coin.color}; margin-bottom: 8px;">${coin.symbol} Response</div>
+          <div class="event-impacts">
+            <div class="impact-metric">
+              <div class="impact-label">1h</div>
+              <div class="impact-value ${impact.change1h >= 0 ? 'positive' : 'negative'}">${impact.change1h >= 0 ? '+' : ''}${impact.change1h.toFixed(2)}%</div>
+            </div>
+            <div class="impact-metric">
+              <div class="impact-label">24h</div>
+              <div class="impact-value ${impact.change24h >= 0 ? 'positive' : 'negative'}">${impact.change24h >= 0 ? '+' : ''}${impact.change24h.toFixed(2)}%</div>
+            </div>
+            <div class="impact-metric">
+              <div class="impact-label">7d</div>
+              <div class="impact-value ${impact.change7d >= 0 ? 'positive' : 'negative'}">${impact.change7d >= 0 ? '+' : ''}${impact.change7d.toFixed(2)}%</div>
+            </div>
+          </div>
+          <div style="margin-top: 8px; font-size: 0.8em; color: #888;">
+            Volatility: <span class="${volClass}">${impact.volatility.toFixed(2)}%</span>
+          </div>
+        </div>
+      `;
+    });
+    
+    card.innerHTML = `
+      <div class="event-header">
+        <div class="event-title">${event.title}</div>
+        <div class="event-date">${new Date(event.date).toLocaleDateString()}</div>
+      </div>
+      ${impactHTML}
+      <button class="delete-btn" onclick="deleteEvent(${idx})">Delete Event</button>
+    `;
+    
+    container.appendChild(card);
+  });
+}
+
+function addEvent() {
+  const title = document.getElementById('eventTitle').value.trim();
+  const date = document.getElementById('eventDate').value;
+  
+  if (!title || !date) {
+    alert('Please enter both event title and date');
+    return;
+  }
+  
+  // Determine severity based on keywords
+  let severity = 'medium';
+  const lowerTitle = title.toLowerCase();
+  if (lowerTitle.includes('war') || lowerTitle.includes('blockade') || lowerTitle.includes('bombing')) {
+    severity = 'critical';
+  } else if (lowerTitle.includes('strike') || lowerTitle.includes('sanctions') || lowerTitle.includes('invasion')) {
+    severity = 'high';
+  }
+  
+  events.push({ title, date, severity });
+  
+  document.getElementById('eventTitle').value = '';
+  document.getElementById('eventDate').value = '';
+  
+  renderEvents();
+  renderChart();
+}
+
+function deleteEvent(idx) {
+  events.splice(idx, 1);
+  renderEvents();
+  renderChart();
+}
+
+async function init() {
+  try {
+    document.getElementById('loading').style.display = 'block';
+    
+    // Fetch market data
+    await fetchMarketData();
+    
+    // Fetch price history for all coins
+    await Promise.all(COINS.map(coin => fetchPriceHistory(coin.id)));
+    
+    // Load preloaded events
+    events = [...preloadedEvents];
+    
+    // Set default date to today
+    document.getElementById('eventDate').valueAsDate = new Date();
+    
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'grid';
+    document.getElementById('chartSection').style.display = 'block';
+    document.getElementById('eventsSection').style.display = 'block';
+    
+    renderDashboard();
+    renderChart();
+    renderEvents();
+    
+    // Refresh every 5 minutes
+    setInterval(async () => {
+      await fetchMarketData();
+      renderDashboard();
+    }, 300000);
+    
+  } catch (error) {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('error').style.display = 'block';
+    document.getElementById('error').textContent = `⚠️ Error: ${error.message}. Please refresh the page to try again.`;
+  }
+}
+
+init();
+</script>
+
+</body>
+</html>
