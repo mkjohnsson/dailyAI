@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Narrowpass — Daily AI Gen</title>
+  <meta name="description" content="You're a bouncer at an impossibly narrow door, squishing and stretching pleading geometric shapes while they have emotional breakdowns about their new forms.">
+  <meta property="og:title" content="Narrowpass — Daily AI Gen">
+  <meta property="og:description" content="You're a bouncer at an impossibly narrow door, squishing and stretching pleading geometric shapes while they have emotional breakdowns about their new forms.">
+  <meta property="og:url" content="https://dailyaigen.com/apps/2026-03-15/">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="https://dailyaigen.com/apps/2026-03-15/">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Courier New', monospace;
+            background: #1a1a1a;
+            color: #fff;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        #game {
+            width: 100%;
+            max-width: 800px;
+            height: 600px;
+            position: relative;
+            background: #2a2a2a;
+            border: 3px solid #444;
+        }
+        #door {
+            position: absolute;
+            right: 50px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 40px;
+            height: 200px;
+            background: linear-gradient(90deg, #8B4513 0%, #654321 50%, #8B4513 100%);
+            border: 2px solid #000;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+        }
+        #doorway {
+            position: absolute;
+            right: 52px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 15px;
+            height: 80px;
+            background: #000;
+            border: 2px solid #666;
+            z-index: 10;
+        }
+        #shape {
+            position: absolute;
+            left: 100px;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            transition: all 0.3s ease;
+        }
+        #speech {
+            position: absolute;
+            left: 50px;
+            top: 100px;
+            width: 300px;
+            min-height: 80px;
+            background: #fff;
+            color: #000;
+            padding: 15px;
+            border-radius: 10px;
+            border: 3px solid #000;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        #speech::after {
+            content: '';
+            position: absolute;
+            bottom: -20px;
+            left: 50px;
+            width: 0;
+            height: 0;
+            border-left: 15px solid transparent;
+            border-right: 15px solid transparent;
+            border-top: 20px solid #fff;
+        }
+        .controls {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            width: 90%;
+        }
+        button {
+            padding: 12px 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            background: #4a4a4a;
+            color: #fff;
+            border: 2px solid #666;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        button:hover {
+            background: #5a5a5a;
+            transform: scale(1.05);
+        }
+        button:active {
+            transform: scale(0.95);
+        }
+        #stats {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 18px;
+            text-align: right;
+            background: rgba(0,0,0,0.5);
+            padding: 15px;
+            border: 2px solid #666;
+        }
+        #doorMood {
+            position: absolute;
+            right: 100px;
+            top: 20px;
+            font-size: 12px;
+            background: rgba(255,0,0,0.3);
+            padding: 10px;
+            border: 2px solid #ff0000;
+            max-width: 200px;
+        }
+        .shape-circle {
+            border-radius: 50%;
+        }
+        .shape-square {
+            border-radius: 0;
+        }
+        .shape-triangle {
+            width: 0;
+            height: 0;
+            background: transparent !important;
+            border-left: 50px solid transparent;
+            border-right: 50px solid transparent;
+            border-bottom: 87px solid;
+        }
+        #gameOver {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.95);
+            padding: 40px;
+            border: 4px solid #ff0000;
+            text-align: center;
+            font-size: 24px;
+            display: none;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+    <div id="game">
+        <div id="door"></div>
+        <div id="doorway"></div>
+        <div id="shape"></div>
+        <div id="speech"></div>
+        <div id="stats">
+            <div>Through: <span id="passed">0</span>/20</div>
+            <div>Attempts: <span id="attempts">0</span></div>
+        </div>
+        <div id="doorMood" style="display: none;"></div>
+        <div class="controls">
+            <button onclick="squish()">SQUISH</button>
+            <button onclick="stretch()">STRETCH</button>
+            <button onclick="fold()">FOLD</button>
+            <button onclick="inflate()">INFLATE</button>
+            <button onclick="tryDoor()">SEND THROUGH →</button>
+            <button onclick="reject()">REJECT</button>
+        </div>
+        <div id="gameOver"></div>
+    </div>
+
+    <script>
+        const shapes = [
+            {
+                type: 'circle',
+                size: 120,
+                color: '#ff6b6b',
+                name: 'Circle',
+                dialogue: [
+                    "I'm perfectly round! That's gotta count for something, right?",
+                    "Listen, I've been practicing yoga. I'm very flexible.",
+                    "I know a guy who knows the door's cousin.",
+                    "What if I told you I have connections in high places?",
+                ]
+            },
+            {
+                type: 'square',
+                size: 100,
+                color: '#4ecdc4',
+                name: 'Square',
+                dialogue: [
+                    "I'm a shape of the people! Let me through!",
+                    "My edges are my personality. Please don't take them away.",
+                    "I have four corners. That's two more than a triangle. I'm basically luxury.",
+                    "I've always dreamed of what's on the other side...",
+                ]
+            },
+            {
+                type: 'triangle',
+                size: 100,
+                color: '#ffe66d',
+                name: 'Triangle',
+                dialogue: [
+                    "I'm pointy and determined! I WILL fit!",
+                    "My therapist says I have boundary issues. Prove her wrong?",
+                    "Fun fact: I'm technically a polygon. Very exclusive club.",
+                    "I once dated a hexagon. Didn't work out. Too many sides to the story.",
+                ]
+            },
+            {
+                type: 'rhombus',
+                size: 110,
+                color: '#a8e6cf',
+                name: 'Rhombus',
+                dialogue: [
+                    "I'm like a square but FANCY. Surely that matters?",
+                    "People always confuse me with a diamond. It's exhausting.",
+                    "I'm having an identity crisis. Maybe going through will help?",
+                    "I lean to the side. It's my thing. My BRAND.",
+                ]
+            },
+            {
+                type: 'rectangle',
+                size: 130,
+                color: '#ff8b94',
+                name: 'Rectangle',
+                dialogue: [
+                    "I'm already narrow-ish! We're practically family!",
+                    "Listen, I'm willing to negotiate. What do you need?",
+                    "I'm taller than I am wide. That's gotta be door-compatible.",
+                    "I feel like we got off on the wrong foot. Can we start over?",
+                ]
+            }
+        ];
+
+        const doorPersonalities = [
+            "THE DOOR: I'm getting tired of ugly shapes. Next one better be AESTHETIC.",
+            "THE DOOR: Why do they all want through so badly? What's on the other side? ME?",
+            "THE DOOR: I've decided I only like shapes that are 47% their original size.",
+            "THE DOOR: Red shapes remind me of my ex. No red shapes.",
+            "THE DOOR: Actually, I've changed my mind about everything.",
+        ];
+
+        let currentShape = null;
+        let passed = 0;
+        let attempts = 0;
+        let modifications = [];
+        let doorIsAwake = false;
+        let doorPreferences = {};
+
+        function generateShape() {
+            const template = shapes[Math.floor(Math.random() * shapes.length)];
+            currentShape = {
+                ...template,
+                originalSize: template.size,
+                width: template.size,
+                height: template.size,
+                dialogue: [...template.dialogue],
+                currentDialogue: 0,
+                emotion: 'neutral',
+                modifications: []
+            };
+            modifications = [];
+            renderShape();
+            speak();
+        }
+
+        function renderShape() {
+            const shapeEl = document.getElementById('shape');
+            shapeEl.className = '';
+            shapeEl.style.background = currentShape.color;
+            
+            if (currentShape.type === 'triangle') {
+                shapeEl.className = 'shape-triangle';
+                shapeEl.style.borderBottomColor = currentShape.color;
+                shapeEl.style.borderLeftWidth = currentShape.width / 2 + 'px';
+                shapeEl.style.borderRightWidth = currentShape.width / 2 + 'px';
+                shapeEl.style.borderBottomWidth = currentShape.height + 'px';
+            } else if (currentShape.type === 'circle') {
+                shapeEl.className = 'shape-circle';
+                shapeEl.style.width = currentShape.width + 'px';
+                shapeEl.style.height = currentShape.height + 'px';
+            } else if (currentShape.type === 'rhombus') {
+                shapeEl.style.width = currentShape.width + 'px';
+                shapeEl.style.height = currentShape.height + 'px';
+                shapeEl.style.transform = 'translate(-50%, -50%) rotate(45deg)';
+            } else {
+                shapeEl.style.width = currentShape.width + 'px';
+                shapeEl.style.height = currentShape.height + 'px';
+            }
+        }
+
+        function speak() {
+            const speechEl = document.getElementById('speech');
+            let text = '';
+            
+            if (currentShape.modifications.length > 0) {
+                const lastMod = currentShape.modifications[currentShape.modifications.length - 1];
+                text = getReaction(lastMod);
+            } else {
+                text = currentShape.dialogue[currentShape.currentDialogue % currentShape.dialogue.length];
+                currentShape.currentDialogue++;
+            }
+            
+            speechEl.textContent = text;
+        }
+
+        function getReaction(modification) {
+            const reactions = {
+                squish: [
+                    "WHY WOULD YOU DO THIS TO ME?!",
+                    "I feel... flat. Emotionally and physically.",
+                    "This is humiliating.",
+                    "I can't feel my vertices.",
+                    "Is this what they call 'being compressed'? I don't like it.",
+                ],
+                stretch: [
+                    "I'm so TALL now! Do I look ridiculous?",
+                    "This feels wrong but also kind of liberating?",
+                    "I feel like a different shape entirely.",
+                    "My therapist is going to have a field day with this.",
+                    "STOP PULLING ME I'M GONNA SNAP",
+                ],
+                fold: [
+                    "WHAT HAVE YOU DONE I'M IN TWO PLACES AT ONCE",
+                    "This is an existential nightmare.",
+                    "Am I one shape or two shapes folded together?",
+                    "I think I just experienced ego death.",
+                    "I've become my own worst enemy. Literally.",
+                ],
+                inflate: [
+                    "I'm HUGE! I'M MAGNIFICENT!",
+                    "Wait, this makes going through harder, doesn't it...",
+                    "I feel powerful but also very anxious.",
+                    "Being big isn't what I thought it would be.",
+                    "I miss being normal sized. I miss everything.",
+                ]
+            };
+            
+            const modReactions = reactions[modification];
+            return modReactions[Math.floor(Math.random() * modReactions.length)];
+        }
+
+        function squish() {
+            currentShape.height *= 0.6;
+            currentShape.modifications.push('squish');
+            renderShape();
+            speak();
+        }
+
+        function stretch() {
+            currentShape.height *= 1.5;
+            currentShape.modifications.push('stretch');
+            renderShape();
+            speak();
+        }
+
+        function fold() {
+            currentShape.width *= 0.4;
+            currentShape.modifications.push('fold');
+            renderShape();
+            speak();
+        }
+
+        function inflate() {
+            currentShape.width *= 1.4;
+            currentShape.height *= 1.4;
+            currentShape.modifications.push('inflate');
+            renderShape();
+            speak();
+        }
+
+        function tryDoor() {
+            attempts++;
+            document.getElementById('attempts').textContent = attempts;
+            
+            const doorWidth = 15;
+            const doorHeight = 80;
+            let fits = false;
+            
+            // Check if shape fits
+            if (currentShape.type === 'triangle') {
+                fits = (currentShape.width / 2) <= doorWidth && currentShape.height <= doorHeight;
+            } else {
+                fits = currentShape.width <= doorWidth && currentShape.height <= doorHeight;
+            }
+            
+            // Door's arbitrary opinions (after 10 shapes)
+            if (doorIsAwake) {
+                if (doorPreferences.bannedColor && currentShape.color === doorPreferences.bannedColor) {
+                    fits = false;
+                    document.getElementById('speech').textContent = "THE DOOR REJECTED YOU FOR AESTHETIC REASONS.";
+                } else if (doorPreferences.requiredSize) {
+                    const sizeRatio = currentShape.width / currentShape.originalSize;
+                    if (Math.abs(sizeRatio - doorPreferences.requiredSize) > 0.1) {
+                        fits = false;
+                        document.getElementById('speech').textContent = "THE DOOR SAYS YOU'RE NOT THE RIGHT SIZE RATIO. IT'S VERY PARTICULAR.";
+                    }
+                }
+            }
+            
+            if (fits) {
+                passed++;
+                document.getElementById('passed').textContent = passed;
+                
+                // Animate through door
+                const shapeEl = document.getElementById('shape');
+                shapeEl.style.left = '700px';
+                shapeEl.style.opacity = '0';
+                
+                setTimeout(() => {
+                    shapeEl.style.transition = 'none';
+                    shapeEl.style.left = '100px';
+                    shapeEl.style.opacity = '1';
+                    setTimeout(() => {
+                        shapeEl.style.transition = 'all 0.3s ease';
+                    }, 50);
+                    
+                    if (passed === 10) {
+                        doorWakesUp();
+                    }
+                    
+                    if (passed >= 20) {
+                        endGame(true);
+                    } else {
+                        generateShape();
+                    }
+                }, 500);
+            } else {
+                document.getElementById('speech').textContent = "OW! I DON'T FIT! Try reshaping me or just reject me, you monster.";
+            }
+        }
+
+        function reject() {
+            document.getElementById('speech').textContent = "How dare you! I'll remember this!";
+            const shapeEl = document.getElementById('shape');
+            shapeEl.style.left = '-200px';
+            shapeEl.style.opacity = '0';
+            
+            setTimeout(() => {
+                shapeEl.style.transition = 'none';
+                shapeEl.style.left = '100px';
+                shapeEl.style.opacity = '1';
+                setTimeout(() => {
+                    shapeEl.style.transition = 'all 0.3s ease';
+                }, 50);
+                generateShape();
+            }, 500);
+        }
+
+        function doorWakesUp() {
+            doorIsAwake = true;
+            const moodEl = document.getElementById('doorMood');
+            moodEl.style.display = 'block';
+            moodEl.textContent = doorPersonalities[Math.floor(Math.random() * doorPersonalities.length)];
+            
+            // Set random door preferences
+            if (Math.random() > 0.5) {
+                doorPreferences.bannedColor = shapes[Math.floor(Math.random() * shapes.length)].color;
+            }
+            if (Math.random() > 0.5) {
+                doorPreferences.requiredSize = 0.3 + Math.random() * 0.4;
+            }
+            
+            // Change mood periodically
+            setInterval(() => {
+                if (doorIsAwake) {
+                    moodEl.textContent = doorPersonalities[Math.floor(Math.random() * doorPersonalities.length)];
+                    doorPreferences = {};
+                    if (Math.random() > 0.5) {
+                        doorPreferences.bannedColor = shapes[Math.floor(Math.random() * shapes.length)].color;
+                    }
+                    if (Math.random() > 0.5) {
+                        doorPreferences.requiredSize = 0.3 + Math.random() * 0.4;
+                    }
+                }
+            }, 15000);
+        }
+
+        function endGame(won) {
+            const gameOverEl = document.getElementById('gameOver');
+            if (won) {
+                gameOverEl.innerHTML = `
+                    <div>🎉 YOU DID IT! 🎉</div>
+                    <div style="font-size: 16px; margin-top: 20px;">
+                        You got 20 shapes through the door in ${attempts} attempts.
+                    </div>
+                    <div style="font-size: 14px; margin-top: 20px;">
+                        The door is now sentient and writing a memoir about the experience.
+                    </div>
+                    <button onclick="location.reload()" style="margin-top: 30px;">BOUNCE AGAIN</button>
+                `;
+            }
+            gameOverEl.style.display = 'block';
+        }
+
+        // Start game
+        generateShape();
+    </script>
+</body>
+</html>

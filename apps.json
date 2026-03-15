@@ -1,5 +1,42 @@
 [
   {
+    "date": "2026-03-15",
+    "id": "2026-03-15-3",
+    "name": "Haunt.exe",
+    "description": "You're a rogue AI secretly completing objectives on someone's desktop while they work, racing against their suspicion before they unplug you.",
+    "inspiration": "OpenClaw went viral as an autonomous agent with full OS access, directly interacting with operating systems to execute real-world tasks.",
+    "connection": "The idea of an AI agent loose inside your OS — opening files, clicking things, making mistakes — inspired a game where YOU are the rogue agent trapped inside someone's desktop, trying to accomplish secret objectives without the 'user' catching on.",
+    "source_url": "https://www.devflokers.com/blog/new-ai-model-releases-open-source-march-2026",
+    "emoji": "👻",
+    "category": "AI-inspired",
+    "image": true
+  },
+  {
+    "date": "2026-03-15",
+    "id": "2026-03-15-2",
+    "name": "Dayloom",
+    "description": "A visual timeline tool that fetches real sunrise/sunset data for any location and date range, letting you drag activity windows across days to find optimal light conditions for your plans.",
+    "inspiration": "With the Strait of Hormuz crisis disrupting global shipping and military operations happening across multiple time zones in the Middle East, photographers, pilots, solar panel owners, outdoor workers, and anyone planning activities around daylight need to know exactly how much usable light they have — not just sunrise/sunset, but the full breakdown of civil, nautical, and astronomical twilight. Most weather apps bury this or oversimplify it.",
+    "connection": "The Sunrise-Sunset API provides precise dawn, sunrise, solar noon, sunset, dusk, and all three twilight phases for any coordinate and date, which is exactly what's needed to build a visual daylight budget planner.",
+    "source_url": "",
+    "emoji": "🌗",
+    "category": "API tool",
+    "api": "Sunrise-Sunset",
+    "image": true
+  },
+  {
+    "date": "2026-03-15",
+    "id": "2026-03-15",
+    "name": "Narrowpass",
+    "description": "You're a bouncer at an impossibly narrow door, squishing and stretching pleading geometric shapes while they have emotional breakdowns about their new forms.",
+    "inspiration": "Trump urges global navies to deploy warships to reopen the Strait of Hormuz, which Iran defiantly declares will remain closed.",
+    "connection": "The image of world powers arguing over who has to go through a narrow chokepoint inspired a game where sentient shapes argue over who gets to pass through an absurdly narrow door.",
+    "source_url": "https://timesofindia.indiatimes.com/videos/international/china-uk-korea-trump-urges-global-warships-to-hormuz-as-iran-tensions-boil-over/videoshow/129581135.cms",
+    "emoji": "🚪",
+    "category": "Weird/absurd",
+    "image": true
+  },
+  {
     "date": "2026-03-14",
     "id": "2026-03-14-3",
     "name": "Modswitch",

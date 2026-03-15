@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dayloom - Daylight Timeline Planner — Daily AI Gen</title>
+  <meta name="description" content="A visual timeline tool that fetches real sunrise/sunset data for any location and date range, letting you drag activity windows across days to find optimal light conditions for your plans.">
+  <meta property="og:title" content="Dayloom — Daily AI Gen">
+  <meta property="og:description" content="A visual timeline tool that fetches real sunrise/sunset data for any location and date range, letting you drag activity windows across days to find optimal light conditions for your plans.">
+  <meta property="og:url" content="https://dailyaigen.com/apps/2026-03-15-2/">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="https://dailyaigen.com/apps/2026-03-15-2/">
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(to bottom, #1a1f3a 0%, #2d3561 100%);
+  color: #e8eaf6;
+  padding: 20px;
+  min-height: 100vh;
+}
+
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+h1 {
+  font-size: 2.5em;
+  color: #ffd54f;
+  margin-bottom: 10px;
+}
+
+.subtitle {
+  color: #b0bec5;
+  font-size: 0.95em;
+}
+
+.controls {
+  background: rgba(255,255,255,0.05);
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.control-row {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+.control-group {
+  flex: 1;
+  min-width: 200px;
+}
+
+label {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 0.85em;
+  color: #b0bec5;
+}
+
+input, button {
+  width: 100%;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+  font-size: 0.95em;
+}
+
+button {
+  background: #5c6bc0;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+button:hover {
+  background: #7986cb;
+}
+
+button:disabled {
+  background: #424242;
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.auto-locate {
+  background: #26a69a;
+}
+
+.auto-locate:hover {
+  background: #4db6ac;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+  font-size: 1.1em;
+  color: #ffd54f;
+}
+
+.error {
+  background: rgba(244,67,54,0.2);
+  border: 1px solid #f44336;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  color: #ffcdd2;
+}
+
+.timeline-container {
+  background: rgba(255,255,255,0.05);
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  border: 1px solid rgba(255,255,255,0.1);
+  overflow-x: auto;
+}
+
+.timeline-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.activity-controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.activity-controls input {
+  width: 150px;
+  padding: 8px;
+}
+
+.activity-controls button {
+  width: auto;
+  padding: 8px 15px;
+}
+
+.timeline-scroll {
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
+.timeline {
+  min-width: 800px;
+  position: relative;
+}
+
+.day-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+  position: relative;
+}
+
+.day-label {
+  width: 120px;
+  font-size: 0.85em;
+  color: #b0bec5;
+  flex-shrink: 0;
+}
+
+.day-bar {
+  flex: 1;
+  height: 40px;
+  position: relative;
+  display: flex;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.phase {
+  height: 100%;
+  transition: opacity 0.2s;
+}
+
+.phase-night { background: #1a237e; }
+.phase-astronomical { background: #283593; }
+.phase-nautical { background: #3949ab; }
+.phase-civil { background: #5c6bc0; }
+.phase-golden { background: #ffa726; }
+.phase-day { background: #ffd54f; }
+
+.activity-window {
+  position: absolute;
+  top: 0;
+  height: 40px;
+  background: rgba(76, 175, 80, 0.3);
+  border: 2px solid #4caf50;
+  border-radius: 4px;
+  cursor: move;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75em;
+  color: #fff;
+  user-select: none;
+  z-index: 10;
+}
+
+.activity-window:hover {
+  background: rgba(76, 175, 80, 0.5);
+}
+
+.resize-handle {
+  position: absolute;
+  width: 10px;
+  height: 100%;
+  cursor: ew-resize;
+  background: rgba(76, 175, 80, 0.5);
+}
+
+.resize-handle.left { left: 0; }
+.resize-handle.right { right: 0; }
+
+.summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.summary-card {
+  background: rgba(255,255,255,0.05);
+  padding: 15px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.summary-card h3 {
+  font-size: 0.9em;
+  color: #b0bec5;
+  margin-bottom: 8px;
+}
+
+.summary-card .value {
+  font-size: 1.5em;
+  color: #ffd54f;
+  font-weight: 600;
+}
+
+.legend {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+  margin-top: 15px;
+  font-size: 0.85em;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.legend-color {
+  width: 20px;
+  height: 20px;
+  border-radius: 3px;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
+.day-info {
+  font-size: 0.75em;
+  color: #90a4ae;
+  margin-top: 2px;
+}
+
+.match-indicator {
+  position: absolute;
+  right: -30px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7em;
+}
+
+.match-full { background: #4caf50; color: #fff; }
+.match-partial { background: #ff9800; color: #fff; }
+.match-none { background: #f44336; color: #fff; }
+
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>🌅 Dayloom</h1>
+    <p class="subtitle">Plan your activities around natural light — see sunrise, sunset, and twilight phases</p>
+  </header>
+
+  <div class="controls">
+    <div class="control-row">
+      <div class="control-group">
+        <label>Latitude</label>
+        <input type="number" id="lat" placeholder="e.g., 40.7128" step="0.0001" value="40.7128">
+      </div>
+      <div class="control-group">
+        <label>Longitude</label>
+        <input type="number" id="lng" placeholder="e.g., -74.0060" step="0.0001" value="-74.0060">
+      </div>
+      <div class="control-group">
+        <label>Start Date</label>
+        <input type="date" id="startDate">
+      </div>
+      <div class="control-group">
+        <label>End Date</label>
+        <input type="date" id="endDate">
+      </div>
+    </div>
+    <div class="control-row">
+      <button class="auto-locate" id="autoLocate">📍 Auto-Detect Location</button>
+      <button id="fetchData">Fetch Daylight Data</button>
+    </div>
+  </div>
+
+  <div id="error" class="error" style="display:none;"></div>
+  <div id="loading" class="loading" style="display:none;">Fetching daylight data...</div>
+
+  <div id="results" style="display:none;">
+    <div class="summary" id="summary"></div>
+
+    <div class="timeline-container">
+      <div class="timeline-header">
+        <h2>Daylight Timeline</h2>
+        <div class="activity-controls">
+          <input type="text" id="activityName" placeholder="Activity name" value="Photo shoot">
+          <input type="time" id="activityStart" value="06:00">
+          <input type="time" id="activityEnd" value="08:00">
+          <button id="addActivity">Add Activity Window</button>
+        </div>
+      </div>
+      
+      <div class="legend">
+        <div class="legend-item"><div class="legend-color phase-night"></div> Night</div>
+        <div class="legend-item"><div class="legend-color phase-astronomical"></div> Astronomical Twilight</div>
+        <div class="legend-item"><div class="legend-color phase-nautical"></div> Nautical Twilight</div>
+        <div class="legend-item"><div class="legend-color phase-civil"></div> Civil Twilight</div>
+        <div class="legend-item"><div class="legend-color phase-golden"></div> Golden Hour</div>
+        <div class="legend-item"><div class="legend-color phase-day"></div> Full Daylight</div>
+      </div>
+
+      <div class="timeline-scroll">
+        <div class="timeline" id="timeline"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let daysData = [];
+let activities = [];
+
+// Set default dates
+const today = new Date();
+document.getElementById('startDate').value = today.toISOString().split('T')[0];
+const endDate = new Date(today);
+endDate.setDate(endDate.getDate() + 6);
+document.getElementById('endDate').value = endDate.toISOString().split('T')[0];
+
+document.getElementById('autoLocate').addEventListener('click', async () => {
+  const btn = document.getElementById('autoLocate');
+  btn.disabled = true;
+  btn.textContent = 'Detecting...';
+  
+  try {
+    const response = await fetch('https://ipapi.co/json/');
+    const data = await response.json();
+    document.getElementById('lat').value = data.latitude;
+    document.getElementById('lng').value = data.longitude;
+    btn.textContent = `📍 ${data.city}, ${data.country_name}`;
+  } catch (error) {
+    showError('Could not auto-detect location. Please enter manually.');
+    btn.textContent = '📍 Auto-Detect Location';
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+document.getElementById('fetchData').addEventListener('click', fetchDaylightData);
+document.getElementById('addActivity').addEventListener('click', addActivity);
+
+async function fetchDaylightData() {
+  const lat = parseFloat(document.getElementById('lat').value);
+  const lng = parseFloat(document.getElementById('lng').value);
+  const startDate = new Date(document.getElementById('startDate').value);
+  const endDate = new Date(document.getElementById('endDate').value);
+
+  if (!lat || !lng || !startDate || !endDate) {
+    showError('Please fill in all fields');
+    return;
+  }
+
+  const daysDiff = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+  if (daysDiff > 30) {
+    showError('Date range cannot exceed 30 days');
+    return;
+  }
+
+  document.getElementById('error').style.display = 'none';
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('results').style.display = 'none';
+
+  daysData = [];
+  
+  try {
+    for (let i = 0; i < daysDiff; i++) {
+      const currentDate = new Date(startDate);
+      currentDate.setDate(startDate.getDate() + i);
+      const dateStr = currentDate.toISOString().split('T')[0];
+
+      const response = await fetch(
+        `https://api.sunrise-sunset.org/json?lat=${lat}&lng=${lng}&date=${dateStr}&formatted=0`
+      );
+      
+      if (!response.ok) throw new Error('API request failed');
+      
+      const data = await response.json();
+      
+      if (data.status !== 'OK') throw new Error('API returned error status');
+
+      daysData.push({
+        date: currentDate,
+        dateStr: dateStr,
+        ...data.results
+      });
+    }
+
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('results').style.display = 'block';
+    renderResults();
+  } catch (error) {
+    document.getElementById('loading').style.display = 'none';
+    showError('Failed to fetch data. Please check your connection and try again.');
+  }
+}
+
+function showError(message) {
+  const errorDiv = document.getElementById('error');
+  errorDiv.textContent = message;
+  errorDiv.style.display = 'block';
+  setTimeout(() => {
+    errorDiv.style.display = 'none';
+  }, 5000);
+}
+
+function renderResults() {
+  renderSummary();
+  renderTimeline();
+}
+
+function renderSummary() {
+  const firstDay = daysData[0];
+  const lastDay = daysData[daysData.length - 1];
+  
+  const firstDayLength = getDayLength(firstDay);
+  const lastDayLength = getDayLength(lastDay);
+  const trend = lastDayLength > firstDayLength ? '📈 Growing' : lastDayLength < firstDayLength ? '📉 Shrinking' : '➡️ Stable';
+  const trendMinutes = Math.abs(lastDayLength - firstDayLength);
+
+  let totalGoldenHour = 0;
+  let earliestUsableLight = null;
+  let latestUsableLight = null;
+
+  daysData.forEach(day => {
+    const goldenMorning = (new Date(day.sunrise) - new Date(day.civil_twilight_begin)) / 60000;
+    const goldenEvening = (new Date(day.civil_twilight_end) - new Date(day.sunset)) / 60000;
+    totalGoldenHour += goldenMorning + goldenEvening;
+
+    const civilBegin = new Date(day.civil_twilight_begin);
+    const civilEnd = new Date(day.civil_twilight_end);
+    
+    if (!earliestUsableLight || civilBegin < earliestUsableLight) {
+      earliestUsableLight = civilBegin;
+    }
+    if (!latestUsableLight || civilEnd > latestUsableLight) {
+      latestUsableLight = civilEnd;
+    }
+  });
+
+  const avgDayLength = daysData.reduce((sum, day) => sum + getDayLength(day), 0) / daysData.length;
+
+  const summaryHTML = `
+    <div class="summary-card">
+      <h3>Day Length Trend</h3>
+      <div class="value">${trend}</div>
+      <div class="day-info">${trendMinutes.toFixed(0)} min change over period</div>
+    </div>
+    <div class="summary-card">
+      <h3>Avg. Day Length</h3>
+      <div class="value">${formatMinutes(avgDayLength)}</div>
+      <div class="day-info">Sunrise to sunset</div>
+    </div>
+    <div class="summary-card">
+      <h3>Total Golden Hours</h3>
+      <div class="value">${formatMinutes(totalGoldenHour)}</div>
+      <div class="day-info">Over ${daysData.length} days</div>
+    </div>
+    <div class="summary-card">
+      <h3>Usable Light Range</h3>
+      <div class="value">${formatTime(earliestUsableLight)} - ${formatTime(latestUsableLight)}</div>
+      <div class="day-info">Earliest to latest civil twilight</div>
+    </div>
+  `;
+
+  document.getElementById('summary').innerHTML = summaryHTML;
+}
+
+function renderTimeline() {
+  const timeline = document.getElementById('timeline');
+  timeline.innerHTML = '';
+
+  daysData.forEach((day, index) => {
+    const row = document.createElement('div');
+    row.className = 'day-row';
+    row.dataset.index = index;
+
+    const label = document.createElement('div');
+    label.className = 'day-label';
+    const dayLength = getDayLength(day);
+    label.innerHTML = `
+      <strong>${day.date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</strong>
+      <div class="day-info">${formatMinutes(dayLength)}</div>
+    `;
+
+    const bar = document.createElement('div');
+    bar.className = 'day-bar';
+    
+    const phases = calculatePhases(day);
+    phases.forEach(phase => {
+      const phaseDiv = document.createElement('div');
+      phaseDiv.className = `phase phase-${phase.type}`;
+      phaseDiv.style.width = `${phase.percent}%`;
+      phaseDiv.title = `${phase.type}: ${phase.start} - ${phase.end}`;
+      bar.appendChild(phaseDiv);
+    });
+
+    row.appendChild(label);
+    row.appendChild(bar);
+    timeline.appendChild(row);
+  });
+
+  activities.forEach(activity => {
+    renderActivity(activity);
+  });
+}
+
+function calculatePhases(day) {
+  const phases = [];
+  const dayStart = new Date(day.date);
+  dayStart.setHours(0, 0, 0, 0);
+  const dayEnd = new Date(day.date);
+  dayEnd.setHours(23, 59, 59, 999);
+  const totalMinutes = 24 * 60;
+
+  const times = [
+    { time: dayStart, type: 'night' },
+    { time: new Date(day.astronomical_twilight_begin), type: 'astronomical' },
+    { time: new Date(day.nautical_twilight_begin), type: 'nautical' },
+    { time: new Date(day.civil_twilight_begin), type: 'civil' },
+    { time: new Date(day.sunrise), type: 'golden' },
+    { time: new Date(day.sunrise).getTime() + 60 * 60 * 1000, type: 'day' }, // 1 hour after sunrise
+    { time: new Date(day.sunset).getTime() - 60 * 60 * 1000, type: 'golden' }, // 1 hour before sunset
+    { time: new Date(day.sunset), type: 'golden' },
+    { time: new Date(day.civil_twilight_end), type: 'civil' },
+    { time: new Date(day.nautical_twilight_end), type: 'nautical' },
+    { time: new Date(day.astronomical_twilight_end), type: 'astronomical' },
+    { time: dayEnd, type: 'night' }
+  ];
+
+  for (let i = 0; i < times.length - 1; i++) {
+    const start = new Date(times[i].time);
+    const end = new Date(times[i + 1].time);
+    const durationMinutes = (end - start) / 60000;
+    const percent = (durationMinutes / totalMinutes) * 100;
+
+    phases.push({
+      type: times[i].type,
+      start: formatTime(start),
+      end: formatTime(end),
+      percent: percent,
+      startTime: start,
+      endTime: end
+    });
+  }
+
+  return phases;
+}
+
+function addActivity() {
+  const name = document.getElementById('activityName').value;
+  const startTime = document.getElementById('activityStart').value;
+  const endTime = document.getElementById('activityEnd').value;
+
+  if (!name || !startTime || !endTime) {
+    showError('Please fill in activity details');
+    return;
+  }
+
+  const activity = {
+    id: Date.now(),
+    name: name,
+    startTime: startTime,
+    endTime: endTime
+  };
+
+  activities.push(activity);
+  renderActivity(activity);
+}
+
+function renderActivity(activity) {
+  const timeline = document.getElementById('timeline');
+  const rows = timeline.querySelectorAll('.day-row');
+
+  rows.forEach((row, dayIndex) => {
+    const day = daysData[dayIndex];
+    const bar = row.querySelector('.day-bar');
+    
+    // Remove existing activity windows for this activity
+    bar.querySelectorAll(`.activity-window[data-activity-id="${activity.id}"]`).forEach(el => el.remove());
+    
+    const activityStart = parseTime(activity.startTime);
+    const activityEnd = parseTime(activity.endTime);
+    
+    const startPercent = (activityStart / (24 * 60)) * 100;
+    const duration = activityEnd - activityStart;
+    const widthPercent = (duration / (24 * 60)) * 100;
+
+    const window = document.createElement('div');
+    window.className = 'activity-window';
+    window.dataset.activityId = activity.id;
+    window.dataset.dayIndex = dayIndex;
+    window.style.left = `${startPercent}%`;
+    window.style.width = `${widthPercent}%`;
+    window.textContent = activity.name;
+
+    const leftHandle = document.createElement('div');
+    leftHandle.className = 'resize-handle left';
+    const rightHandle = document.createElement('div');
+    rightHandle.className = 'resize-handle right';
+    
+    window.appendChild(leftHandle);
+    window.appendChild(rightHandle);
+
+    // Check match
+    const match = checkActivityMatch(day, activityStart, activityEnd);
+    const indicator = document.createElement('div');
+    indicator.className = `match-indicator match-${match}`;
+    indicator.textContent = match === 'full' ? '✓' : match === 'partial' ? '~' : '✗';
+    window.appendChild(indicator);
+
+    makeDraggable(window);
+    bar.appendChild(window);
+  });
+}
+
+function checkActivityMatch(day, activityStartMin, activityEndMin) {
+  const activityStart = new Date(day.date);
+  activityStart.setHours(0, activityStartMin, 0, 0);
+  const activityEnd = new Date(day.date);
+  activityEnd.setHours(0, activityEndMin, 0, 0);
+
+  const civilStart = new Date(day.civil_twilight_begin);
+  const civilEnd = new Date(day.civil_twilight_end);
+
+  if (activityStart >= civilStart && activityEnd <= civilEnd) {
+    return 'full';
+  } else if (activityStart < civilEnd && activityEnd > civilStart) {
+    return 'partial';
+  }
+  return 'none';
+}
+
+function makeDraggable(element) {
+  let isDragging = false;
+  let isResizing = false;
+  let resizeType = null;
+  let startX = 0;
+  let startLeft = 0;
+  let startWidth = 0;
+
+  element.addEventListener('mousedown', (e) => {
+    if (e.target.classList.contains('resize-handle')) {
+      isResizing = true;
+      resizeType = e.target.classList.contains('left') ? 'left' : 'right';
+      startX = e.clientX;
+      startLeft = element.offsetLeft;
+      startWidth = element.offsetWidth;
+    } else if (e.target === element || e.target.classList.contains('match-indicator')) {
+      isDragging = true;
+      startX = e.clientX;
+      startLeft = element.offsetLeft;
+    }
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (isDragging) {
+      const deltaX = e.clientX - startX;
+      const parentWidth = element.parentElement.offsetWidth;
+      const newLeft = startLeft + deltaX;
+      const leftPercent = (newLeft / parentWidth) * 100;
+      element.style.left = `${Math.max(0, Math.min(100 - parseFloat(element.style.width), leftPercent))}%`;
+    } else if (isResizing) {
+      const deltaX = e.clientX - startX;
+      const parentWidth = element.parentElement.offsetWidth;
+      
+      if (resizeType === 'left') {
+        const newLeft = startLeft + deltaX;
+        const newWidth = startWidth - deltaX;
+        if (newWidth > 20 && newLeft >= 0) {
+          element.style.left = `${(newLeft / parentWidth) * 100}%`;
+          element.style.width = `${(newWidth / parentWidth) * 100}%`;
+        }
+      } else {
+        const newWidth = startWidth + deltaX;
+        const rightEdge = startLeft + newWidth;
+        if (newWidth > 20 && rightEdge <= parentWidth) {
+          element.style.width = `${(newWidth / parentWidth) * 100}%`;
+        }
+      }
+    }
+  });
+
+  document.addEventListener('mouseup', () => {
+    isDragging = false;
+    isResizing = false;
+  });
+}
+
+function getDayLength(day) {
+  return (new Date(day.sunset) - new Date(day.sunrise)) / 60000;
+}
+
+function parseTime(timeStr) {
+  const [hours, minutes] = timeStr.split(':').map(Number);
+  return hours * 60 + minutes;
+}
+
+function formatTime(date) {
+  return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+}
+
+function formatMinutes(minutes) {
+  const hours = Math.floor(minutes / 60);
+  const mins = Math.floor(minutes % 60);
+  return `${hours}h ${mins}m`;
+}
+</script>
+</body>
+</html>

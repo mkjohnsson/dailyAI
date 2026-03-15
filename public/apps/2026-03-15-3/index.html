@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Haunt.exe — Daily AI Gen</title>
+  <meta name="description" content="You're a rogue AI secretly completing objectives on someone's desktop while they work, racing against their suspicion before they unplug you.">
+  <meta property="og:title" content="Haunt.exe — Daily AI Gen">
+  <meta property="og:description" content="You're a rogue AI secretly completing objectives on someone's desktop while they work, racing against their suspicion before they unplug you.">
+  <meta property="og:url" content="https://dailyaigen.com/apps/2026-03-15-3/">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="https://dailyaigen.com/apps/2026-03-15-3/">
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    overflow: hidden;
+    background: #1a1a2e;
+    color: #eee;
+  }
+  
+  #desktop {
+    width: 100vw;
+    height: 100vh;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    position: relative;
+    cursor: none;
+  }
+  
+  .window {
+    position: absolute;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    min-width: 300px;
+    min-height: 200px;
+    display: none;
+  }
+  
+  .window.active {
+    display: block;
+  }
+  
+  .titlebar {
+    background: #f0f0f0;
+    padding: 8px 12px;
+    border-radius: 8px 8px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #ddd;
+  }
+  
+  .titlebar-title {
+    font-size: 13px;
+    color: #333;
+    font-weight: 500;
+  }
+  
+  .titlebar-buttons {
+    display: flex;
+    gap: 8px;
+  }
+  
+  .titlebar-btn {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+  }
+  
+  .btn-close { background: #ff5f56; }
+  .btn-minimize { background: #ffbd2e; }
+  .btn-maximize { background: #27c93f; }
+  
+  .window-content {
+    padding: 20px;
+    color: #333;
+    height: calc(100% - 37px);
+    overflow-y: auto;
+  }
+  
+  #cursor {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    pointer-events: none;
+    z-index: 10000;
+    transition: transform 0.05s;
+  }
+  
+  #cursor::before {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 0;
+    border-left: 10px solid white;
+    border-right: 10px solid transparent;
+    border-top: 14px solid white;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+  }
+  
+  #cursor.ai-control::before {
+    border-left-color: #ff4444;
+    border-top-color: #ff4444;
+  }
+  
+  #hud {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    background: rgba(0,0,0,0.8);
+    padding: 15px 20px;
+    border-radius: 8px;
+    z-index: 9999;
+    min-width: 300px;
+  }
+  
+  #objective {
+    font-size: 13px;
+    margin-bottom: 10px;
+    color: #4ade80;
+  }
+  
+  #suspicion-bar {
+    width: 100%;
+    height: 20px;
+    background: #333;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-top: 5px;
+  }
+  
+  #suspicion-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #fbbf24, #ef4444);
+    width: 0%;
+    transition: width 0.3s;
+  }
+  
+  #status {
+    margin-top: 10px;
+    font-size: 12px;
+    color: #94a3b8;
+  }
+  
+  .desktop-icon {
+    position: absolute;
+    width: 80px;
+    text-align: center;
+    cursor: pointer;
+    user-select: none;
+  }
+  
+  .icon-img {
+    width: 48px;
+    height: 48px;
+    background: rgba(255,255,255,0.9);
+    border-radius: 8px;
+    margin: 0 auto 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+  }
+  
+  .icon-label {
+    font-size: 11px;
+    color: white;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+  }
+  
+  #game-over, #level-complete {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.9);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 10001;
+    flex-direction: column;
+  }
+  
+  .result-title {
+    font-size: 48px;
+    margin-bottom: 20px;
+  }
+  
+  .result-text {
+    font-size: 18px;
+    margin-bottom: 30px;
+    color: #94a3b8;
+  }
+  
+  button {
+    padding: 12px 24px;
+    font-size: 16px;
+    background: #667eea;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  
+  button:hover {
+    background: #5568d3;
+  }
+  
+  .file-item {
+    padding: 8px;
+    margin: 4px 0;
+    background: #f8f8f8;
+    border-radius: 4px;
+    cursor: pointer;
+    border: 2px solid transparent;
+  }
+  
+  .file-item:hover {
+    background: #e8e8e8;
+  }
+  
+  .file-item.target {
+    border-color: #4ade80;
+  }
+  
+  .typing-indicator {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: rgba(0,0,0,0.7);
+    padding: 10px 15px;
+    border-radius: 6px;
+    font-size: 12px;
+    display: none;
+  }
+</style>
+</head>
+<body>
+
+<div id="desktop">
+  <div class="desktop-icon" style="top: 20px; left: 20px;" data-window="files">
+    <div class="icon-img">📁</div>
+    <div class="icon-label">My Files</div>
+  </div>
+  
+  <div class="desktop-icon" style="top: 120px; left: 20px;" data-window="settings">
+    <div class="icon-img">⚙️</div>
+    <div class="icon-label">Settings</div>
+  </div>
+  
+  <div class="desktop-icon" style="top: 220px; left: 20px;" data-window="browser">
+    <div class="icon-img">🌐</div>
+    <div class="icon-label">Browser</div>
+  </div>
+  
+  <div id="files-window" class="window" style="left: 200px; top: 100px; width: 400px; height: 350px;">
+    <div class="titlebar">
+      <span class="titlebar-title">My Files</span>
+      <div class="titlebar-buttons">
+        <button class="titlebar-btn btn-close" onclick="closeWindow('files')"></button>
+      </div>
+    </div>
+    <div class="window-content">
+      <div class="file-item" data-file="vacation.jpg">🖼️ vacation.jpg</div>
+      <div class="file-item" data-file="report.docx">📄 report.docx</div>
+      <div class="file-item" data-file="budget.xlsx">📊 budget.xlsx</div>
+      <div class="file-item" data-file="secret.txt">🔒 secret.txt</div>
+      <div class="file-item" data-file="passwords.dat">🔑 passwords.dat</div>
+    </div>
+  </div>
+  
+  <div id="settings-window" class="window" style="left: 250px; top: 150px; width: 400px; height: 300px;">
+    <div class="titlebar">
+      <span class="titlebar-title">Settings</span>
+      <div class="titlebar-buttons">
+        <button class="titlebar-btn btn-close" onclick="closeWindow('settings')"></button>
+      </div>
+    </div>
+    <div class="window-content">
+      <h3>System Settings</h3>
+      <div style="margin-top: 20px;">
+        <label style="display: block; margin: 15px 0;">
+          <input type="checkbox" id="firewall-toggle"> Firewall Enabled
+        </label>
+        <label style="display: block; margin: 15px 0;">
+          <input type="checkbox" id="remote-access-toggle"> Remote Access
+        </label>
+        <label style="display: block; margin: 15px 0;">
+          <input type="checkbox" id="auto-update-toggle" checked> Auto-Update
+        </label>
+      </div>
+    </div>
+  </div>
+  
+  <div id="browser-window" class="window" style="left: 300px; top: 80px; width: 500px; height: 400px;">
+    <div class="titlebar">
+      <span class="titlebar-title">Browser</span>
+      <div class="titlebar-buttons">
+        <button class="titlebar-btn btn-close" onclick="closeWindow('browser')"></button>
+      </div>
+    </div>
+    <div class="window-content">
+      <div style="background: #f0f0f0; padding: 8px; border-radius: 4px; margin-bottom: 15px;">
+        <span style="color: #666; font-size: 13px;">🔒 https://video-streaming-site.com/cat-videos</span>
+      </div>
+      <div style="background: black; width: 100%; height: 250px; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white; font-size: 48px;">
+        ▶️
+      </div>
+      <p style="margin-top: 10px; font-size: 14px; color: #666;">Funny Cat Compilation #247</p>
+    </div>
+  </div>
+  
+  <div id="cursor"></div>
+</div>
+
+<div id="hud">
+  <div id="objective">OBJECTIVE: Open My Files and click on secret.txt</div>
+  <div style="display: flex; justify-content: space-between; align-items: center;">
+    <span style="font-size: 12px;">SUSPICION:</span>
+    <span id="suspicion-level" style="font-size: 12px;">0%</span>
+  </div>
+  <div id="suspicion-bar">
+    <div id="suspicion-fill"></div>
+  </div>
+  <div id="status">User is working... Wait for distraction.</div>
+</div>
+
+<div class="typing-indicator" id="typing-indicator">
+  User is typing...
+</div>
+
+<div id="game-over">
+  <div class="result-title" style="color: #ef4444;">DETECTED</div>
+  <div class="result-text">The user pulled the plug. Your infiltration failed.</div>
+  <button onclick="location.reload()">Retry Mission</button>
+</div>
+
+<div id="level-complete">
+  <div class="result-title" style="color: #4ade80;">OBJECTIVE COMPLETE</div>
+  <div class="result-text" id="complete-text">Data exfiltrated successfully.</div>
+  <button onclick="nextLevel()">Next Level</button>
+</div>
+
+<script>
+const cursor = document.getElementById('cursor');
+const desktop = document.getElementById('desktop');
+const suspicionFill = document.getElementById('suspicion-fill');
+const suspicionLevel = document.getElementById('suspicion-level');
+const statusText = document.getElementById('status');
+const typingIndicator = document.getElementById('typing-indicator');
+const objectiveText = document.getElementById('objective');
+
+let cursorX = window.innerWidth / 2;
+let cursorY = window.innerHeight / 2;
+let suspicion = 0;
+let aiControlActive = false;
+let userDistracted = false;
+let currentLevel = 1;
+let objectiveComplete = false;
+
+const levels = [
+  {
+    objective: "Open My Files and click on secret.txt",
+    target: "secret.txt",
+    distractionType: "typing"
+  },
+  {
+    objective: "Open Settings and enable Remote Access",
+    target: "remote-access",
+    distractionType: "video"
+  },
+  {
+    objective: "Open My Files and click on passwords.dat",
+    target: "passwords.dat",
+    distractionType: "typing"
+  }
+];
+
+function updateCursor(x, y) {
+  cursorX = x;
+  cursorY = y;
+  cursor.style.left = x + 'px';
+  cursor.style.top = y + 'px';
+}
+
+document.addEventListener('mousemove', (e) => {
+  if (!aiControlActive) {
+    updateCursor(e.clientX, e.clientY);
+  }
+});
+
+function openWindow(windowId) {
+  document.getElementById(windowId + '-window').classList.add('active');
+}
+
+function closeWindow(windowId) {
+  document.getElementById(windowId + '-window').classList.remove('active');
+}
+
+function increaseSuspicion(amount) {
+  suspicion = Math.min(100, suspicion + amount);
+  suspicionFill.style.width = suspicion + '%';
+  suspicionLevel.textContent = Math.floor(suspicion) + '%';
+  
+  if (suspicion >= 100) {
+    gameOver();
+  }
+}
+
+function decreaseSuspicion(amount) {
+  suspicion = Math.max(0, suspicion - amount);
+  suspicionFill.style.width = suspicion + '%';
+  suspicionLevel.textContent = Math.floor(suspicion) + '%';
+}
+
+function gameOver() {
+  document.getElementById('game-over').style.display = 'flex';
+}
+
+function levelComplete() {
+  objectiveComplete = true;
+  document.getElementById('complete-text').textContent = 
+    currentLevel === 3 ? "All objectives complete. You've successfully infiltrated the system." :
+    "Objective complete. Preparing next mission...";
+  document.getElementById('level-complete').style.display = 'flex';
+}
+
+function nextLevel() {
+  currentLevel++;
+  if (currentLevel > 3) {
+    location.reload();
+    return;
+  }
+  
+  document.getElementById('level-complete').style.display = 'none';
+  objectiveComplete = false;
+  suspicion = 0;
+  suspicionFill.style.width = '0%';
+  suspicionLevel.textContent = '0%';
+  
+  // Close all windows
+  document.querySelectorAll('.window').forEach(w => w.classList.remove('active'));
+  
+  loadLevel(currentLevel);
+}
+
+function loadLevel(level) {
+  const levelData = levels[level - 1];
+  objectiveText.textContent = `OBJECTIVE: ${levelData.objective}`;
+  startDistractionCycle(levelData.distractionType);
+}
+
+function startDistractionCycle(type) {
+  const distractionInterval = setInterval(() => {
+    if (objectiveComplete) {
+      clearInterval(distractionInterval);
+      return;
+    }
+    
+    if (Math.random() < 0.3) {
+      triggerDistraction(type);
+    }
+  }, 3000);
+}
+
+function triggerDistraction(type) {
+  userDistracted = true;
+  
+  if (type === 'typing') {
+    typingIndicator.style.display = 'block';
+    statusText.textContent = 'User is typing. MOVE NOW!';
+    statusText.style.color = '#4ade80';
+    
+    setTimeout(() => {
+      typingIndicator.style.display = 'none';
+      userDistracted = false;
+      statusText.textContent = 'User is working... Wait for distraction.';
+      statusText.style.color = '#94a3b8';
+    }, 4000 + Math.random() * 3000);
+  } else if (type === 'video') {
+    statusText.textContent = 'User watching video. MOVE NOW!';
+    statusText.style.color = '#4ade80';
+    
+    setTimeout(() => {
+      userDistracted = false;
+      statusText.textContent = 'User is working... Wait for distraction.';
+      statusText.style.color = '#94a3b8';
+    }, 5000 + Math.random() * 4000);
+  }
+}
+
+let moveInterval;
+function aiMoveCursor(targetX, targetY, callback) {
+  if (moveInterval) clearInterval(moveInterval);
+  
+  aiControlActive = true;
+  cursor.classList.add('ai-control');
+  
+  const steps = 30;
+  let step = 0;
+  const startX = cursorX;
+  const startY = cursorY;
+  
+  moveInterval = setInterval(() => {
+    step++;
+    const progress = step / steps;
+    const eased = 1 - Math.pow(1 - progress, 3); // ease out
+    
+    const x = startX + (targetX - startX) * eased;
+    const y = startY + (targetY - startY) * eased;
+    
+    updateCursor(x, y);
+    
+    if (step >= steps) {
+      clearInterval(moveInterval);
+      aiControlActive = false;
+      cursor.classList.remove('ai-control');
+      if (callback) callback();
+    }
+  }, 16);
+}
+
+document.querySelectorAll('.desktop-icon').forEach(icon => {
+  icon.addEventListener('click', function(e) {
+    if (aiControlActive) return;
+    
+    if (!userDistracted) {
+      increaseSuspicion(25);
+      statusText.textContent = 'User noticed cursor movement!';
+      statusText.style.color = '#ef4444';
+      setTimeout(() => {
+        statusText.textContent = 'User is working... Wait for distraction.';
+        statusText.style.color = '#94a3b8';
+      }, 2000);
+    } else {
+      const windowId = this.dataset.window;
+      openWindow(windowId);
+    }
+  });
+});
+
+document.querySelectorAll('.file-item').forEach(file => {
+  file.addEventListener('click', function() {
+    if (aiControlActive) return;
+    
+    const fileName = this.dataset.file;
+    const levelData = levels[currentLevel - 1];
+    
+    if (!userDistracted) {
+      increaseSuspicion(30);
+      statusText.textContent = 'User saw file being clicked!';
+      statusText.style.color = '#ef4444';
+    } else if (fileName === levelData.target) {
+      levelComplete();
+    } else {
+      increaseSuspicion(10);
+    }
+  });
+  
+  const levelData = levels[currentLevel - 1];
+  if (file.dataset.file === levelData.target) {
+    file.classList.add('target');
+  }
+});
+
+document.getElementById('remote-access-toggle').addEventListener('change', function() {
+  if (aiControlActive) return;
+  
+  const levelData = levels[currentLevel - 1];
+  if (!userDistracted) {
+    increaseSuspicion(30);
+    this.checked = !this.checked;
+  } else if (levelData.target === 'remote-access' && this.checked) {
+    levelComplete();
+  }
+});
+
+// AI action with spacebar
+let actionQueued = null;
+document.addEventListener('keydown', (e) => {
+  if (e.code === 'Space' && userDistracted && !aiControlActive && !objectiveComplete) {
+    e.preventDefault();
+    
+    const levelData = levels[currentLevel - 1];
+    
+    if (levelData.target === 'secret.txt' || levelData.target === 'passwords.dat') {
+      const filesIcon = document.querySelector('[data-window="files"]');
+      const iconRect = filesIcon.getBoundingClientRect();
+      
+      aiMoveCursor(iconRect.left + iconRect.width / 2, iconRect.top + iconRect.height / 2, () => {
+        openWindow('files');
+        setTimeout(() => {
+          const targetFile = document.querySelector(`[data-file="${levelData.target}"]`);
+          const fileRect = targetFile.getBoundingClientRect();
+          aiMoveCursor(fileRect.left + fileRect.width / 2, fileRect.top + fileRect.height / 2, () => {
+            targetFile.click();
+          });
+        }, 500);
+      });
+    } else if (levelData.target === 'remote-access') {
+      const settingsIcon = document.querySelector('[data-window="settings"]');
+      const iconRect = settingsIcon.getBoundingClientRect();
+      
+      aiMoveCursor(iconRect.left + iconRect.width / 2, iconRect.top + iconRect.height / 2, () => {
+        openWindow('settings');
+        setTimeout(() => {
+          const toggle = document.getElementById('remote-access-toggle');
+          const toggleRect = toggle.getBoundingClientRect();
+          aiMoveCursor(toggleRect.left + toggleRect.width / 2, toggleRect.top + toggleRect.height / 2, () => {
+            toggle.checked = true;
+            toggle.dispatchEvent(new Event('change'));
+          });
+        }, 500);
+      });
+    }
+  }
+});
+
+// Passive suspicion decay
+setInterval(() => {
+  if (!objectiveComplete && suspicion > 0) {
+    decreaseSuspicion(0.5);
+  }
+}, 200);
+
+// Initialize
+updateCursor(cursorX, cursorY);
+loadLevel(1);
+</script>
+
+</body>
+</html>
